@@ -1932,9 +1932,9 @@
                                 :key="pay.id"
                             >
 
-                                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between">
+                                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
 
-                                    <div>
+                                    <div class="min-w-0">
 
                                         <span
                                             class="text-xs text-slate-400 block"
@@ -1942,16 +1942,30 @@
                                         ></span>
 
                                         <span
-                                            class="text-xs"
+                                            class="text-xs block truncate"
                                             x-text="pay.notes || 'تسديد دفعة'"
                                         ></span>
 
                                     </div>
 
-                                    <div
-                                        class="font-bold text-emerald-600"
-                                        x-text="'+ ' + pay.amount + ' ر.س'"
-                                    ></div>
+                                    <div class="flex items-center gap-2 shrink-0">
+
+                                        <div
+                                            class="font-bold text-emerald-600"
+                                            x-text="'+ ' + pay.amount + ' ر.س'"
+                                        ></div>
+
+                                        <button
+                                            type="button"
+                                            @click="deletePayment(selectedStudent.id, pay.id)"
+                                            class="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition"
+                                            title="حذف الدفعة"
+                                            aria-label="حذف الدفعة"
+                                        >
+                                            <i class="fa-regular fa-trash-can text-[11px]"></i>
+                                        </button>
+
+                                    </div>
 
                                 </div>
 
@@ -3738,6 +3752,39 @@ function teacherApp() {
             });
 
             this.showPaymentModal = false;
+            this.persistAppData();
+            this.$nextTick(() => this.refreshIncomeChart());
+        },
+
+        deletePayment(studentId, paymentId) {
+
+            const student =
+                this.students.find(
+                    s => s.id === Number(studentId)
+                );
+
+            if (!student) return;
+
+            const payment =
+                (student.payments || []).find(
+                    p => p.id === Number(paymentId)
+                );
+
+            if (!payment) return;
+
+            if (!confirm(
+                `هل تريد حذف هذه الدفعة بقيمة ${payment.amount} ر.س؟\nسيتم تحديث إجمالي المدفوع والدين تلقائياً.`
+            )) return;
+
+            student.payments =
+                (student.payments || []).filter(
+                    p => p.id !== Number(paymentId)
+                );
+
+            if (this.selectedStudent && this.selectedStudent.id === Number(studentId)) {
+                this.selectedStudent = student;
+            }
+
             this.persistAppData();
             this.$nextTick(() => this.refreshIncomeChart());
         },
