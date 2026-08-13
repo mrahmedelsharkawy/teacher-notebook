@@ -1,0 +1,111 @@
+name: Configure Google Drive sync
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[drive-sync-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Patch index.html for Google Drive OAuth and safe auto-sync
+        env:
+          CLIENT_ID: '741772805324-eurbdf8cbioovh3f78c4t3bl94iks8hi.apps.googleusercontent.com'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os, re
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          client_id = os.environ['CLIENT_ID']
+          old = "googleClientId: '97654130737-rnhb42jubfoodeakgmep49c1cjrlimq2.apps.googleusercontent.com'"
+          new = f"googleClientId: '{client_id}'"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif "googleClientId: '" in s:
+              s = re.sub(r"googleClientId:\s*'[^']*'", new, s, count=1)
+          gis = '<script async defer src="https://accounts.google.com/gsi/client"></script>'
+          if 'https://accounts.google.com/gsi/client' not in s:
+              s = s.replace('</head>', '    ' + gis + '\n</head>', 1)
+          old_callback = """                        this.googleAccessToken = response.access_token;
+                        this.driveConnected = true;
+                        this.driveStatus = 'تم ربط Google Drive. تتم المزامنة تلقائياً بعد التعديلات.';
+                        this.syncToDrive(false);"""
+          new_callback = """                        this.googleAccessToken = response.access_token;
+                        this.driveConnected = true;
+                        localStorage.setItem('teacherNotebookDriveConnected', '1');
+                        this.driveStatus = 'تم ربط Google Drive. جارٍ التحقق من أحدث نسخة...';
+                        this.syncFromDriveOnConnect();"""
+          if old_callback in s:
+              s = s.replace(old_callback, new_callback, 1)
+          marker = "        async syncFromDriveOnConnect() {"
+          if marker not in s:
+              anchor = "        connectGoogleDrive() {"
+              method = """        async syncFromDriveOnConnect() {
+            try {
+                const file = this.driveFileId ? { id: this.driveFileId } : await this.findDriveDataFile();
+                if (!file) {
+                    this.driveStatus = 'لا توجد نسخة على Google Drive؛ سيتم رفع البيانات الحالية لأول مرة.';
+                    await this.syncToDrive(false);
+                    return;
+                }
+                this.driveFileId = file.id;
+                const res = await this.driveRequest(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
+                if (!res.ok) throw new Error(await res.text());
+                const data = await res.json();
+                if (Array.isArray(data.students)) this.students = data.students;
+                if (Array.isArray(data.archivedStudents)) this.archivedStudents = data.archivedStudents;
+                if (data.teacher) {
+                    this.teacher = { ...this.teacher, ...data.teacher };
+                    this.teacherForm = JSON.parse(JSON.stringify(this.teacher));
+                }
+                localStorage.setItem('teacherNotebookData', JSON.stringify(data));
+                localStorage.setItem('teacherProfile', JSON.stringify(this.teacher));
+                this.driveStatus = 'تم تحميل أحدث البيانات من Google Drive: ' + new Date().toLocaleTimeString('ar-EG');
+            } catch (error) {
+                console.error(error);
+                this.driveStatus = 'تعذر تحميل البيانات من Drive؛ لم يتم استبدال بيانات الجهاز.';
+            }
+        },
+
+"""
+              s = s.replace(anchor, method + anchor, 1)
+          old_connect = "            this.googleTokenClient.requestAccessToken({ prompt: this.googleAccessToken ? '' : 'consent' });"
+          new_connect = "            localStorage.setItem('teacherNotebookDriveConnected', '1');\n            this.googleTokenClient.requestAccessToken({ prompt: this.googleAccessToken ? '' : 'consent' });"
+          if old_connect in s:
+              s = s.replace(old_connect, new_connect, 1)
+          old_end = """                });
+            };
+            start();
+        },"""
+          new_end = """                });
+                if (localStorage.getItem('teacherNotebookDriveConnected') === '1') {
+                    setTimeout(() => {
+                        try { this.googleTokenClient.requestAccessToken({ prompt: '' }); } catch (e) { console.warn(e); }
+                    }, 500);
+                }
+            };
+            start();
+        },"""
+          if old_end in s:
+              s = s.replace(old_end, new_end, 1)
+          old_restore = """                if (Array.isArray(data.students)) this.students = data.students;
+                if (data.teacher) {"""
+          new_restore = """                if (Array.isArray(data.students)) this.students = data.students;
+                if (Array.isArray(data.archivedStudents)) this.archivedStudents = data.archivedStudents;
+                if (data.teacher) {"""
+          if old_restore in s:
+              s = s.replace(old_restore, new_restore, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patched app
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Enable Google Drive sync [drive-sync-patched]'
+          git push
