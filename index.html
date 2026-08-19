@@ -1411,6 +1411,20 @@
 
                 </div>
 
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-2">مدة الحصة (بالساعات)</label>
+                    <input
+                        type="number"
+                        x-model.number="lessonForm.duration"
+                        min="0.25"
+                        step="0.25"
+                        required
+                        placeholder="مثال: 1 أو 1.25"
+                        class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"
+                    >
+                    <p class="text-[10px] text-slate-400 mt-1">مثال: 1 = ساعة، 1.25 = ساعة و15 دقيقة، 1.5 = ساعة ونصف.</p>
+                </div>
+
 
                 <div>
                     <div class="text-xs font-bold text-slate-600 mb-2">حالة الحصة</div>
@@ -1558,7 +1572,7 @@
                             </div>
 
                             <div class="mt-3 flex items-center justify-between text-xs">
-                                <span class="text-slate-400">سعر الحصة</span>
+                                <span class="text-slate-400">سعر الساعة</span>
                                 <span class="font-bold text-slate-700" x-text="student.price + ' ر.س'"></span>
                             </div>
 
@@ -1621,11 +1635,12 @@
                                     <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                                         <span><i class="fa-regular fa-calendar ml-1"></i><span x-text="item.lesson.date"></span></span>
                                         <span><i class="fa-regular fa-clock ml-1"></i><span x-text="formatTime(item.lesson.time)"></span></span>
+                                        <span><i class="fa-regular fa-hourglass-half ml-1"></i><span x-text="formatLessonDuration(item.lesson.duration)"></span></span>
                                         <span x-show="item.lesson.notes"><i class="fa-regular fa-note-sticky ml-1"></i><span x-text="item.lesson.notes"></span></span>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 shrink-0"><div class="flex items-center gap-1" aria-label="حالة الحصة"><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'تم')" :class="['status-action done', item.lesson.status === 'تم' ? 'is-active' : '']" title="تمت الحصة" aria-label="تمت الحصة"><i class="fa-solid fa-check"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'انتظار')" :class="['status-action wait', item.lesson.status === 'انتظار' ? 'is-active' : '']" title="بانتظار الحصة" aria-label="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'لم تتم')" :class="['status-action missed', item.lesson.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button></div><button @click="openStudentDetails(students.find(s => s.id === item.studentId))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button></div>
+                                <div class="flex items-center gap-2 shrink-0"><div class="flex items-center gap-1" aria-label="حالة الحصة"><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'تم')" :class="['status-action done', item.lesson.status === 'تم' ? 'is-active' : '']" title="تمت الحصة" aria-label="تمت الحصة"><i class="fa-solid fa-check"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'انتظار')" :class="['status-action wait', item.lesson.status === 'انتظار' ? 'is-active' : '']" title="بانتظار الحصة" aria-label="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'لم تتم')" :class="['status-action missed', item.lesson.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button></div><button @click="openStudentDetails(students.find(s => s.id === item.studentId))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button><button @click="deleteLesson(item.studentId, item.lesson.id)" class="w-9 h-9 rounded-lg bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 hover:text-rose-600" title="حذف الحصة" aria-label="حذف الحصة"><i class="fa-regular fa-trash-can text-xs"></i></button></div>
                         </template>
 
                         <div x-show="allLessons().length === 0" class="py-10 text-center text-slate-400">
@@ -1856,7 +1871,7 @@
 
                                             <div
                                                 class="text-xs text-slate-400 mt-1"
-                                                x-text="lesson.notes || 'بدون ملاحظات'"
+                                                x-text="formatLessonDuration(lesson.duration) + ' · ' + (lesson.notes || 'بدون ملاحظات')"
                                             ></div>
 
                                         </div>
@@ -2064,7 +2079,7 @@
                 <input
                     type="number"
                     x-model.number="studentForm.price"
-                    placeholder="سعر الحصة"
+                    placeholder="سعر الساعة"
                     
                     class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"
                 >
@@ -2212,7 +2227,7 @@
                                     <div class="grid grid-cols-3 gap-2 flex-1">
                                         <div class="rounded-lg bg-blue-50 p-2 text-center">
                                             <div class="text-[11px] text-blue-500">إجمالي المستحق</div>
-                                            <div class="font-bold text-blue-700 mt-1" x-text="(calculateCompletedLessonsCount(student) * Number(student.price || 0)) + ' ر.س'"></div>
+                                            <div class="font-bold text-blue-700 mt-1" x-text="calculateStudentExpectedIncome(student) + ' ر.س'"></div>
                                         </div>
                                         <div class="rounded-lg bg-emerald-50 p-2 text-center">
                                             <div class="text-[11px] text-emerald-500">تم دفعه</div>
@@ -2413,7 +2428,7 @@
                     <div class="contact-finance">
                         <div class="rounded-xl bg-blue-50 p-3 text-center">
                             <div class="text-[11px] text-blue-500">الإجمالي</div>
-                            <div class="font-bold text-blue-700 mt-1" x-text="(calculateCompletedLessonsCount(student) * Number(student.price || 0)) + ' ر.س'"></div>
+                            <div class="font-bold text-blue-700 mt-1" x-text="calculateStudentExpectedIncome(student) + ' ر.س'"></div>
                         </div>
                         <div class="rounded-xl bg-emerald-50 p-3 text-center">
                             <div class="text-[11px] text-emerald-500">تم دفعه</div>
@@ -2472,7 +2487,7 @@
                     <div class="contact-finance">
                         <div class="rounded-xl bg-blue-50 p-3 text-center">
                             <div class="text-[11px] text-blue-500">الإجمالي</div>
-                            <div class="font-bold text-blue-700 mt-1" x-text="(calculateCompletedLessonsCount(record.student) * Number(record.student.price || 0)) + ' ر.س'"></div>
+                            <div class="font-bold text-blue-700 mt-1" x-text="calculateStudentExpectedIncome(record.student) + ' ر.س'"></div>
                         </div>
                         <div class="rounded-xl bg-emerald-50 p-3 text-center">
                             <div class="text-[11px] text-emerald-500">تم دفعه</div>
@@ -2926,6 +2941,7 @@ function teacherApp() {
             hour: '05',
             minute: '00',
             period: 'PM',
+            duration: 1,
             status: 'انتظار',
             notes: ''
         },
@@ -3355,9 +3371,33 @@ function teacherApp() {
 
         calculateCompletedLessonsCount(student) {
 
-            return student.lessons.filter(
+            return (student.lessons || []).filter(
                 lesson => lesson.status === 'تم'
             ).length;
+        },
+
+
+        calculateStudentExpectedIncome(student) {
+
+            return (student.lessons || []).reduce((total, lesson) => {
+                if (lesson.status !== 'تم') return total;
+
+                const duration = Math.max(0.25, Number(lesson.duration || 1));
+                const hourlyPrice = Number(student.price || 0);
+
+                return total + (hourlyPrice * duration);
+            }, 0);
+        },
+
+
+        formatLessonDuration(duration) {
+            const value = Math.max(0.25, Number(duration || 1));
+            const hours = Math.floor(value);
+            const minutes = Math.round((value - hours) * 60);
+
+            if (hours === 0) return `${minutes} دقيقة`;
+            if (minutes === 0) return `${hours} ${hours === 1 ? 'ساعة' : 'ساعات'}`;
+            return `${hours} ساعة و${minutes} دقيقة`;
         },
 
 
@@ -3373,9 +3413,7 @@ function teacherApp() {
 
         calculateStudentDebt(student) {
 
-            const earned =
-                this.calculateCompletedLessonsCount(student) *
-                Number(student.price || 0);
+            const earned = this.calculateStudentExpectedIncome(student);
 
             const paid =
                 this.calculateStudentPaid(student);
@@ -3402,9 +3440,7 @@ function teacherApp() {
 
             return this.students.reduce(
                 (total, student) =>
-                    total +
-                    this.calculateCompletedLessonsCount(student) *
-                    Number(student.price || 0),
+                    total + this.calculateStudentExpectedIncome(student),
                 0
             );
         },
@@ -3614,6 +3650,7 @@ function teacherApp() {
                 hour: '05',
                 minute: '00',
                 period: 'PM',
+                duration: 1,
 
                 status: 'انتظار',
 
@@ -3642,6 +3679,7 @@ function teacherApp() {
             if (period === 'PM' && hour !== 12) hour += 12;
             if (period === 'AM' && hour === 12) hour = 0;
             const time24 = `${String(hour).padStart(2, '0')}:${minute}`;
+            const duration = Math.max(0.25, Number(this.lessonForm.duration || 1));
 
             student.lessons.push({
 
@@ -3650,6 +3688,7 @@ function teacherApp() {
                 date: this.lessonForm.date,
 
                 time: time24,
+                duration,
 
                 status: this.lessonForm.status,
 
@@ -3691,17 +3730,33 @@ function teacherApp() {
 
             const student =
                 this.students.find(
-                    s => s.id === studentId
+                    s => s.id === Number(studentId)
                 );
 
             if (!student) return;
 
-            student.lessons =
-                student.lessons.filter(
-                    lesson =>
-                        lesson.id !== lessonId
+            const lesson =
+                (student.lessons || []).find(
+                    item => item.id === Number(lessonId)
                 );
+
+            if (!lesson) return;
+
+            if (!confirm(
+                `هل تريد حذف هذه الحصة بتاريخ ${lesson.date}؟\nسيتم تحديث إجمالي المستحق والدين تلقائياً.`
+            )) return;
+
+            student.lessons =
+                (student.lessons || []).filter(
+                    item => item.id !== Number(lessonId)
+                );
+
+            if (this.selectedStudent && this.selectedStudent.id === Number(studentId)) {
+                this.selectedStudent = student;
+            }
+
             this.persistAppData();
+            this.$nextTick(() => this.refreshIncomeChart());
         },
 
 
