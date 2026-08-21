@@ -1667,6 +1667,32 @@
 }
 </style>
 
+<style id="requested-v12-design">
+/* Next lesson: analog clock on the left, title/details on the right */
+.dashboard-next-card > .flex,
+.dashboard-next-card .items-center.gap-4.h-full{
+    direction:ltr!important;
+}
+.dashboard-next-card .dashboard-next-analog{order:1!important;}
+.dashboard-next-card .min-w-0.flex-1{order:2!important;text-align:right!important;direction:rtl!important;}
+
+/* Mobile-friendly finance chart */
+.finance-chart-wrap{
+    position:relative!important;
+    width:100%!important;
+    height:300px!important;
+    min-height:300px!important;
+}
+@media(max-width:640px){
+    .finance-chart-wrap{height:240px!important;min-height:240px!important;}
+}
+
+/* Calendar day popup */
+.calendar-day-popup-backdrop{z-index:80!important;}
+.calendar-day-popup{max-width:420px!important;width:100%!important;}
+.calendar-day-lesson{border:1px solid #e2e8f0!important;border-radius:12px!important;background:#f8fafc!important;padding:10px!important;}
+.fixed-lessons-button{background:linear-gradient(135deg,#7c3aed,#6d28d9)!important;}
+</style>
 </head>
 
 <body
@@ -1945,82 +1971,6 @@
                 </div>
 
                 <!-- =================================================
-                     WEEKLY SCHEDULE
-                ================================================== -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-
-                    <div class="p-5 border-b border-slate-100">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                                    <i class="fa-solid fa-calendar-week text-brand-600"></i>
-                                    جدول حصص الأسبوع
-                                </h3>
-                                <p class="text-xs text-slate-400 mt-1" x-text="getCurrentWeekLabel()"></p>
-                            </div>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <button type="button" @click="changeWeek(-1)" class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition" title="الأسبوع السابق" aria-label="الأسبوع السابق">
-                                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
-                                </button>
-                                <span class="text-[10px] bg-brand-50 text-brand-700 font-bold px-2.5 py-1.5 rounded-full whitespace-nowrap" x-text="getThisWeekLessons().length + ' حصة'"></span>
-                                <button type="button" @click="changeWeek(1)" class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition" title="الأسبوع التالي" aria-label="الأسبوع التالي">
-                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-5">
-                        <div class="weekly-days">
-                            <template x-for="day in getWeekDays()" :key="day.date">
-                                <div
-                                    class="weekly-day"
-                                    :class="day.lessons.length ? (day.isToday ? 'weekly-day-today' : 'weekly-day-active') : 'weekly-day-empty'"
-                                >
-                                    <div class="weekly-day-header">
-                                        <div class="flex items-center gap-2 min-w-0">
-                                            <div class="weekly-day-number">
-                                                <span x-text="day.dayNumber"></span>
-                                            </div>
-                                            <div class="min-w-0">
-                                                <div class="weekly-day-name" x-text="day.name"></div>
-                                                <div class="weekly-day-date" x-text="day.dateLabel"></div>
-                                            </div>
-                                        </div>
-
-                                        <span class="weekly-day-count" x-text="day.lessons.length ? (day.lessons.length + ' حصة') : 'فارغ'"></span>
-                                    </div>
-
-                                    <template x-if="day.lessons.length">
-                                        <div class="weekly-day-lessons">
-                                            <template
-                                                x-for="item in day.lessons"
-                                                :key="item.studentId + '-' + item.lesson.id"
-                                            >
-                                                <div class="weekly-lesson">
-                                                    <div class="flex items-center justify-between gap-2">
-                                                        <span class="weekly-lesson-time" x-text="formatTime(item.lesson.time)"></span>
-                                                        <span
-                                                            class="status-action !w-6 !h-6 !text-[9px]"
-                                                            :class="item.lesson.status === 'تم' ? 'done is-active' : (item.lesson.status === 'انتظار' ? 'wait is-active' : 'missed is-active')"
-                                                            :title="item.lesson.status"
-                                                        >
-                                                            <i :class="item.lesson.status === 'تم' ? 'fa-solid fa-check' : (item.lesson.status === 'انتظار' ? 'fa-solid fa-hourglass-half' : 'fa-solid fa-xmark')"></i>
-                                                        </span>
-                                                    </div>
-                                                    <div class="weekly-lesson-name" x-text="item.studentName"></div>
-                                                    <div class="weekly-lesson-meta" x-text="item.subjectType"></div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- =================================================
                      MONTH CALENDAR
                 ================================================== -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -2059,6 +2009,9 @@
                                         'has-lessons': cell.lessons.length > 0,
                                         'today': cell.isToday
                                     }"
+                                    @click="!cell.outside && openCalendarDay(cell)"
+                                    role="button"
+                                    :tabindex="cell.outside ? -1 : 0"
                                 >
                                     <template x-if="!cell.outside">
                                         <div>
@@ -2586,12 +2539,21 @@
                                     ></span>
                                 </div>
 
+                                <div class="flex items-center gap-2">
                                 <button
                                     @click="openAddLessonModal(selectedStudent.id)"
                                     class="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg"
                                 >
                                     + إضافة حصة
                                 </button>
+                                <button
+                                    @click="openFixedLessonsModal(selectedStudent.id)"
+                                    class="text-xs fixed-lessons-button text-white px-3 py-1.5 rounded-lg"
+                                >
+                                    <i class="fa-solid fa-repeat ml-1"></i>
+                                    حصص ثابتة طوال الشهر
+                                </button>
+                            </div>
 
                             </div>
 
@@ -3019,7 +2981,7 @@
 
                     <p class="text-xs text-slate-400 mb-4">الدخل الفعلي المحصل من الدفعات المسجلة خلال أشهر السنة كاملة.</p>
 
-                    <div class="h-64">
+                    <div class="finance-chart-wrap">
                         <canvas id="incomeChart"></canvas>
                     </div>
 
@@ -3609,6 +3571,21 @@ function teacherApp() {
         showStudentModal: false,
         showLessonModal: false,
         showPaymentModal: false,
+        showCalendarDayModal: false,
+        calendarDayDate: '',
+        calendarDayLabel: '',
+        calendarDayLessons: [],
+
+        showFixedLessonsModal: false,
+        fixedLessonsForm: {
+            studentId: null,
+            time: '17:00',
+            hour: '05',
+            minute: '00',
+            period: 'PM',
+            duration: 1,
+            weekdays: [0, 3]
+        },
 
         isEditStudent: false,
 
@@ -3712,6 +3689,12 @@ function teacherApp() {
 
             this.$nextTick(() => {
                 this.initChart();
+            });
+
+            this.$watch('activeTab', (tab) => {
+                if (tab === 'finance') {
+                    setTimeout(() => this.initChart(), 120);
+                }
             });
         },
 
@@ -4410,14 +4393,93 @@ function teacherApp() {
            LESSON ACTIONS
         ========================== */
 
-        openAddLessonModal(studentId = '') {
+        openCalendarDay(cell) {
+            if (!cell || cell.outside) return;
+            this.calendarDayDate = cell.date;
+            this.calendarDayLabel = cell.date;
+            this.calendarDayLessons = Array.isArray(cell.lessons) ? cell.lessons : [];
+            this.showCalendarDayModal = true;
+        },
+
+        openFixedLessonsModal(studentId) {
+            this.fixedLessonsForm = {
+                studentId: Number(studentId),
+                time: '17:00',
+                hour: '05',
+                minute: '00',
+                period: 'PM',
+                duration: 1,
+                weekdays: [0, 3]
+            };
+            this.showFixedLessonsModal = true;
+        },
+
+        createFixedMonthlyLessons() {
+            const student = this.students.find(s => s.id === Number(this.fixedLessonsForm.studentId));
+            if (!student) return;
+
+            const weekdays = (this.fixedLessonsForm.weekdays || []).map(Number);
+            if (!weekdays.length) {
+                alert('اختر يوماً واحداً على الأقل.');
+                return;
+            }
+
+            let hour = Number(this.fixedLessonsForm.hour || 12);
+            const minute = String(this.fixedLessonsForm.minute || '00').padStart(2, '0');
+            if (this.fixedLessonsForm.period === 'PM' && hour !== 12) hour += 12;
+            if (this.fixedLessonsForm.period === 'AM' && hour === 12) hour = 0;
+            const time24 = `${String(hour).padStart(2,'0')}:${minute}`;
+            const duration = Number(this.fixedLessonsForm.duration) || 1;
+
+            const base = new Date();
+            base.setDate(1);
+            base.setMonth(base.getMonth() + this.monthOffset);
+            const year = base.getFullYear();
+            const month = base.getMonth();
+            const lastDay = new Date(year, month + 1, 0).getDate();
+
+            let created = 0;
+            for (let day = 1; day <= lastDay; day++) {
+                const d = new Date(year, month, day);
+                const weekday = (d.getDay() + 1) % 7;
+                if (!weekdays.includes(weekday)) continue;
+
+                const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const duplicate = (student.lessons || []).some(
+                    l => l.date === iso && l.time === time24 && l.notes === 'حصة ثابتة طوال الشهر'
+                );
+                if (duplicate) continue;
+
+                student.lessons.push({
+                    id: Date.now() + created + Math.floor(Math.random()*1000),
+                    date: iso,
+                    time: time24,
+                    duration,
+                    status: 'انتظار',
+                    notes: 'حصة ثابتة طوال الشهر'
+                });
+                created++;
+            }
+
+            this.persistAppData();
+            if (this.selectedStudent && this.selectedStudent.id === student.id) {
+                this.selectedStudent = student;
+            }
+            this.showFixedLessonsModal = false;
+            this.$nextTick(() => {
+                if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
+            });
+            alert(created ? `تم إنشاء ${created} حصة في تقويم الشهر.` : 'لا توجد حصص جديدة لإنشائها.');
+        },
+
+        openAddLessonModal(studentId = '', presetDate = '') {
 
             this.isEditingLesson = false;
 
             this.lessonForm = {
                 id: null,
                 studentId: studentId || (this.students[0] ? this.students[0].id : ''),
-                date: this.getTodayISO(),
+                date: presetDate || this.getTodayISO(),
                 time: '17:00',
                 hour: '05',
                 minute: '00',
@@ -5065,9 +5127,26 @@ function teacherApp() {
 
         getAcademicMonthLabels() {
             return [
-                'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
-                'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'
+                'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر', 'يناير',
+                'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو'
             ];
+        },
+
+        getAcademicMonthlyIncome() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const transactions = this.allFinancialTransactions();
+
+            // August through December belong to the current calendar year;
+            // January through July belong to the following year.
+            const months = [7,8,9,10,11,0,1,2,3,4,5,6];
+            return months.map((monthIndex, position) => {
+                const year = position < 5 ? currentYear : currentYear + 1;
+                return transactions.filter(t => {
+                    const d = new Date(t.date);
+                    return d.getFullYear() === year && d.getMonth() === monthIndex;
+                }).reduce((sum,t) => sum + Number(t.amount || 0), 0);
+            });
         },
 
         initChart() {
@@ -5077,18 +5156,20 @@ function teacherApp() {
             if (this.incomeChart) this.incomeChart.destroy();
 
             this.incomeChart = new Chart(canvas, {
-                type: 'bar',
+                type: 'line',
                 data: {
-                    labels: this.getCalendarYearMonthLabels(),
+                    labels: this.getAcademicMonthLabels(),
                     datasets: [{
                         label: 'الدخل الفعلي',
-                        data: this.getMonthlyIncomeCalendarYear(),
-                        backgroundColor: 'rgba(37, 99, 235, 0.78)',
-                        borderColor: '#1d4ed8',
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        borderSkipped: false,
-                        maxBarThickness: 34
+                        data: this.getAcademicMonthlyIncome(),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.10)',
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        pointBorderWidth: 2,
+                        fill: true,
+                        tension: 0.35
                     }]
                 },
                 options: {
@@ -5132,8 +5213,8 @@ function teacherApp() {
                 this.initChart();
                 return;
             }
-            this.incomeChart.data.labels = this.getCalendarYearMonthLabels();
-            this.incomeChart.data.datasets[0].data = this.getMonthlyIncomeCalendarYear();
+            this.incomeChart.data.labels = this.getAcademicMonthLabels();
+            this.incomeChart.data.datasets[0].data = this.getAcademicMonthlyIncome();
             this.incomeChart.update();
         }
 
@@ -5157,3 +5238,110 @@ if ('serviceWorker' in navigator) {
     display: none !important;
 }
 </style>
+
+    <!-- Fixed monthly lessons modal -->
+    <div x-show="showFixedLessonsModal" x-cloak
+         class="fixed inset-0 z-[75] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+         @click.self="showFixedLessonsModal=false">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl p-5" @click.stop>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                    <h3 class="font-extrabold text-lg">إضافة حصص ثابتة طوال الشهر</h3>
+                    <p class="text-xs text-slate-400 mt-1">اختر أيام الأسبوع والساعة ليتم إنشاء الحصص تلقائياً في تقويم الشهر.</p>
+                </div>
+                <button type="button" @click="showFixedLessonsModal=false" class="text-slate-400 text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 space-y-4 text-xs">
+                <div class="p-3 rounded-xl bg-violet-50 text-violet-700 font-bold"
+                     x-text="'الطالب: ' + ((students.find(s => s.id === fixedLessonsForm.studentId) || {}).name || '')"></div>
+
+                <div>
+                    <label class="block font-bold text-slate-600 mb-2">أيام الحصص كل أسبوع</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <template x-for="(day, index) in monthWeekNames" :key="'fixed-day-'+index">
+                            <label class="flex items-center justify-center gap-1 p-2 rounded-lg border cursor-pointer"
+                                   :class="fixedLessonsForm.weekdays.includes(index) ? 'bg-violet-50 border-violet-400 text-violet-700' : 'bg-white border-slate-200 text-slate-500'">
+                                <input type="checkbox" class="sr-only"
+                                       :value="index"
+                                       x-model.number="fixedLessonsForm.weekdays">
+                                <span x-text="day"></span>
+                            </label>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <select x-model="fixedLessonsForm.hour" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <template x-for="h in 12" :key="'fh'+h"><option :value="String(h).padStart(2,'0')" x-text="h"></option></template>
+                    </select>
+                    <select x-model="fixedLessonsForm.minute" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <template x-for="m in ['00','05','10','15','20','25','30','35','40','45','50','55']" :key="'fm'+m"><option :value="m" x-text="m"></option></template>
+                    </select>
+                    <select x-model="fixedLessonsForm.period" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <option value="AM">ص</option><option value="PM">م</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-600 mb-2">مدة الحصة بالساعات</label>
+                    <input type="number" min="0.25" step="0.25" x-model.number="fixedLessonsForm.duration"
+                           class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                </div>
+
+                <button type="button" @click="createFixedMonthlyLessons()"
+                        class="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold">
+                    إنشاء الحصص في هذا الشهر
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar day popup -->
+    <div x-show="showCalendarDayModal" x-cloak
+         class="calendar-day-popup-backdrop fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+         @click.self="showCalendarDayModal = false">
+        <div class="calendar-day-popup bg-white rounded-2xl shadow-2xl p-5 relative"
+             @click.stop>
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <div class="text-xs text-slate-400 font-bold" x-text="calendarDayLabel"></div>
+                    <h3 class="text-lg font-extrabold text-slate-800 mt-1">حصص هذا اليوم</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                            @click="showCalendarDayModal=false; openAddLessonModal('', calendarDayDate)"
+                            class="px-3 py-2 rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-extrabold">
+                        <i class="fa-solid fa-plus ml-1"></i>
+                        إضافة حصة جديدة
+                    </button>
+                    <button type="button" @click="showCalendarDayModal=false"
+                            class="w-9 h-9 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-700">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4 space-y-2 max-h-[55vh] overflow-y-auto">
+                <template x-for="item in calendarDayLessons" :key="'popup-'+item.studentId+'-'+item.lesson.id">
+                    <div class="calendar-day-lesson">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="font-extrabold text-sm text-slate-800 truncate" x-text="item.studentName"></div>
+                                <div class="text-xs text-brand-600 font-bold mt-1" x-text="formatTime(item.lesson.time)"></div>
+                            </div>
+                            <i class="fa-regular fa-clock text-slate-300"></i>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="calendarDayLessons.length===0" class="py-7 text-center text-slate-400 text-sm">
+                    لا توجد حصص في هذا اليوم.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
