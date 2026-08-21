@@ -1693,6 +1693,70 @@
 .calendar-day-lesson{border:1px solid #e2e8f0!important;border-radius:12px!important;background:#f8fafc!important;padding:10px!important;}
 .fixed-lessons-button{background:linear-gradient(135deg,#7c3aed,#6d28d9)!important;}
 </style>
+
+<style id="v9-final-safe-patch">
+/* Analog clock removed from homepage. */
+.dashboard-next-card .dashboard-next-analog,
+.dashboard-next-card .analog-clock {
+    display:none!important;
+}
+.dashboard-next-card > .flex {
+    direction:rtl!important;
+}
+.dashboard-next-card .min-w-0.flex-1 {
+    width:100%!important;
+    text-align:right!important;
+}
+
+/* Compact horizontal lesson rows in the calendar popup. */
+.calendar-day-lesson {
+    display:flex!important;
+    align-items:center!important;
+    gap:8px!important;
+    width:100%!important;
+    min-height:36px!important;
+    height:36px!important;
+    padding:5px 7px!important;
+    border:1px solid #e2e8f0!important;
+    border-radius:9px!important;
+    background:#f8fafc!important;
+    box-sizing:border-box!important;
+}
+.calendar-day-lesson .popup-student-name {
+    flex:1 1 auto!important;
+    min-width:0!important;
+    font-size:10px!important;
+    font-weight:800!important;
+    color:#1e293b!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+}
+.calendar-day-lesson .popup-lesson-time {
+    flex:0 0 auto!important;
+    font-size:9px!important;
+    font-weight:800!important;
+    color:#2563eb!important;
+    white-space:nowrap!important;
+}
+.calendar-day-lesson .popup-delete {
+    flex:0 0 25px!important;
+    width:25px!important;
+    height:25px!important;
+    border:0!important;
+    border-radius:7px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    background:#fff1f2!important;
+    color:#e11d48!important;
+    cursor:pointer!important;
+}
+.calendar-day-lesson .popup-delete i {
+    font-size:10px!important;
+}
+</style>
+
 </head>
 
 <body
@@ -1877,26 +1941,7 @@
                     <!-- أقرب حصة: نصف العرض -->
                     <div class="dashboard-mini-card dashboard-next-lesson today-lesson-compact bg-slate-900 text-white rounded-2xl p-4 shadow-sm min-w-0">
                         <div class="flex items-center gap-4 h-full">
-                            <div class="dashboard-next-analog analog-clock compact-clock shrink-0" aria-label="الساعة الحالية">
-    <div class="clock-face">
-        <span class="clock-number" style="--angle:0deg">12</span>
-        <span class="clock-number" style="--angle:30deg">1</span>
-        <span class="clock-number" style="--angle:60deg">2</span>
-        <span class="clock-number" style="--angle:90deg">3</span>
-        <span class="clock-number" style="--angle:120deg">4</span>
-        <span class="clock-number" style="--angle:150deg">5</span>
-        <span class="clock-number" style="--angle:180deg">6</span>
-        <span class="clock-number" style="--angle:210deg">7</span>
-        <span class="clock-number" style="--angle:240deg">8</span>
-        <span class="clock-number" style="--angle:270deg">9</span>
-        <span class="clock-number" style="--angle:300deg">10</span>
-        <span class="clock-number" style="--angle:330deg">11</span>
-        <div class="clock-hand clock-hour" :style="`transform: translateX(-50%) rotate(${clock.hourAngle}deg)`"></div>
-        <div class="clock-hand clock-minute" :style="`transform: translateX(-50%) rotate(${clock.minuteAngle}deg)`"></div>
-        <div class="clock-hand clock-second" :style="`transform: translateX(-50%) rotate(${clock.secondAngle}deg)`"></div>
-        <div class="clock-center"></div>
-    </div>
-</div>
+                            
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 text-xs text-slate-400 font-bold"><i class="fa-solid fa-bolt text-amber-400"></i>أقرب حصة قادمة</div>
                                 <template x-if="getNextLesson()">
@@ -4401,6 +4446,18 @@ function teacherApp() {
             this.showCalendarDayModal = true;
         },
 
+        deleteCalendarDayLesson(item) {
+            if (!item || !item.lesson) return;
+
+            this.deleteLesson(item.studentId, item.lesson.id, item.lesson);
+
+            // Remove it immediately from the popup as well.
+            this.calendarDayLessons = this.calendarDayLessons.filter(
+                x => !(String(x.studentId) === String(item.studentId) &&
+                       String(x.lesson.id) === String(item.lesson.id))
+            );
+        },
+
         openFixedLessonsModal(studentId) {
             this.fixedLessonsForm = {
                 studentId: Number(studentId),
@@ -5127,8 +5184,8 @@ function teacherApp() {
 
         getAcademicMonthLabels() {
             return [
-                'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر', 'يناير',
-                'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو'
+                'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+                'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'
             ];
         },
 
@@ -5139,9 +5196,9 @@ function teacherApp() {
 
             // August through December belong to the current calendar year;
             // January through July belong to the following year.
-            const months = [7,8,9,10,11,0,1,2,3,4,5,6];
+            const months = [6,7,8,9,10,11,0,1,2,3,4,5];
             return months.map((monthIndex, position) => {
-                const year = position < 5 ? currentYear : currentYear + 1;
+                const year = position === 0 ? currentYear : (position < 6 ? currentYear : currentYear + 1);
                 return transactions.filter(t => {
                     const d = new Date(t.date);
                     return d.getFullYear() === year && d.getMonth() === monthIndex;
@@ -5327,13 +5384,17 @@ if ('serviceWorker' in navigator) {
             <div class="mt-4 space-y-2 max-h-[55vh] overflow-y-auto">
                 <template x-for="item in calendarDayLessons" :key="'popup-'+item.studentId+'-'+item.lesson.id">
                     <div class="calendar-day-lesson">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="font-extrabold text-sm text-slate-800 truncate" x-text="item.studentName"></div>
-                                <div class="text-xs text-brand-600 font-bold mt-1" x-text="formatTime(item.lesson.time)"></div>
-                            </div>
-                            <i class="fa-regular fa-clock text-slate-300"></i>
-                        </div>
+                        <div class="popup-student-name" x-text="item.studentName"></div>
+                        <div class="popup-lesson-time" x-text="formatTime(item.lesson.time)"></div>
+                        <button
+                            type="button"
+                            class="popup-delete"
+                            title="حذف الحصة"
+                            aria-label="حذف الحصة"
+                            @click.stop="deleteCalendarDayLesson(item)"
+                        >
+                            <i class="fa-regular fa-trash-can"></i>
+                        </button>
                     </div>
                 </template>
                 <div x-show="calendarDayLessons.length===0" class="py-7 text-center text-slate-400 text-sm">
@@ -5343,5 +5404,4 @@ if ('serviceWorker' in navigator) {
 
         </div>
     </div>
-
 
