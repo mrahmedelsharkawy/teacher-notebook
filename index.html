@@ -2058,153 +2058,401 @@
 </div>
 <script>
 (function(){
-  var popup=null, frame=null, currentStudentName='الطالب';
+  let popup = null;
+  let frame = null;
+  let currentStudentName = 'الطالب';
+  let preparing = false;
 
-  function init(){
-    popup=document.getElementById('studentReportPopup');
-    frame=document.getElementById('studentReportPopupFrame');
-    var close=document.getElementById('studentReportPopupClose');
-    if(close && !close.dataset.bound){
-      close.dataset.bound='1';
-      close.addEventListener('click',closePopup);
+  function initStudentReportPopup(){
+    popup = document.getElementById('studentReportPopup');
+    frame = document.getElementById('studentReportPopupFrame');
+
+    const close = document.getElementById('studentReportPopupClose');
+
+    if (close && !close.dataset.bound) {
+      close.dataset.bound = '1';
+      close.addEventListener('click', closeStudentReportPopup);
     }
-    if(popup && !popup.dataset.bound){
-      popup.dataset.bound='1';
-      popup.addEventListener('click',function(e){if(e.target===popup)closePopup();});
+
+    if (popup && !popup.dataset.bound) {
+      popup.dataset.bound = '1';
+      popup.addEventListener('click', function(e){
+        if (e.target === popup) closeStudentReportPopup();
+      });
     }
+
+    initStudentPdfSavePopup();
   }
 
-  function openPopup(){
-    init();
-    if(!frame) return null;
+  function openStudentReportPopup(){
+    initStudentReportPopup();
+
+    if (!popup || !frame) {
+      console.error('Student report popup elements not found.');
+      return null;
+    }
+
     popup.classList.add('open');
     popup.setAttribute('aria-hidden','false');
-    return frame.contentWindow;
+
+    return frame;
   }
 
-  function closePopup(){
-    init();
-    if(!popup) return;
-    popup.classList.remove('open');
-    popup.setAttribute('aria-hidden','true');
-    if(frame){try{frame.srcdoc='';}catch(e){}}
-  }
+  function closeStudentReportPopup(){
+    initStudentReportPopup();
 
-  async function waitForPdfLibraries(){
-    for(var i=0;i<100;i++){
-      if(window.html2canvas && window.jspdf && window.jspdf.jsPDF) return true;
-      await new Promise(function(r){setTimeout(r,50);});
-    }
-    return false;
-  }
-
-  async function createPdfBlob(){
-    init();
-    if(!frame || !frame.contentDocument || !frame.contentDocument.body){
-      throw new Error('تقرير الطالب غير جاهز');
+    if (popup) {
+      popup.classList.remove('open');
+      popup.setAttribute('aria-hidden','true');
     }
 
-    var ready=await waitForPdfLibraries();
-    if(!ready) throw new Error('PDF library unavailable');
-
-    var source=frame.contentDocument.body;
-
-    // Clone the report into an off-screen container so buttons/background
-    // controls are excluded and the PDF is rendered exactly as Arabic text.
-    var clone=source.cloneNode(true);
-    clone.querySelectorAll('.no-print').forEach(function(el){el.remove();});
-
-    var wrap=document.createElement('div');
-    wrap.dir='rtl';
-    wrap.style.cssText='position:fixed;left:-100000px;top:0;width:794px;background:#fff;padding:0;margin:0;z-index:-1;';
-    wrap.appendChild(clone);
-    document.body.appendChild(wrap);
-
-    var canvas=await window.html2canvas(wrap,{
-      scale:2,
-      useCORS:true,
-      backgroundColor:'#ffffff',
-      logging:false,
-      width:794,
-      windowWidth:794
-    });
-
-    document.body.removeChild(wrap);
-
-    var jsPDF=window.jspdf.jsPDF;
-    var pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-    var pageW=210;
-    var pageH=297;
-    var imgW=pageW;
-    var imgH=canvas.height*imgW/canvas.width;
-    var imgData=canvas.toDataURL('image/jpeg',0.92);
-
-    var y=0;
-    while(y<imgH){
-      if(y>0) pdf.addPage();
-      pdf.addImage(imgData,'JPEG',0,-y,imgW,imgH,undefined,'FAST');
-      y+=pageH;
+    if (frame) {
+      frame.srcdoc = '';
     }
-    return pdf.output('blob');
+
+    closeStudentPdfSavePopup();
   }
 
-  async function shareStudentReportPdf(){
-    try{
-      var blob=await createPdfBlob();
-      var safe=String(currentStudentName||'الطالب').replace(/[\\/:*?"<>|]/g,'-');
-      var file=new File([blob],'تقرير-'+safe+'.pdf',{type:'application/pdf'});
+  /*
+   * This is intentionally browser-native.
+   * No html2canvas, jsPDF, CDN, Web Share or external library is used.
+   */
+  async function exportStudentReportPdf(){
+    initStudentReportPopup();
 
-      // iOS/iPadOS native share sheet. This MUST be called from the
-      // user's button gesture and the file is a real application/pdf.
-      if(navigator.share){
-        var can=true;
-        try{
-          if(navigator.canShare) can=navigator.canShare({files:[file]});
-        }catch(e){can=true;}
+    if (preparing) return;
 
-        if(can){
-          await navigator.share({
-            title:'تقرير الطالب',
-            text:'تقرير الطالب PDF',
-            files:[file]
+    if (!frame || !frame.contentDocument || !frame.contentDocument.body) {
+      alert('التقرير غير جاهز. افتح التقرير مرة أخرى ثم حاول.');
+      return;
+    }
+
+    preparing = true;
+
+    const button = frame.contentDocument.getElementById(
+      'studentPdfExportButton'
+    );
+
+    if (button) {
+      button.disabled = true;
+      button.innerHTML =
+        '<i class="fa-solid fa-spinner fa-spin"></i> جاري تجهيز التقرير...';
+    }
+
+    try {
+      /*
+       * Give the report iframe two rendering frames so the A4 layout,
+       * Arabic text and tables are fully painted before previewing.
+       */
+      await new Promise(function(resolve){
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            setTimeout(resolve, 120);
           });
-          return;
-        }
+        });
+      });
+
+      showStudentPdfSavePopup(currentStudentName);
+
+      if (button) {
+        button.disabled = false;
+        button.innerHTML =
+          '<i class="fa-solid fa-download"></i> تصدير / تحميل PDF';
+      }
+    } catch (error) {
+      console.error('Student report export error:', error);
+
+      if (button) {
+        button.disabled = false;
+        button.innerHTML =
+          '<i class="fa-solid fa-download"></i> تصدير / تحميل PDF';
       }
 
-      // Fallback for browsers without file sharing.
-      var url=URL.createObjectURL(blob);
-      var a=document.createElement('a');
-      a.href=url;
-      a.download='تقرير-'+safe+'.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){URL.revokeObjectURL(url);},1500);
-    }catch(err){
-      if(err && err.name==='AbortError') return;
-      console.error('Student PDF share error:',err);
-      alert('تعذر فتح المشاركة. تأكد أن التطبيق يعمل عبر HTTPS ثم حاول مرة أخرى.');
+      alert('تعذر تجهيز التقرير. حاول مرة أخرى.');
+    } finally {
+      preparing = false;
     }
   }
 
-  function printStudentReportPdf(){
-    init();
-    if(frame && frame.contentWindow) frame.contentWindow.print();
+  function initStudentPdfSavePopup(){
+    const savePopup =
+      document.getElementById('studentPdfSavePopup');
+
+    if (!savePopup || savePopup.dataset.bound) return;
+
+    savePopup.dataset.bound = '1';
+
+    const close =
+      document.getElementById('studentPdfSaveClose');
+
+    if (close) {
+      close.addEventListener(
+        'click',
+        closeStudentPdfSavePopup
+      );
+    }
+
+    savePopup.addEventListener('click', function(e){
+      if (e.target === savePopup) {
+        closeStudentPdfSavePopup();
+      }
+    });
+
+    const saveButton =
+      document.getElementById('studentPdfSaveButton');
+
+    if (saveButton) {
+      saveButton.addEventListener(
+        'click',
+        saveStudentReportAsPdf
+      );
+    }
   }
 
-  window.openStudentReportPopup=openPopup;
-  window.closeStudentReportPopup=closePopup;
-  window.shareStudentReportPdf=shareStudentReportPdf;
-  window.printStudentReportPdf=printStudentReportPdf;
-  window.setStudentReportName=function(name){currentStudentName=name||'الطالب';};
+  function showStudentPdfSavePopup(studentName){
+    initStudentPdfSavePopup();
 
-  document.addEventListener('DOMContentLoaded',init);
+    const savePopup =
+      document.getElementById('studentPdfSavePopup');
+
+    const preview =
+      document.getElementById('studentPdfSavePreview');
+
+    const nameElement =
+      document.getElementById('studentPdfSaveName');
+
+    if (!savePopup || !preview) {
+      console.error('Student PDF save popup not found.');
+      return;
+    }
+
+    /*
+     * Show the already prepared A4 report in the second popup.
+     * This is not a fake PDF: the same document contains @page A4 rules
+     * and the Save button invokes the browser's native PDF printer.
+     */
+    if (frame && frame.srcdoc) {
+      preview.srcdoc = frame.srcdoc;
+    } else {
+      preview.srcdoc =
+        
+        '<html lang="ar" dir="rtl"><body>لا يوجد تقرير</body></html>';
+    }
+
+    if (nameElement) {
+      const safeName =
+        String(studentName || 'الطالب')
+          .replace(/[\/:*?"<>|]/g, '-')
+          .trim();
+
+      nameElement.textContent =
+        'تقرير-' + (safeName || 'الطالب') + '.pdf';
+    }
+
+    savePopup.classList.add('open');
+    savePopup.setAttribute('aria-hidden','false');
+  }
+
+  function closeStudentPdfSavePopup(){
+    const savePopup =
+      document.getElementById('studentPdfSavePopup');
+
+    const preview =
+      document.getElementById('studentPdfSavePreview');
+
+    if (preview) {
+      preview.srcdoc = '';
+    }
+
+    if (savePopup) {
+      savePopup.classList.remove('open');
+      savePopup.setAttribute('aria-hidden','true');
+    }
+  }
+
+  function saveStudentReportAsPdf(){
+    /*
+     * The browser creates the actual PDF.
+     * On iPhone/iPad this opens the native print sheet; from there the user
+     * can choose Save to Files / PDF. On desktop it provides Save as PDF.
+     */
+    const preview =
+      document.getElementById('studentPdfSavePreview');
+
+    try {
+      if (preview && preview.contentWindow) {
+        preview.contentWindow.focus();
+
+        /*
+         * A tiny delay makes Safari/iPad much more reliable after a popup
+         * button click.
+         */
+        setTimeout(function(){
+          try {
+            preview.contentWindow.print();
+          } catch (e) {
+            window.print();
+          }
+        }, 50);
+
+        return;
+      }
+
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+        return;
+      }
+
+      window.print();
+
+    } catch (error) {
+      console.error('PDF save error:', error);
+      alert(
+        'تعذر فتح نافذة حفظ PDF. حاول الضغط على الزر مرة أخرى.'
+      );
+    }
+  }
+
+  window.openStudentReportPopup =
+    openStudentReportPopup;
+
+  window.closeStudentReportPopup =
+    closeStudentReportPopup;
+
+  window.exportStudentReportPdf =
+    exportStudentReportPdf;
+
+  window.shareStudentReportPdf =
+    exportStudentReportPdf;
+
+  window.prepareStudentReportPdf =
+    exportStudentReportPdf;
+
+  window.printStudentReportPdf =
+    exportStudentReportPdf;
+
+  window.closeStudentPdfSavePopup =
+    closeStudentPdfSavePopup;
+
+  window.setStudentReportName = function(name){
+    currentStudentName =
+      String(name || 'الطالب');
+  };
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    initStudentReportPopup
+  );
 })();
 </script>
 
-<script id="student-pdf-libs" src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script id="student-pdf-jspdf" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+
+
+<style id="student-pdf-native-print-style">
+@page { size: A4 portrait; margin: 10mm; }
+</style>
+
+<style id="student-pdf-save-popup-style">
+#studentPdfSavePopup{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:2147483647;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  background:rgba(15,23,42,.58);
+  backdrop-filter:blur(5px);
+}
+#studentPdfSavePopup.open{
+  display:flex;
+}
+#studentPdfSaveCard{
+  position:relative;
+  width:min(520px,94vw);
+  height:min(780px,92vh);
+  background:#fff;
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 30px 90px rgba(15,23,42,.35);
+  display:flex;
+  flex-direction:column;
+}
+#studentPdfSaveClose{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:5;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:9px;
+  background:#f1f5f9;
+  color:#475569;
+  cursor:pointer;
+}
+.student-pdf-save-header{
+  flex:0 0 auto;
+  padding:16px 56px 12px 16px;
+  border-bottom:1px solid #e2e8f0;
+}
+.student-pdf-save-title{
+  font-size:16px;
+  font-weight:900;
+  color:#0f172a;
+}
+.student-pdf-save-name{
+  margin-top:4px;
+  font-size:10px;
+  color:#64748b;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.student-pdf-save-preview{
+  flex:1 1 auto;
+  min-height:0;
+  padding:10px;
+  background:#e2e8f0;
+}
+#studentPdfSavePreview{
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:400px;
+  border:1px solid #dbe3ec;
+  border-radius:12px;
+  background:#fff;
+}
+.student-pdf-save-actions{
+  flex:0 0 auto;
+  padding:11px;
+  border-top:1px solid #e2e8f0;
+  display:flex;
+  gap:8px;
+}
+#studentPdfSaveButton{
+  flex:1;
+  height:46px;
+  border:0;
+  border-radius:12px;
+  background:#2563eb;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+.student-pdf-save-cancel{
+  width:46px;
+  height:46px;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  background:#fff;
+  color:#475569;
+  cursor:pointer;
+}
+</style>
+
 </head>
 
 <body
@@ -2892,10 +3140,10 @@
                                 type="button"
                                 @click="printStudentReport(selectedStudent)"
                                 class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-100 flex items-center justify-center transition"
-                                title="مشاركة تقرير الطالب PDF"
-                                aria-label="مشاركة تقرير الطالب PDF"
+                                title="تصدير تقرير الطالب PDF"
+                                aria-label="تصدير تقرير الطالب PDF"
                             >
-                                <i class="fa-solid fa-share-nodes"></i>
+                                <i class="fa-solid fa-download"></i>
                             </button>
 
                             <button
@@ -4790,54 +5038,102 @@ function teacherApp() {
         printStudentReport(student) {
             if (!student) return;
 
-            const lessons = Array.isArray(student.lessons) ? [...student.lessons] : [];
-            const payments = Array.isArray(student.payments) ? [...student.payments] : [];
+            const lessons = Array.isArray(student.lessons)
+                ? [...student.lessons]
+                : [];
+
+            const payments = Array.isArray(student.payments)
+                ? [...student.payments]
+                : [];
 
             lessons.sort((a, b) => {
-                const da = new Date(`${a.date || '1970-01-01'}T${a.time || '00:00'}`);
-                const db = new Date(`${b.date || '1970-01-01'}T${b.time || '00:00'}`);
+                const da = new Date(
+                    `${a.date || '1970-01-01'}T${a.time || '00:00'}`
+                );
+
+                const db = new Date(
+                    `${b.date || '1970-01-01'}T${b.time || '00:00'}`
+                );
+
                 return da - db;
             });
 
             payments.sort((a, b) => {
-                return new Date(`${a.date || '1970-01-01'}T00:00:00`) -
-                       new Date(`${b.date || '1970-01-01'}T00:00:00`);
+                return new Date(
+                    `${a.date || '1970-01-01'}T00:00:00`
+                ) - new Date(
+                    `${b.date || '1970-01-01'}T00:00:00`
+                );
             });
 
             const totalLessons = lessons.length;
-            const completedLessons = lessons.filter(l => l.status === 'تم').length;
-            const waitingLessons = lessons.filter(l => l.status === 'انتظار').length;
-            const missedLessons = lessons.filter(l => l.status === 'لم تتم').length;
 
-            const expected = this.calculateStudentExpected(student);
-            const paid = this.calculateStudentPaid(student);
-            const debt = this.calculateStudentDebt(student);
+            const completedLessons =
+                lessons.filter(l => l.status === 'تم').length;
 
-            const money = value => `${Number(value || 0).toLocaleString('ar-SA')} ر.س`;
-            const escapeHtml = value => String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+            const waitingLessons =
+                lessons.filter(l => l.status === 'انتظار').length;
 
-            const dateText = value => value ? this.formatDate(value) : '—';
-            const timeText = value => value ? this.formatTime(value) : '—';
+            const missedLessons =
+                lessons.filter(l => l.status === 'لم تتم').length;
+
+            const expected =
+                this.calculateStudentExpected(student);
+
+            const paid =
+                this.calculateStudentPaid(student);
+
+            const debt =
+                this.calculateStudentDebt(student);
+
+            const money = value =>
+                `${Number(value || 0).toLocaleString('ar-SA')} ر.س`;
+
+            const escapeHtml = value =>
+                String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+
+            const dateText = value =>
+                value ? this.formatDate(value) : '—';
+
+            const timeText = value =>
+                value ? this.formatTime(value) : '—';
 
             const lessonRows = lessons.length
                 ? lessons.map((lesson, index) => {
-                    const charge = this.calculateLessonCharge(student, lesson);
+
+                    const charge =
+                        this.calculateLessonCharge(student, lesson);
+
                     return `
                         <tr>
                             <td>${index + 1}</td>
                             <td>${escapeHtml(dateText(lesson.date))}</td>
                             <td>${escapeHtml(timeText(lesson.time))}</td>
-                            <td>${escapeHtml(lesson.duration || this.getLessonDuration(lesson) || '1')}</td>
-                            <td>${escapeHtml(lesson.status || '—')}</td>
+                            <td>${escapeHtml(
+                                lesson.duration ||
+                                this.getLessonDuration(lesson) ||
+                                '1'
+                            )}</td>
+                            <td>${escapeHtml(
+                                lesson.status || '—'
+                            )}</td>
                             <td>${money(charge)}</td>
-                        </tr>`;
+                        </tr>
+                    `;
+
                 }).join('')
-                : `<tr><td colspan="6" class="empty">لا توجد حصص مسجلة.</td></tr>`;
+                : `
+                    <tr>
+                        <td colspan="6" class="empty">
+                            لا توجد حصص مسجلة.
+                        </td>
+                    </tr>
+                `;
 
             const paymentRows = payments.length
                 ? payments.map((payment, index) => `
@@ -4845,208 +5141,421 @@ function teacherApp() {
                         <td>${index + 1}</td>
                         <td>${escapeHtml(dateText(payment.date))}</td>
                         <td>${money(payment.amount)}</td>
-                        <td>${escapeHtml(payment.notes || 'تسديد دفعة')}</td>
-                    </tr>`).join('')
-                : `<tr><td colspan="4" class="empty">لا توجد دفعات مسجلة.</td></tr>`;
+                        <td>${escapeHtml(
+                            payment.notes || 'تسديد دفعة'
+                        )}</td>
+                    </tr>
+                `).join('')
+                : `
+                    <tr>
+                        <td colspan="4" class="empty">
+                            لا توجد دفعات مسجلة.
+                        </td>
+                    </tr>
+                `;
 
-            window.setStudentReportName && window.setStudentReportName(student.name || 'الطالب');
-            const reportWindow = window.openStudentReportPopup();
-            if (!reportWindow) return;
+            window.setStudentReportName?.(
+                student.name || 'الطالب'
+            );
 
-            reportWindow.document.open();
-            reportWindow.document.write(`<!DOCTYPE html>
+            const reportFrame =
+                window.openStudentReportPopup?.();
+
+            if (!reportFrame) return;
+
+            const reportDocument =
+                reportFrame.contentDocument ||
+                reportFrame.contentWindow.document;
+
+            const reportHtml = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تقرير الطالب - ${escapeHtml(student.name)}</title>
+<title>تقرير الطالب - ${escapeHtml(student.name || 'الطالب')}</title>
+
 <style>
-    @page { size: A4; margin: 12mm; }
-    * { box-sizing: border-box; }
+    @page {
+        size: A4;
+        margin: 10mm;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
     body {
         margin: 0;
-        background: #f1f5f9;
+        padding: 0;
+        background: #e2e8f0;
         color: #0f172a;
-        font-family: Arial, "Tahoma", sans-serif;
+        font-family: Arial, Tahoma, sans-serif;
         direction: rtl;
     }
+
+    body {
+        min-height: 100vh;
+    }
+
     .page {
-        width: 100%;
-        max-width: 900px;
+        width: 794px;
+        min-height: 1123px;
         margin: 20px auto;
-        background: #fff;
-        padding: 28px;
+        padding: 34px;
+        background: #ffffff;
+        box-shadow: 0 5px 25px rgba(15,23,42,.10);
     }
+
     .header {
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:20px;
-        border-bottom:2px solid #e2e8f0;
-        padding-bottom:18px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 16px;
     }
-    .title { font-size:24px; font-weight:800; margin:0 0 6px; }
-    .sub { color:#64748b; font-size:12px; }
+
+    .title {
+        font-size: 25px;
+        font-weight: 800;
+        margin: 0 0 5px;
+    }
+
+    .sub {
+        color: #64748b;
+        font-size: 11px;
+    }
+
     .student-box {
-        margin-top:18px;
-        padding:16px;
-        background:#f8fafc;
-        border:1px solid #e2e8f0;
-        border-radius:14px;
+        margin-top: 16px;
+        padding: 15px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 13px;
     }
-    .student-name { font-size:20px; font-weight:800; }
-    .chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+
+    .student-name {
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 9px;
+    }
+
     .chip {
-        background:#fff;
-        border:1px solid #dbeafe;
-        color:#334155;
-        border-radius:999px;
-        padding:5px 9px;
-        font-size:10px;
-        font-weight:700;
+        background: #ffffff;
+        border: 1px solid #dbeafe;
+        color: #334155;
+        border-radius: 999px;
+        padding: 5px 9px;
+        font-size: 9px;
+        font-weight: 700;
     }
+
     .stats {
-        display:grid;
-        grid-template-columns:repeat(4,1fr);
-        gap:9px;
-        margin-top:16px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 13px;
     }
+
     .stat {
-        padding:12px;
-        border:1px solid #e2e8f0;
-        border-radius:12px;
-        background:#fff;
+        padding: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 11px;
+        background: #fff;
     }
-    .stat-label { color:#64748b; font-size:10px; }
-    .stat-value { font-size:16px; font-weight:800; margin-top:5px; }
-    .green { color:#059669; }
-    .red { color:#e11d48; }
-    .blue { color:#2563eb; }
-    .section { margin-top:24px; }
+
+    .stat-label {
+        color: #64748b;
+        font-size: 9px;
+    }
+
+    .stat-value {
+        font-size: 15px;
+        font-weight: 800;
+        margin-top: 4px;
+    }
+
+    .green { color: #059669; }
+    .red { color: #e11d48; }
+    .blue { color: #2563eb; }
+
+    .section {
+        margin-top: 20px;
+    }
+
     .section-title {
-        font-size:15px;
-        font-weight:800;
-        margin-bottom:9px;
-        padding-bottom:7px;
-        border-bottom:2px solid #e2e8f0;
+        font-size: 14px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #e2e8f0;
     }
+
     table {
-        width:100%;
-        border-collapse:collapse;
-        font-size:10px;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9px;
     }
+
     th {
-        background:#eff6ff;
-        color:#1e3a8a;
-        font-weight:800;
+        background: #eff6ff;
+        color: #1e3a8a;
+        font-weight: 800;
     }
-    th, td {
-        border:1px solid #e2e8f0;
-        padding:7px 6px;
-        text-align:center;
+
+    th,
+    td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 5px;
+        text-align: center;
     }
-    td.empty { padding:18px; color:#94a3b8; }
+
+    td.empty {
+        padding: 15px;
+        color: #94a3b8;
+    }
+
     .footer {
-        margin-top:25px;
-        padding-top:10px;
-        border-top:1px solid #e2e8f0;
-        display:flex;
-        justify-content:space-between;
-        color:#64748b;
-        font-size:9px;
+        margin-top: 20px;
+        padding-top: 9px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        color: #64748b;
+        font-size: 8px;
     }
+
     .no-print {
-        position:fixed;
-        left:20px;
-        top:20px;
-        padding:10px 16px;
-        border:0;
-        border-radius:10px;
-        background:#2563eb;
-        color:#fff;
-        font-weight:700;
-        cursor:pointer;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        gap: 7px;
+        justify-content: flex-start;
+        padding: 8px;
+        background: rgba(255,255,255,.96);
+        border-bottom: 1px solid #e2e8f0;
     }
+
+    .no-print button {
+        border: 0;
+        border-radius: 9px;
+        padding: 9px 13px;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .no-print button:disabled {
+        opacity: .55;
+        cursor: wait;
+    }
+
+    .no-print button:first-child {
+        background: #475569;
+    }
+
     @media print {
-        body { background:#fff; }
-        .page { margin:0; max-width:none; padding:0; }
-        .no-print { display:none!important; }
-        tr { page-break-inside:avoid; }
+        html,
+        body {
+            background: #fff;
+        }
+
+        .page {
+            width: 100%;
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
     }
+
     @media(max-width:650px) {
-        .page { padding:16px; margin:0; }
-        .stats { grid-template-columns:repeat(2,1fr); }
-        .header { display:block; }
+        .page {
+            width: 100%;
+            min-height: 0;
+            margin: 0;
+            padding: 16px;
+        }
+
+        .stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .header {
+            display: block;
+        }
     }
 </style>
 </head>
+
 <body>
-<div class="no-print report-actions">
-    <button onclick="window.parent.closeStudentReportPopup()">↩️ رجوع</button>
-    <button onclick="window.parent.shareStudentReportPdf()">↗️ مشاركة PDF</button>
+
+<div class="no-print">
+    <button
+        type="button"
+        onclick="window.parent.closeStudentReportPopup()"
+    >
+        ↩️ رجوع
+    </button>
+
+    <button
+        id="studentPdfExportButton"
+        type="button"
+        onclick="window.parent.exportStudentReportPdf()"
+    >
+        <i class="fa-solid fa-download"></i>
+        تصدير / تحميل PDF
+    </button>
 </div>
 
 <div class="page">
+
     <div class="header">
+
         <div>
             <h1 class="title">تقرير الطالب</h1>
-            <div class="sub">تقرير شامل للحصص والمدفوعات والملخص المالي</div>
+
+            <div class="sub">
+                تقرير شامل للحصص والمدفوعات والملخص المالي
+            </div>
         </div>
-        <div class="sub">تاريخ التقرير: ${escapeHtml(new Date().toLocaleDateString('ar-SA-u-ca-gregory', { calendar:'gregory', numberingSystem:'latn' }))}</div>
+
+        <div class="sub">
+            تاريخ التقرير:
+            ${escapeHtml(
+                new Date().toLocaleDateString(
+                    'ar-SA-u-ca-gregory',
+                    {
+                        calendar: 'gregory',
+                        numberingSystem: 'latn'
+                    }
+                )
+            )}
+        </div>
+
     </div>
 
     <div class="student-box">
-        <div class="student-name">${escapeHtml(student.name || 'بدون اسم')}</div>
-        <div class="chips">
-            <span class="chip">المرحلة: ${escapeHtml(student.stage || '—')}</span>
-            <span class="chip">الصف: ${escapeHtml(student.grade || '—')}</span>
-            <span class="chip">المادة: ${escapeHtml(student.subjectType || '—')}</span>
-            <span class="chip">نوع الدورة: ${escapeHtml(student.courseType || '—')}</span>
-            <span class="chip">سعر الحصة: ${money(student.price)}</span>
+
+        <div class="student-name">
+            ${escapeHtml(student.name || 'بدون اسم')}
         </div>
+
+        <div class="chips">
+
+            <span class="chip">
+                المرحلة: ${escapeHtml(student.stage || '—')}
+            </span>
+
+            <span class="chip">
+                الصف: ${escapeHtml(student.grade || '—')}
+            </span>
+
+            <span class="chip">
+                المادة: ${escapeHtml(student.subjectType || '—')}
+            </span>
+
+            <span class="chip">
+                نوع الدورة: ${escapeHtml(student.courseType || '—')}
+            </span>
+
+            <span class="chip">
+                سعر الحصة: ${money(student.price)}
+            </span>
+
+        </div>
+
     </div>
 
     <div class="stats">
+
         <div class="stat">
             <div class="stat-label">إجمالي الحصص</div>
-            <div class="stat-value blue">${totalLessons}</div>
+            <div class="stat-value blue">
+                ${totalLessons}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">الحصص المكتملة</div>
-            <div class="stat-value green">${completedLessons}</div>
+            <div class="stat-value green">
+                ${completedLessons}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">إجمالي المستحق</div>
-            <div class="stat-value">${money(expected)}</div>
+            <div class="stat-value">
+                ${money(expected)}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">إجمالي المدفوع</div>
-            <div class="stat-value green">${money(paid)}</div>
+            <div class="stat-value green">
+                ${money(paid)}
+            </div>
         </div>
+
     </div>
 
     <div class="stats">
+
         <div class="stat">
             <div class="stat-label">المتبقي</div>
-            <div class="stat-value ${debt > 0 ? 'red' : 'green'}">${money(debt)}</div>
+            <div class="stat-value ${debt > 0 ? 'red' : 'green'}">
+                ${money(debt)}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">بانتظار الحصة</div>
-            <div class="stat-value">${waitingLessons}</div>
+            <div class="stat-value">
+                ${waitingLessons}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">لم تتم</div>
-            <div class="stat-value">${missedLessons}</div>
+            <div class="stat-value">
+                ${missedLessons}
+            </div>
         </div>
+
         <div class="stat">
             <div class="stat-label">عدد الدفعات</div>
-            <div class="stat-value">${payments.length}</div>
+            <div class="stat-value">
+                ${payments.length}
+            </div>
         </div>
+
     </div>
 
     <div class="section">
-        <div class="section-title">سجل الحصص</div>
+
+        <div class="section-title">
+            سجل الحصص
+        </div>
+
         <table>
+
             <thead>
                 <tr>
                     <th>#</th>
@@ -5057,13 +5566,23 @@ function teacherApp() {
                     <th>قيمة الحصة</th>
                 </tr>
             </thead>
-            <tbody>${lessonRows}</tbody>
+
+            <tbody>
+                ${lessonRows}
+            </tbody>
+
         </table>
+
     </div>
 
     <div class="section">
-        <div class="section-title">سجل المدفوعات</div>
+
+        <div class="section-title">
+            سجل المدفوعات
+        </div>
+
         <table>
+
             <thead>
                 <tr>
                     <th>#</th>
@@ -5072,22 +5591,40 @@ function teacherApp() {
                     <th>البيان</th>
                 </tr>
             </thead>
-            <tbody>${paymentRows}</tbody>
+
+            <tbody>
+                ${paymentRows}
+            </tbody>
+
         </table>
+
     </div>
 
     <div class="footer">
-        <span>تقرير الطالب — دفتر المعلم</span>
-        <span>${escapeHtml(student.name || '')}</span>
+
+        <span>
+            تقرير الطالب — دفتر المعلم
+        </span>
+
+        <span>
+            ${escapeHtml(student.name || '')}
+        </span>
+
     </div>
+
 </div>
 
-<script>
-// التقرير يبقى داخل الـPopup، ويمكن للمستخدم مشاركة/حفظ PDF من زر المشاركة.
-<\/script>
 </body>
-</html>`);
-            reportWindow.document.close();
+</html>`;
+
+            reportFrame.srcdoc = reportHtml;
+
+            // Give the iframe time to render its Arabic text/tables.
+            reportFrame.onload = () => {
+                try {
+                    reportFrame.contentWindow.scrollTo(0, 0);
+                } catch (e) {}
+            };
         },
 
         openStudentDetails(student) {
@@ -6215,6 +6752,47 @@ window.addEventListener('orientationchange', () => {
     }, 350);
 });
 </script>
+
+
+<!-- Student PDF Save Popup -->
+<div id="studentPdfSavePopup" aria-hidden="true">
+  <div id="studentPdfSaveCard"
+       role="dialog"
+       aria-modal="true"
+       aria-label="حفظ تقرير الطالب PDF">
+    <button id="studentPdfSaveClose"
+            type="button"
+            aria-label="إغلاق"
+            title="إغلاق">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <div class="student-pdf-save-header">
+      <div class="student-pdf-save-title">تم تجهيز التقرير</div>
+      <div id="studentPdfSaveName"
+           class="student-pdf-save-name">تقرير-الطالب.pdf</div>
+    </div>
+
+    <div class="student-pdf-save-preview">
+      <iframe id="studentPdfSavePreview"
+              title="معاينة تقرير الطالب"></iframe>
+    </div>
+
+    <div class="student-pdf-save-actions">
+      <button id="studentPdfSaveButton" type="button">
+        <i class="fa-solid fa-download"></i>
+        حفظ / تصدير PDF
+      </button>
+      <button type="button"
+              class="student-pdf-save-cancel"
+              onclick="window.closeStudentPdfSavePopup()"
+              aria-label="إغلاق"
+              title="إغلاق">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
