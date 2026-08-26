@@ -1983,6 +1983,66 @@
 }
 </style>
 
+
+<style id="bar-month-labels-final">
+.income-bar-chart-wrap canvas {
+    width:100%!important;
+}
+@media(max-width:640px){
+    .income-bar-chart-wrap {
+        padding-left:2px!important;
+        padding-right:2px!important;
+    }
+}
+</style>
+
+
+<script id="force-gregorian-calendar">
+(function(){
+    const GregorianDate = {
+        format(value, options) {
+            const d = value instanceof Date ? value : new Date(value);
+            if (Number.isNaN(d.getTime())) return '—';
+            return new Intl.DateTimeFormat(
+                'ar-SA-u-ca-gregory',
+                Object.assign({
+                    calendar: 'gregory',
+                    numberingSystem: 'latn'
+                }, options || {})
+            ).format(d);
+        }
+    };
+    window.GregorianDate = GregorianDate;
+})();
+</script>
+
+
+<style id="student-report-back-button">
+.report-actions{
+    position:fixed;
+    left:20px;
+    top:20px;
+    display:flex;
+    gap:8px;
+    z-index:9999;
+}
+.report-actions button{
+    border:0;
+    border-radius:10px;
+    padding:10px 14px;
+    background:#2563eb;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+}
+.report-actions button:first-child{
+    background:#475569;
+}
+@media print{
+    .report-actions{display:none!important;}
+}
+</style>
+
 </head>
 
 <body
@@ -3871,6 +3931,8 @@ function teacherApp() {
         showFixedLessonsModal: false,
         fixedLessonsForm: {
             studentId: null,
+            startDate: '',
+            endDate: '',
             time: '17:00',
             hour: '05',
             minute: '00',
@@ -4050,7 +4112,7 @@ function teacherApp() {
 
             const date = new Date(dateString + 'T00:00:00');
 
-            return new Intl.DateTimeFormat('ar-SA', {
+            return new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
@@ -4064,7 +4126,7 @@ function teacherApp() {
 
             const date = new Date(dateString + 'T00:00:00');
 
-            return new Intl.DateTimeFormat('ar-SA', {
+            return new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                 day: 'numeric',
                 month: 'short'
             }).format(date);
@@ -4096,19 +4158,19 @@ function teacherApp() {
                 minutes * 0.5;
 
             this.currentTime12 =
-                new Intl.DateTimeFormat('ar-SA', {
+                new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                 }).format(now);
 
             this.todayName =
-                new Intl.DateTimeFormat('ar-SA', {
+                new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                     weekday: 'long'
                 }).format(now);
 
             this.todayDate =
-                new Intl.DateTimeFormat('ar-SA', {
+                new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
@@ -4162,12 +4224,12 @@ function teacherApp() {
             const first = new Date(days[0].date + 'T00:00:00');
             const last = new Date(days[6].date + 'T00:00:00');
 
-            const firstLabel = new Intl.DateTimeFormat('ar-SA', {
+            const firstLabel = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                 month: 'long',
                 year: 'numeric'
             }).format(first);
 
-            const lastLabel = new Intl.DateTimeFormat('ar-SA', {
+            const lastLabel = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                 month: 'long',
                 year: 'numeric'
             }).format(last);
@@ -4188,7 +4250,7 @@ function teacherApp() {
             d.setDate(1);
             d.setMonth(d.getMonth() + this.monthOffset);
 
-            return new Intl.DateTimeFormat('ar-SA', {
+            return new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
                 month: 'long',
                 year: 'numeric'
             }).format(d);
@@ -4759,7 +4821,10 @@ function teacherApp() {
 </style>
 </head>
 <body>
-<button class="no-print" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+<div class="no-print report-actions">
+    <button onclick="window.history.back()">↩️ رجوع</button>
+    <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</div>
 
 <div class="page">
     <div class="header">
@@ -4767,7 +4832,7 @@ function teacherApp() {
             <h1 class="title">تقرير الطالب</h1>
             <div class="sub">تقرير شامل للحصص والمدفوعات والملخص المالي</div>
         </div>
-        <div class="sub">تاريخ التقرير: ${escapeHtml(new Date().toLocaleDateString('ar-SA'))}</div>
+        <div class="sub">تاريخ التقرير: ${escapeHtml(new Date().toLocaleDateString('ar-SA-u-ca-gregory', { calendar:'gregory', numberingSystem:'latn' }))}</div>
     </div>
 
     <div class="student-box">
@@ -5013,8 +5078,17 @@ window.onload = function() {
         },
 
         openFixedLessonsModal(studentId) {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            const firstDay = `${y}-${m}-01`;
+            const lastDay = new Date(y, today.getMonth() + 1, 0);
+            const lastISO = `${lastDay.getFullYear()}-${String(lastDay.getMonth()+1).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
+
             this.fixedLessonsForm = {
                 studentId: Number(studentId),
+                startDate: firstDay,
+                endDate: lastISO,
                 time: '17:00',
                 hour: '05',
                 minute: '00',
@@ -5029,6 +5103,22 @@ window.onload = function() {
             const student = this.students.find(s => s.id === Number(this.fixedLessonsForm.studentId));
             if (!student) return;
 
+            const startDate = this.fixedLessonsForm.startDate;
+            const endDate = this.fixedLessonsForm.endDate;
+
+            if (!startDate || !endDate) {
+                alert('حدد تاريخ البداية وتاريخ النهاية.');
+                return;
+            }
+
+            const start = new Date(`${startDate}T00:00:00`);
+            const end = new Date(`${endDate}T23:59:59`);
+
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+                alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية.');
+                return;
+            }
+
             const weekdays = (this.fixedLessonsForm.weekdays || []).map(Number);
             if (!weekdays.length) {
                 alert('اختر يوماً واحداً على الأقل.');
@@ -5042,46 +5132,55 @@ window.onload = function() {
             const time24 = `${String(hour).padStart(2,'0')}:${minute}`;
             const duration = Number(this.fixedLessonsForm.duration) || 1;
 
-            const base = new Date();
-            base.setDate(1);
-            base.setMonth(base.getMonth() + this.monthOffset);
-            const year = base.getFullYear();
-            const month = base.getMonth();
-            const lastDay = new Date(year, month + 1, 0).getDate();
-
             let created = 0;
-            for (let day = 1; day <= lastDay; day++) {
-                const d = new Date(year, month, day);
-                const weekday = (d.getDay() + 1) % 7;
-                if (!weekdays.includes(weekday)) continue;
+            const cursor = new Date(start);
 
-                const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                const duplicate = (student.lessons || []).some(
-                    l => l.date === iso && l.time === time24 && l.notes === 'حصة ثابتة طوال الشهر'
-                );
-                if (duplicate) continue;
+            while (cursor <= end) {
+                const weekday = (cursor.getDay() + 1) % 7;
 
-                student.lessons.push({
-                    id: Date.now() + created + Math.floor(Math.random()*1000),
-                    date: iso,
-                    time: time24,
-                    duration,
-                    status: 'انتظار',
-                    notes: 'حصة ثابتة طوال الشهر'
-                });
-                created++;
+                if (weekdays.includes(weekday)) {
+                    const y = cursor.getFullYear();
+                    const m = String(cursor.getMonth() + 1).padStart(2, '0');
+                    const d = String(cursor.getDate()).padStart(2, '0');
+                    const iso = `${y}-${m}-${d}`;
+
+                    const duplicate = (student.lessons || []).some(
+                        l => l.date === iso && l.time === time24 && l.notes === 'حصة ثابتة طوال الشهر'
+                    );
+
+                    if (!duplicate) {
+                        student.lessons.push({
+                            id: Date.now() + created + Math.floor(Math.random()*1000),
+                            date: iso,
+                            time: time24,
+                            duration,
+                            status: 'انتظار',
+                            notes: 'حصة ثابتة طوال الشهر'
+                        });
+                        created++;
+                    }
+                }
+
+                cursor.setDate(cursor.getDate() + 1);
             }
 
             this.persistAppData();
+
             if (this.selectedStudent && this.selectedStudent.id === student.id) {
                 this.selectedStudent = student;
             }
+
             this.showFixedLessonsModal = false;
+
             this.$nextTick(() => {
                 if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
             });
-            alert(created ? `تم إنشاء ${created} حصة في تقويم الشهر.` : 'لا توجد حصص جديدة لإنشائها.');
+
+            alert(created
+                ? `تم إنشاء ${created} حصة من ${this.formatDate(startDate)} إلى ${this.formatDate(endDate)}.`
+                : 'لا توجد حصص جديدة لإنشائها.');
         },
+
 
         openAddLessonModal(studentId = '', presetDate = '') {
 
@@ -5882,7 +5981,13 @@ window.onload = function() {
                         scales: {
                             x: {
                                 grid: { display: false },
-                                ticks: { font: { size: 8 }, maxRotation: 0 }
+                                ticks: {
+                                    font: { size: 7 },
+                                    maxRotation: 90,
+                                    minRotation: 90,
+                                    autoSkip: false,
+                                    padding: 2
+                                }
                             },
                             y: {
                                 beginAtZero: true,
@@ -5986,7 +6091,26 @@ window.addEventListener('orientationchange', () => {
 
                 <div>
                     <label class="block font-bold text-slate-600 mb-2">أيام الحصص كل أسبوع</label>
-                    <div class="grid grid-cols-4 gap-2">
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">بداية الحصص</label>
+                            <input
+                                type="date"
+                                x-model="fixedLessonsForm.startDate"
+                                class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">نهاية الحصص</label>
+                            <input
+                                type="date"
+                                x-model="fixedLessonsForm.endDate"
+                                class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                            >
+                        </div>
+                    </div>
+<div class="grid grid-cols-4 gap-2">
                         <template x-for="(day, index) in monthWeekNames" :key="'fixed-day-'+index">
                             <label class="flex items-center justify-center gap-1 p-2 rounded-lg border cursor-pointer"
                                    :class="fixedLessonsForm.weekdays.includes(index) ? 'bg-violet-50 border-violet-400 text-violet-700' : 'bg-white border-slate-200 text-slate-500'">
