@@ -2043,20 +2043,47 @@
 }
 </style>
 
-
-<style id="global-popup-close-style">
-.global-popup-close{
- position:absolute!important; top:8px!important; left:8px!important;
- z-index:99999!important; width:28px!important; height:28px!important;
- border:0!important; border-radius:8px!important;
- display:flex!important; align-items:center!important; justify-content:center!important;
- background:rgba(241,245,249,.96)!important; color:#64748b!important;
- cursor:pointer!important; box-shadow:0 1px 4px rgba(15,23,42,.10)!important;
-}
-.global-popup-close:hover{background:#e2e8f0!important;color:#0f172a!important}
-.global-popup-close i{font-size:11px!important}
+<style id="student-report-popup-style">
+#studentReportPopup{display:none;position:fixed;inset:0;z-index:2147483640;background:rgba(15,23,42,.48);align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(4px)}
+#studentReportPopup.open{display:flex}
+#studentReportPopupCard{position:relative;width:min(980px,96vw);height:min(900px,94vh);background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 25px 80px rgba(15,23,42,.3)}
+#studentReportPopupFrame{width:100%;height:100%;border:0;background:#fff}
+#studentReportPopupClose{position:absolute;top:9px;left:9px;z-index:10;width:32px;height:32px;border:0;border-radius:9px;background:#f1f5f9;color:#475569;cursor:pointer;font-size:14px}
 </style>
-
+<div id="studentReportPopup" aria-hidden="true">
+  <div id="studentReportPopupCard">
+    <button id="studentReportPopupClose" type="button" aria-label="إغلاق" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+    <iframe id="studentReportPopupFrame" title="تقرير الطالب"></iframe>
+  </div>
+</div>
+<script>
+(function(){
+  var popup=null, frame=null;
+  function init(){
+    popup=document.getElementById('studentReportPopup');
+    frame=document.getElementById('studentReportPopupFrame');
+    var close=document.getElementById('studentReportPopupClose');
+    if(close) close.addEventListener('click',closePopup);
+    if(popup) popup.addEventListener('click',function(e){if(e.target===popup)closePopup();});
+  }
+  function openPopup(){
+    if(!popup) init();
+    if(!frame) return null;
+    popup.classList.add('open');
+    popup.setAttribute('aria-hidden','false');
+    return frame.contentWindow;
+  }
+  function closePopup(){
+    if(!popup) return;
+    popup.classList.remove('open');
+    popup.setAttribute('aria-hidden','true');
+    if(frame){try{frame.srcdoc='';}catch(e){}}
+  }
+  window.openStudentReportPopup=openPopup;
+  window.closeStudentReportPopup=closePopup;
+  document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
 </head>
 
 <body
@@ -2389,12 +2416,6 @@
         x-cloak
         class="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4"
     >
-<button type="button" class="global-popup-close" @click.stop
-        onclick="this.closest('[x-show]').style.display='none'"
-        aria-label="إغلاق" title="إغلاق">
-    <i class="fa-solid fa-xmark"></i>
-</button>
-
 
         <div
             class="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 relative z-[71]"
@@ -2706,12 +2727,6 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4 overflow-y-auto"
     >
-<button type="button" class="global-popup-close" @click.stop
-        onclick="this.closest('[x-show]').style.display='none'"
-        aria-label="إغلاق" title="إغلاق">
-    <i class="fa-solid fa-xmark"></i>
-</button>
-
 
         <div
             class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6"
@@ -2756,10 +2771,10 @@
                                 type="button"
                                 @click="printStudentReport(selectedStudent)"
                                 class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-100 flex items-center justify-center transition"
-                                title="طباعة / تصدير تقرير الطالب PDF"
-                                aria-label="طباعة وتصدير تقرير الطالب PDF"
+                                title="مشاركة تقرير الطالب PDF"
+                                aria-label="مشاركة تقرير الطالب PDF"
                             >
-                                <i class="fa-solid fa-print"></i>
+                                <i class="fa-solid fa-share-nodes"></i>
                             </button>
 
                             <button
@@ -3095,12 +3110,6 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4"
     >
-<button type="button" class="global-popup-close" @click.stop
-        onclick="this.closest('[x-show]').style.display='none'"
-        aria-label="إغلاق" title="إغلاق">
-    <i class="fa-solid fa-xmark"></i>
-</button>
-
 
         <div
             class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6"
@@ -3422,12 +3431,6 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4"
     >
-<button type="button" class="global-popup-close" @click.stop
-        onclick="this.closest('[x-show]').style.display='none'"
-        aria-label="إغلاق" title="إغلاق">
-    <i class="fa-solid fa-xmark"></i>
-</button>
-
 
         <div
             class="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6"
@@ -4725,11 +4728,8 @@ function teacherApp() {
                     </tr>`).join('')
                 : `<tr><td colspan="4" class="empty">لا توجد دفعات مسجلة.</td></tr>`;
 
-            const reportWindow = window.open('', '_blank', 'width=1000,height=800');
-            if (!reportWindow) {
-                alert('تعذر فتح صفحة التقرير. اسمح للنوافذ المنبثقة ثم حاول مرة أخرى.');
-                return;
-            }
+            const reportWindow = window.openStudentReportPopup();
+            if (!reportWindow) return;
 
             reportWindow.document.open();
             reportWindow.document.write(`<!DOCTYPE html>
@@ -4860,8 +4860,8 @@ function teacherApp() {
 </head>
 <body>
 <div class="no-print report-actions">
-    <button onclick="window.history.back()">↩️ رجوع</button>
-    <button onclick="window.print()">🖨️ PDF / حفظ / مشاركة</button>
+    <button onclick="window.parent.closeStudentReportPopup()">↩️ رجوع</button>
+    <button onclick="window.print()">↗️ مشاركة / حفظ PDF</button>
 </div>
 
 <div class="page">
@@ -4961,12 +4961,7 @@ function teacherApp() {
 </div>
 
 <script>
-window.onload = function() {
-    setTimeout(function() {
-        window.focus();
-        window.print();
-    }, 700);
-};
+// التقرير يبقى داخل الـPopup، ويمكن للمستخدم مشاركة/حفظ PDF من زر المشاركة.
 <\/script>
 </body>
 </html>`);
