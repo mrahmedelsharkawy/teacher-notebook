@@ -2043,6 +2043,20 @@
 }
 </style>
 
+
+<style id="global-popup-close-style">
+.global-popup-close{
+ position:absolute!important; top:8px!important; left:8px!important;
+ z-index:99999!important; width:28px!important; height:28px!important;
+ border:0!important; border-radius:8px!important;
+ display:flex!important; align-items:center!important; justify-content:center!important;
+ background:rgba(241,245,249,.96)!important; color:#64748b!important;
+ cursor:pointer!important; box-shadow:0 1px 4px rgba(15,23,42,.10)!important;
+}
+.global-popup-close:hover{background:#e2e8f0!important;color:#0f172a!important}
+.global-popup-close i{font-size:11px!important}
+</style>
+
 </head>
 
 <body
@@ -2375,6 +2389,12 @@
         x-cloak
         class="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4"
     >
+<button type="button" class="global-popup-close" @click.stop
+        onclick="this.closest('[x-show]').style.display='none'"
+        aria-label="إغلاق" title="إغلاق">
+    <i class="fa-solid fa-xmark"></i>
+</button>
+
 
         <div
             class="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 relative z-[71]"
@@ -2686,6 +2706,12 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4 overflow-y-auto"
     >
+<button type="button" class="global-popup-close" @click.stop
+        onclick="this.closest('[x-show]').style.display='none'"
+        aria-label="إغلاق" title="إغلاق">
+    <i class="fa-solid fa-xmark"></i>
+</button>
+
 
         <div
             class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6"
@@ -3069,6 +3095,12 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4"
     >
+<button type="button" class="global-popup-close" @click.stop
+        onclick="this.closest('[x-show]').style.display='none'"
+        aria-label="إغلاق" title="إغلاق">
+    <i class="fa-solid fa-xmark"></i>
+</button>
+
 
         <div
             class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6"
@@ -3390,6 +3422,12 @@
         x-cloak
         class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center p-4"
     >
+<button type="button" class="global-popup-close" @click.stop
+        onclick="this.closest('[x-show]').style.display='none'"
+        aria-label="إغلاق" title="إغلاق">
+    <i class="fa-solid fa-xmark"></i>
+</button>
+
 
         <div
             class="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6"
@@ -4823,7 +4861,7 @@ function teacherApp() {
 <body>
 <div class="no-print report-actions">
     <button onclick="window.history.back()">↩️ رجوع</button>
-    <button onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+    <button onclick="window.print()">🖨️ PDF / حفظ / مشاركة</button>
 </div>
 
 <div class="page">
@@ -4927,7 +4965,7 @@ window.onload = function() {
     setTimeout(function() {
         window.focus();
         window.print();
-    }, 500);
+    }, 700);
 };
 <\/script>
 </body>
