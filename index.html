@@ -1976,6 +1976,13 @@
 }
 </style>
 
+
+<style id="student-print-button-style">
+.student-print-btn {
+    -webkit-tap-highlight-color: transparent;
+}
+</style>
+
 </head>
 
 <body
@@ -2658,12 +2665,27 @@
 
                         </div>
 
-                        <button
-                            @click="selectedStudent = null"
-                            class="text-slate-400 hover:text-slate-700 text-xl"
-                        >
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                @click="printStudentReport(selectedStudent)"
+                                class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-100 flex items-center justify-center transition"
+                                title="طباعة / تصدير تقرير الطالب PDF"
+                                aria-label="طباعة وتصدير تقرير الطالب PDF"
+                            >
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="selectedStudent = null"
+                                class="w-10 h-10 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center transition"
+                                title="إغلاق"
+                                aria-label="إغلاق"
+                            >
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
 
                     </div>
 
@@ -4540,6 +4562,313 @@ function teacherApp() {
         /* =========================
            STUDENT ACTIONS
         ========================== */
+
+        printStudentReport(student) {
+            if (!student) return;
+
+            const lessons = Array.isArray(student.lessons) ? [...student.lessons] : [];
+            const payments = Array.isArray(student.payments) ? [...student.payments] : [];
+
+            lessons.sort((a, b) => {
+                const da = new Date(`${a.date || '1970-01-01'}T${a.time || '00:00'}`);
+                const db = new Date(`${b.date || '1970-01-01'}T${b.time || '00:00'}`);
+                return da - db;
+            });
+
+            payments.sort((a, b) => {
+                return new Date(`${a.date || '1970-01-01'}T00:00:00`) -
+                       new Date(`${b.date || '1970-01-01'}T00:00:00`);
+            });
+
+            const totalLessons = lessons.length;
+            const completedLessons = lessons.filter(l => l.status === 'تم').length;
+            const waitingLessons = lessons.filter(l => l.status === 'انتظار').length;
+            const missedLessons = lessons.filter(l => l.status === 'لم تتم').length;
+
+            const expected = this.calculateStudentExpected(student);
+            const paid = this.calculateStudentPaid(student);
+            const debt = this.calculateStudentDebt(student);
+
+            const money = value => `${Number(value || 0).toLocaleString('ar-SA')} ر.س`;
+            const escapeHtml = value => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            const dateText = value => value ? this.formatDate(value) : '—';
+            const timeText = value => value ? this.formatTime(value) : '—';
+
+            const lessonRows = lessons.length
+                ? lessons.map((lesson, index) => {
+                    const charge = this.calculateLessonCharge(student, lesson);
+                    return `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${escapeHtml(dateText(lesson.date))}</td>
+                            <td>${escapeHtml(timeText(lesson.time))}</td>
+                            <td>${escapeHtml(lesson.duration || this.getLessonDuration(lesson) || '1')}</td>
+                            <td>${escapeHtml(lesson.status || '—')}</td>
+                            <td>${money(charge)}</td>
+                        </tr>`;
+                }).join('')
+                : `<tr><td colspan="6" class="empty">لا توجد حصص مسجلة.</td></tr>`;
+
+            const paymentRows = payments.length
+                ? payments.map((payment, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(dateText(payment.date))}</td>
+                        <td>${money(payment.amount)}</td>
+                        <td>${escapeHtml(payment.notes || 'تسديد دفعة')}</td>
+                    </tr>`).join('')
+                : `<tr><td colspan="4" class="empty">لا توجد دفعات مسجلة.</td></tr>`;
+
+            const reportWindow = window.open('', '_blank', 'width=1000,height=800');
+            if (!reportWindow) {
+                alert('تعذر فتح صفحة التقرير. اسمح للنوافذ المنبثقة ثم حاول مرة أخرى.');
+                return;
+            }
+
+            reportWindow.document.open();
+            reportWindow.document.write(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقرير الطالب - ${escapeHtml(student.name)}</title>
+<style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        background: #f1f5f9;
+        color: #0f172a;
+        font-family: Arial, "Tahoma", sans-serif;
+        direction: rtl;
+    }
+    .page {
+        width: 100%;
+        max-width: 900px;
+        margin: 20px auto;
+        background: #fff;
+        padding: 28px;
+    }
+    .header {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:20px;
+        border-bottom:2px solid #e2e8f0;
+        padding-bottom:18px;
+    }
+    .title { font-size:24px; font-weight:800; margin:0 0 6px; }
+    .sub { color:#64748b; font-size:12px; }
+    .student-box {
+        margin-top:18px;
+        padding:16px;
+        background:#f8fafc;
+        border:1px solid #e2e8f0;
+        border-radius:14px;
+    }
+    .student-name { font-size:20px; font-weight:800; }
+    .chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .chip {
+        background:#fff;
+        border:1px solid #dbeafe;
+        color:#334155;
+        border-radius:999px;
+        padding:5px 9px;
+        font-size:10px;
+        font-weight:700;
+    }
+    .stats {
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:9px;
+        margin-top:16px;
+    }
+    .stat {
+        padding:12px;
+        border:1px solid #e2e8f0;
+        border-radius:12px;
+        background:#fff;
+    }
+    .stat-label { color:#64748b; font-size:10px; }
+    .stat-value { font-size:16px; font-weight:800; margin-top:5px; }
+    .green { color:#059669; }
+    .red { color:#e11d48; }
+    .blue { color:#2563eb; }
+    .section { margin-top:24px; }
+    .section-title {
+        font-size:15px;
+        font-weight:800;
+        margin-bottom:9px;
+        padding-bottom:7px;
+        border-bottom:2px solid #e2e8f0;
+    }
+    table {
+        width:100%;
+        border-collapse:collapse;
+        font-size:10px;
+    }
+    th {
+        background:#eff6ff;
+        color:#1e3a8a;
+        font-weight:800;
+    }
+    th, td {
+        border:1px solid #e2e8f0;
+        padding:7px 6px;
+        text-align:center;
+    }
+    td.empty { padding:18px; color:#94a3b8; }
+    .footer {
+        margin-top:25px;
+        padding-top:10px;
+        border-top:1px solid #e2e8f0;
+        display:flex;
+        justify-content:space-between;
+        color:#64748b;
+        font-size:9px;
+    }
+    .no-print {
+        position:fixed;
+        left:20px;
+        top:20px;
+        padding:10px 16px;
+        border:0;
+        border-radius:10px;
+        background:#2563eb;
+        color:#fff;
+        font-weight:700;
+        cursor:pointer;
+    }
+    @media print {
+        body { background:#fff; }
+        .page { margin:0; max-width:none; padding:0; }
+        .no-print { display:none!important; }
+        tr { page-break-inside:avoid; }
+    }
+    @media(max-width:650px) {
+        .page { padding:16px; margin:0; }
+        .stats { grid-template-columns:repeat(2,1fr); }
+        .header { display:block; }
+    }
+</style>
+</head>
+<body>
+<button class="no-print" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+
+<div class="page">
+    <div class="header">
+        <div>
+            <h1 class="title">تقرير الطالب</h1>
+            <div class="sub">تقرير شامل للحصص والمدفوعات والملخص المالي</div>
+        </div>
+        <div class="sub">تاريخ التقرير: ${escapeHtml(new Date().toLocaleDateString('ar-SA'))}</div>
+    </div>
+
+    <div class="student-box">
+        <div class="student-name">${escapeHtml(student.name || 'بدون اسم')}</div>
+        <div class="chips">
+            <span class="chip">المرحلة: ${escapeHtml(student.stage || '—')}</span>
+            <span class="chip">الصف: ${escapeHtml(student.grade || '—')}</span>
+            <span class="chip">المادة: ${escapeHtml(student.subjectType || '—')}</span>
+            <span class="chip">نوع الدورة: ${escapeHtml(student.courseType || '—')}</span>
+            <span class="chip">سعر الحصة: ${money(student.price)}</span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-label">إجمالي الحصص</div>
+            <div class="stat-value blue">${totalLessons}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">الحصص المكتملة</div>
+            <div class="stat-value green">${completedLessons}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">إجمالي المستحق</div>
+            <div class="stat-value">${money(expected)}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">إجمالي المدفوع</div>
+            <div class="stat-value green">${money(paid)}</div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-label">المتبقي</div>
+            <div class="stat-value ${debt > 0 ? 'red' : 'green'}">${money(debt)}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">بانتظار الحصة</div>
+            <div class="stat-value">${waitingLessons}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">لم تتم</div>
+            <div class="stat-value">${missedLessons}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">عدد الدفعات</div>
+            <div class="stat-value">${payments.length}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">سجل الحصص</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>التاريخ</th>
+                    <th>الوقت</th>
+                    <th>المدة</th>
+                    <th>الحالة</th>
+                    <th>قيمة الحصة</th>
+                </tr>
+            </thead>
+            <tbody>${lessonRows}</tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">سجل المدفوعات</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>التاريخ</th>
+                    <th>المبلغ</th>
+                    <th>البيان</th>
+                </tr>
+            </thead>
+            <tbody>${paymentRows}</tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <span>تقرير الطالب — دفتر المعلم</span>
+        <span>${escapeHtml(student.name || '')}</span>
+    </div>
+</div>
+
+<script>
+window.onload = function() {
+    setTimeout(function() {
+        window.focus();
+        window.print();
+    }, 500);
+};
+<\/script>
+</body>
+</html>`);
+            reportWindow.document.close();
+        },
 
         openStudentDetails(student) {
 
