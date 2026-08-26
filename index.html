@@ -2058,32 +2058,153 @@
 </div>
 <script>
 (function(){
-  var popup=null, frame=null;
+  var popup=null, frame=null, currentStudentName='الطالب';
+
   function init(){
     popup=document.getElementById('studentReportPopup');
     frame=document.getElementById('studentReportPopupFrame');
     var close=document.getElementById('studentReportPopupClose');
-    if(close) close.addEventListener('click',closePopup);
-    if(popup) popup.addEventListener('click',function(e){if(e.target===popup)closePopup();});
+    if(close && !close.dataset.bound){
+      close.dataset.bound='1';
+      close.addEventListener('click',closePopup);
+    }
+    if(popup && !popup.dataset.bound){
+      popup.dataset.bound='1';
+      popup.addEventListener('click',function(e){if(e.target===popup)closePopup();});
+    }
   }
+
   function openPopup(){
-    if(!popup) init();
+    init();
     if(!frame) return null;
     popup.classList.add('open');
     popup.setAttribute('aria-hidden','false');
     return frame.contentWindow;
   }
+
   function closePopup(){
+    init();
     if(!popup) return;
     popup.classList.remove('open');
     popup.setAttribute('aria-hidden','true');
     if(frame){try{frame.srcdoc='';}catch(e){}}
   }
+
+  async function waitForPdfLibraries(){
+    for(var i=0;i<100;i++){
+      if(window.html2canvas && window.jspdf && window.jspdf.jsPDF) return true;
+      await new Promise(function(r){setTimeout(r,50);});
+    }
+    return false;
+  }
+
+  async function createPdfBlob(){
+    init();
+    if(!frame || !frame.contentDocument || !frame.contentDocument.body){
+      throw new Error('تقرير الطالب غير جاهز');
+    }
+
+    var ready=await waitForPdfLibraries();
+    if(!ready) throw new Error('PDF library unavailable');
+
+    var source=frame.contentDocument.body;
+
+    // Clone the report into an off-screen container so buttons/background
+    // controls are excluded and the PDF is rendered exactly as Arabic text.
+    var clone=source.cloneNode(true);
+    clone.querySelectorAll('.no-print').forEach(function(el){el.remove();});
+
+    var wrap=document.createElement('div');
+    wrap.dir='rtl';
+    wrap.style.cssText='position:fixed;left:-100000px;top:0;width:794px;background:#fff;padding:0;margin:0;z-index:-1;';
+    wrap.appendChild(clone);
+    document.body.appendChild(wrap);
+
+    var canvas=await window.html2canvas(wrap,{
+      scale:2,
+      useCORS:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      width:794,
+      windowWidth:794
+    });
+
+    document.body.removeChild(wrap);
+
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
+    var pageW=210;
+    var pageH=297;
+    var imgW=pageW;
+    var imgH=canvas.height*imgW/canvas.width;
+    var imgData=canvas.toDataURL('image/jpeg',0.92);
+
+    var y=0;
+    while(y<imgH){
+      if(y>0) pdf.addPage();
+      pdf.addImage(imgData,'JPEG',0,-y,imgW,imgH,undefined,'FAST');
+      y+=pageH;
+    }
+    return pdf.output('blob');
+  }
+
+  async function shareStudentReportPdf(){
+    try{
+      var blob=await createPdfBlob();
+      var safe=String(currentStudentName||'الطالب').replace(/[\\/:*?"<>|]/g,'-');
+      var file=new File([blob],'تقرير-'+safe+'.pdf',{type:'application/pdf'});
+
+      // iOS/iPadOS native share sheet. This MUST be called from the
+      // user's button gesture and the file is a real application/pdf.
+      if(navigator.share){
+        var can=true;
+        try{
+          if(navigator.canShare) can=navigator.canShare({files:[file]});
+        }catch(e){can=true;}
+
+        if(can){
+          await navigator.share({
+            title:'تقرير الطالب',
+            text:'تقرير الطالب PDF',
+            files:[file]
+          });
+          return;
+        }
+      }
+
+      // Fallback for browsers without file sharing.
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='تقرير-'+safe+'.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},1500);
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+      console.error('Student PDF share error:',err);
+      alert('تعذر فتح المشاركة. تأكد أن التطبيق يعمل عبر HTTPS ثم حاول مرة أخرى.');
+    }
+  }
+
+  function printStudentReportPdf(){
+    init();
+    if(frame && frame.contentWindow) frame.contentWindow.print();
+  }
+
   window.openStudentReportPopup=openPopup;
   window.closeStudentReportPopup=closePopup;
+  window.shareStudentReportPdf=shareStudentReportPdf;
+  window.printStudentReportPdf=printStudentReportPdf;
+  window.setStudentReportName=function(name){currentStudentName=name||'الطالب';};
+
   document.addEventListener('DOMContentLoaded',init);
 })();
 </script>
+
+<script id="student-pdf-libs" src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script id="student-pdf-jspdf" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 </head>
 
 <body
@@ -4728,6 +4849,7 @@ function teacherApp() {
                     </tr>`).join('')
                 : `<tr><td colspan="4" class="empty">لا توجد دفعات مسجلة.</td></tr>`;
 
+            window.setStudentReportName && window.setStudentReportName(student.name || 'الطالب');
             const reportWindow = window.openStudentReportPopup();
             if (!reportWindow) return;
 
@@ -4861,7 +4983,7 @@ function teacherApp() {
 <body>
 <div class="no-print report-actions">
     <button onclick="window.parent.closeStudentReportPopup()">↩️ رجوع</button>
-    <button onclick="window.print()">↗️ مشاركة / حفظ PDF</button>
+    <button onclick="window.parent.shareStudentReportPdf()">↗️ مشاركة PDF</button>
 </div>
 
 <div class="page">
