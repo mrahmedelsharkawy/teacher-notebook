@@ -2270,31 +2270,68 @@
     }
   }
 
-  function saveStudentReportAsPdf(){
-    /*
-     * The browser creates the actual PDF.
-     * On iPhone/iPad this opens the native print sheet; from there the user
-     * can choose Save to Files / PDF. On desktop it provides Save as PDF.
-     */
-    const preview =
-      document.getElementById('studentPdfSavePreview');
+  async function saveStudentReportAsPdf(){
+    const filenameElement = document.getElementById('studentPdfSaveName');
+    let filename = filenameElement && filenameElement.textContent
+      ? filenameElement.textContent.trim()
+      : 'تقرير-الطالب.pdf';
+
+    if (!/\.pdf$/i.test(filename)) filename += '.pdf';
 
     try {
-      if (preview && preview.contentWindow) {
-        preview.contentWindow.focus();
+      /*
+       * إذا كان لدينا PDF فعلي، استخدم مربع Save As الحقيقي في Chrome/Edge
+       * على الكمبيوتر. هذا هو الخيار الوحيد الذي يسمح للموقع باختيار
+       * المجلد مباشرة.
+       */
+      if (window.__studentReportPdfBlob instanceof Blob &&
+          window.__studentReportPdfBlob.type === 'application/pdf') {
+
+        const pdfBlob = window.__studentReportPdfBlob;
+
+        if (typeof window.showSaveFilePicker === 'function') {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'PDF',
+              accept: {'application/pdf': ['.pdf']}
+            }]
+          });
+
+          const writable = await handle.createWritable();
+          await writable.write(pdfBlob);
+          await writable.close();
+
+          closeStudentPdfSavePopup();
+          return;
+        }
 
         /*
-         * A tiny delay makes Safari/iPad much more reliable after a popup
-         * button click.
+         * iPhone/iPad Safari لا يسمح لصفحة ويب بفرض مربع اختيار مجلد.
+         * تنزيل الـPDF الحقيقي يسلّمه لواجهة Safari/Files الخاصة بالجهاز.
          */
-        setTimeout(function(){
-          try {
-            preview.contentWindow.print();
-          } catch (e) {
-            window.print();
-          }
-        }, 50);
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
 
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        return;
+      }
+
+      /*
+       * لا يوجد PDF Blob في النسخة الحالية، لذلك نفتح الطباعة الأصلية.
+       * المستخدم يختار "Save as PDF" من نافذة النظام/المتصفح.
+       */
+      const preview = document.getElementById('studentPdfSavePreview');
+
+      if (preview && preview.contentWindow) {
+        preview.contentWindow.focus();
+        preview.contentWindow.print();
         return;
       }
 
@@ -2307,10 +2344,9 @@
       window.print();
 
     } catch (error) {
+      if (error && error.name === 'AbortError') return;
       console.error('PDF save error:', error);
-      alert(
-        'تعذر فتح نافذة حفظ PDF. حاول الضغط على الزر مرة أخرى.'
-      );
+      alert('تعذر حفظ ملف PDF. حاول مرة أخرى.');
     }
   }
 
@@ -2453,6 +2489,9 @@
 }
 </style>
 
+<style id="student-pdf-save-hint-style">
+.student-pdf-save-hint{margin-top:4px;font-size:10px;line-height:1.5;color:#64748b}
+</style>
 </head>
 
 <body
@@ -6769,6 +6808,9 @@ window.addEventListener('orientationchange', () => {
 
     <div class="student-pdf-save-header">
       <div class="student-pdf-save-title">تم تجهيز التقرير</div>
+      <div class="student-pdf-save-hint">
+        اختر حفظ / تصدير PDF، ثم حدد مكان الحفظ من نافذة الجهاز.
+      </div>
       <div id="studentPdfSaveName"
            class="student-pdf-save-name">تقرير-الطالب.pdf</div>
     </div>
