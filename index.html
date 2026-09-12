@@ -3,13 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2563eb">
-    <title>دفتر المعلم - نظام إدارة الحصص والطلاب</title>
+    <meta name="theme-color" content="#0f766e">
+    <title>دفتر المعلم | نظام إدارة الحصص والطلاب</title>
+
+
+    <!-- =========================================================
+         دفتر المعلم — CODE ORGANIZATION MAP
+         ---------------------------------------------------------
+         01. Foundation / Libraries
+         02. Global visual system
+         03. Application shell + navigation
+         04. PAGE 01 — الرئيسية
+         05. PAGE 02 — سجل الطلاب
+         06. PAGE 03 — المالية
+         07. PAGE 04 — تواصل
+         08. PAGE 05 — حسابي
+         09. Modals / Calendar / Fixed lessons
+         10. Reports / Print / Export
+         11. Application state + business functions
+         12. Final responsive / compatibility patches
+
+         ملاحظة: تم الحفاظ على الدوال والمنطق وبيانات التطبيق.
+         التعديل هنا تنظيمي/بصري فقط.
+    ========================================================== -->
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,7 +39,7 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        cairo: ['Cairo', 'sans-serif']
+                        cairo: ['Tajawal', 'Cairo', 'sans-serif']
                     },
                     colors: {
                         brand: {
@@ -58,7 +79,7 @@
         }
 
         body {
-            font-family: 'Cairo', sans-serif;
+            font-family: 'Tajawal', 'Cairo', sans-serif;
         }
 
         [x-cloak] {
@@ -1501,7 +1522,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#0f766e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1840,7 +1861,7 @@
 }
 </style>
 
-<style id="two-income-charts-clean">
+<style id="two-income-charts-clean-2">>
 .finance-chart-wrap{
     width:100%!important;
     height:auto!important;
@@ -3047,6 +3068,540 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
     .finance-students-card .divide-y > div:last-child{ border-bottom:0!important; }
 }
 </style>
+<style id="global-clock-hide-style">
+.global-clock-panel .global-clock-face,
+.global-clock-panel .analog-clock {
+    display: none !important;
+}
+</style>
+
+
+<style id="teacher-notebook-modern-theme">
+/* =============================================================
+   TEACHER NOTEBOOK — MODERN VISUAL SYSTEM
+   -------------------------------------------------------------
+   هدف هذا القسم: تغيير الشكل فقط مع الحفاظ على الوظائف الأصلية.
+   Palette: Midnight Navy + Teal + Violet + Warm Amber
+   ============================================================= */
+
+/* ---------- 01. DESIGN TOKENS ---------- */
+:root{
+    --tn-bg:#f4f7fb;
+    --tn-surface:rgba(255,255,255,.88);
+    --tn-surface-solid:#ffffff;
+    --tn-ink:#172033;
+    --tn-muted:#718096;
+    --tn-border:rgba(148,163,184,.18);
+    --tn-primary:#0f766e;
+    --tn-primary-2:#14b8a6;
+    --tn-primary-soft:#ccfbf1;
+    --tn-violet:#7c3aed;
+    --tn-violet-soft:#ede9fe;
+    --tn-amber:#f59e0b;
+    --tn-amber-soft:#fef3c7;
+    --tn-danger:#ef4444;
+    --tn-success:#16a34a;
+    --tn-radius-sm:12px;
+    --tn-radius-md:18px;
+    --tn-radius-lg:24px;
+    --tn-shadow:0 12px 35px rgba(15,23,42,.07);
+    --tn-shadow-lg:0 22px 60px rgba(15,23,42,.13);
+}
+
+/* ---------- 02. FOUNDATION ---------- */
+html{
+    background:var(--tn-bg);
+}
+body{
+    font-family:'Tajawal','Cairo',sans-serif !important;
+    color:var(--tn-ink);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(20,184,166,.10), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(124,58,237,.09), transparent 30%),
+      linear-gradient(180deg,#f8fbff 0%,#f4f7fb 52%,#eef3f8 100%) !important;
+    min-height:100vh;
+}
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:-1;
+    background:
+      linear-gradient(135deg,rgba(255,255,255,.42),transparent 35%),
+      radial-gradient(circle at 50% 100%,rgba(20,184,166,.045),transparent 36%);
+}
+::selection{
+    background:rgba(20,184,166,.22);
+    color:#134e4a;
+}
+::-webkit-scrollbar-track{background:transparent !important}
+::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,#99f6e4,#94a3b8) !important;
+    border-radius:999px !important;
+}
+
+/* ---------- 03. APP SHELL ---------- */
+main{
+    position:relative;
+}
+main > section[x-show] > div:first-child h2{
+    letter-spacing:-.02em;
+}
+.app-sidebar{
+    background:
+      linear-gradient(180deg,rgba(10,25,47,.98),rgba(15,43,56,.98)) !important;
+    border-color:rgba(255,255,255,.08) !important;
+    box-shadow:18px 0 45px rgba(15,23,42,.15);
+}
+.app-sidebar *{
+    font-family:'Tajawal','Cairo',sans-serif;
+}
+.app-sidebar .text-slate-500,
+.app-sidebar .text-slate-400{
+    color:#a7bac7 !important;
+}
+.app-sidebar a,
+.app-sidebar button{
+    border-radius:14px !important;
+    transition:transform .18s ease,background .18s ease,color .18s ease,box-shadow .18s ease;
+}
+.app-sidebar a:hover,
+.app-sidebar button:hover{
+    transform:translateX(-2px);
+    background:rgba(255,255,255,.075) !important;
+}
+.bottom-app-nav{
+    background:rgba(7,18,35,.90) !important;
+    border-color:rgba(255,255,255,.10) !important;
+    box-shadow:0 -18px 45px rgba(15,23,42,.18) !important;
+    backdrop-filter:blur(22px) saturate(150%) !important;
+    -webkit-backdrop-filter:blur(22px) saturate(150%) !important;
+}
+.bottom-nav-item{
+    color:#9fb0bd !important;
+}
+.bottom-nav-item:hover{
+    color:#5eead4 !important;
+}
+.bottom-nav-item.is-active{
+    color:#5eead4 !important;
+}
+.bottom-nav-item.is-active .bottom-nav-icon{
+    background:rgba(20,184,166,.16) !important;
+    color:#5eead4 !important;
+    box-shadow:0 8px 24px rgba(20,184,166,.14) !important;
+}
+.bottom-nav-item.is-active::after{
+    background:#2dd4bf !important;
+    box-shadow:0 0 0 4px rgba(45,212,191,.10) !important;
+}
+
+/* ---------- 04. GLOBAL HEADER ---------- */
+.global-clock-panel{
+    background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(240,253,250,.80)) !important;
+    border:1px solid rgba(20,184,166,.16) !important;
+    box-shadow:0 18px 50px rgba(15,23,42,.11) !important;
+    backdrop-filter:blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter:blur(24px) saturate(150%) !important;
+}
+.global-clock-time{
+    color:#102a43 !important;
+    font-weight:900 !important;
+}
+.global-clock-day{
+    color:#0f766e !important;
+}
+.global-clock-live span{
+    background:#14b8a6 !important;
+    box-shadow:0 0 0 4px rgba(20,184,166,.10);
+}
+.global-teacher-mini{
+    background:rgba(255,255,255,.88) !important;
+    border-color:rgba(124,58,237,.14) !important;
+    box-shadow:0 16px 42px rgba(15,23,42,.10) !important;
+    backdrop-filter:blur(22px) !important;
+}
+.global-teacher-mini-photo{
+    background:linear-gradient(135deg,#ccfbf1,#ede9fe) !important;
+    color:#0f766e !important;
+}
+
+/* The analog clock is visual-only and remains available to the
+   existing logic, but is not displayed in the redesigned interface. */
+.analog-clock,
+.global-clock-panel .global-clock-face{
+    display:none !important;
+}
+
+/* ---------- 05. CARDS / PANELS ---------- */
+main .bg-white{
+    background:var(--tn-surface) !important;
+    border-color:var(--tn-border) !important;
+    box-shadow:var(--tn-shadow) !important;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+}
+main .bg-white:hover{
+    border-color:rgba(20,184,166,.16);
+}
+main .rounded-2xl,
+main .rounded-3xl{
+    border-radius:var(--tn-radius-md) !important;
+}
+main .shadow-sm{
+    box-shadow:var(--tn-shadow) !important;
+}
+main .shadow-xl,
+main .shadow-2xl{
+    box-shadow:var(--tn-shadow-lg) !important;
+}
+main .border-slate-100,
+main .border-slate-200{
+    border-color:var(--tn-border) !important;
+}
+
+/* ---------- 06. TYPOGRAPHY ---------- */
+main .text-slate-800,
+main .text-slate-900{
+    color:#172033 !important;
+}
+main .text-slate-700{
+    color:#263449 !important;
+}
+main .text-slate-600{
+    color:#526176 !important;
+}
+main .text-slate-500,
+main .text-slate-400{
+    color:#7b8798 !important;
+}
+main h1,main h2,main h3,main h4{
+    font-weight:800;
+}
+main h2{
+    font-size:clamp(1.45rem,2vw,2rem) !important;
+}
+main p{
+    line-height:1.65;
+}
+
+/* ---------- 07. BUTTON SYSTEM ---------- */
+main button{
+    font-family:'Tajawal','Cairo',sans-serif !important;
+    border-radius:13px !important;
+    transition:transform .18s ease,box-shadow .18s ease,background .18s ease,border-color .18s ease !important;
+}
+main button:not(:disabled):hover{
+    transform:translateY(-1px);
+}
+main button:not(:disabled):active{
+    transform:translateY(0) scale(.98);
+}
+main .bg-brand-600,
+main .bg-blue-600{
+    background:linear-gradient(135deg,#0f766e,#14b8a6) !important;
+    box-shadow:0 8px 20px rgba(15,118,110,.20) !important;
+}
+main .bg-brand-700,
+main .bg-blue-700{
+    background:linear-gradient(135deg,#115e59,#0f766e) !important;
+}
+main .text-brand-600,
+main .text-blue-600{
+    color:#0f766e !important;
+}
+main .bg-violet-600{
+    background:linear-gradient(135deg,#6d28d9,#8b5cf6) !important;
+    box-shadow:0 8px 20px rgba(124,58,237,.18) !important;
+}
+main .bg-emerald-600{
+    background:linear-gradient(135deg,#047857,#10b981) !important;
+}
+main .bg-slate-100{
+    background:#eef2f6 !important;
+}
+main .hover\:bg-slate-200:hover{
+    background:#e2e8f0 !important;
+}
+
+/* ---------- 08. FORM CONTROLS ---------- */
+main input,
+main select,
+main textarea{
+    font-family:'Tajawal','Cairo',sans-serif !important;
+    color:#253247 !important;
+    background:rgba(248,250,252,.88) !important;
+    border:1px solid rgba(148,163,184,.24) !important;
+    border-radius:13px !important;
+    outline:none !important;
+    transition:border-color .18s ease,box-shadow .18s ease,background .18s ease !important;
+}
+main input:focus,
+main select:focus,
+main textarea:focus{
+    background:#fff !important;
+    border-color:rgba(20,184,166,.62) !important;
+    box-shadow:0 0 0 4px rgba(20,184,166,.10) !important;
+}
+main input::placeholder,
+main textarea::placeholder{
+    color:#9aa6b5 !important;
+}
+
+/* ---------- 09. DASHBOARD ---------- */
+.dashboard-overview-row{
+    gap:12px !important;
+}
+.dashboard-next-lesson,
+.dashboard-secondary-column,
+.compact-stat-card{
+    border:1px solid rgba(20,184,166,.13) !important;
+}
+.dashboard-next-lesson{
+    background:
+      radial-gradient(circle at 12% 20%,rgba(255,255,255,.22),transparent 25%),
+      linear-gradient(135deg,#0f766e,#115e59 58%,#172554) !important;
+    color:#fff !important;
+    box-shadow:0 20px 45px rgba(15,118,110,.18) !important;
+}
+.dashboard-next-lesson *{
+    color:inherit;
+}
+.dashboard-next-icon{
+    background:rgba(255,255,255,.14) !important;
+    border:1px solid rgba(255,255,255,.16);
+}
+.dashboard-add-lesson{
+    background:linear-gradient(135deg,#ffffff,#f0fdfa) !important;
+    border:1px solid rgba(20,184,166,.18) !important;
+}
+.dashboard-add-lesson:hover{
+    box-shadow:0 12px 30px rgba(20,184,166,.10);
+}
+.compact-stat-card{
+    background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(248,250,252,.82)) !important;
+}
+.compact-stat-card:nth-child(1){
+    border-top:3px solid #14b8a6 !important;
+}
+.compact-stat-card:nth-child(2){
+    border-top:3px solid #8b5cf6 !important;
+}
+
+/* Today lessons */
+.today-lesson-compact{
+    border-color:rgba(20,184,166,.14) !important;
+}
+.today-lesson-compact:hover{
+    background:#f0fdfa !important;
+}
+
+/* Weekly schedule */
+.weekly-day{
+    border-color:rgba(148,163,184,.16) !important;
+    box-shadow:0 6px 18px rgba(15,23,42,.04);
+}
+.weekly-day-active .weekly-day-header{
+    background:linear-gradient(135deg,#ccfbf1,#f0fdfa) !important;
+    color:#115e59 !important;
+    border-bottom-color:#99f6e4 !important;
+}
+.weekly-day-today .weekly-day-header{
+    background:linear-gradient(135deg,#0f766e,#14b8a6) !important;
+}
+.weekly-lesson{
+    background:linear-gradient(135deg,#f8fffe,#f5f3ff) !important;
+    border-color:rgba(20,184,166,.14) !important;
+}
+.weekly-lesson-time{
+    color:#0f766e !important;
+}
+
+/* ---------- 10. STUDENTS ---------- */
+.student-meta-chips{gap:7px !important}
+.student-meta-chip{
+    border-radius:999px !important;
+    padding:6px 10px !important;
+    box-shadow:0 3px 10px rgba(15,23,42,.04);
+}
+.chip-stage{
+    background:#e6fffb !important;
+    color:#0f766e !important;
+    border-color:#b2f5ea !important;
+}
+.chip-grade{
+    background:#f1edff !important;
+    color:#6d28d9 !important;
+    border-color:#ddd6fe !important;
+}
+.chip-subject{
+    background:#ecfdf5 !important;
+    color:#047857 !important;
+    border-color:#bbf7d0 !important;
+}
+.chip-course{
+    background:#fff7ed !important;
+    color:#c2410c !important;
+    border-color:#fed7aa !important;
+}
+.map-link{
+    background:#e6fffb !important;
+    color:#0f766e !important;
+    border-color:#b2f5ea !important;
+}
+.map-link:hover{
+    background:#ccfbf1 !important;
+}
+.lesson-status-icon,
+.status-action{
+    border-radius:10px !important;
+}
+
+/* ---------- 11. FINANCE ---------- */
+.income-chart-wrap,
+.income-bar-chart-wrap,
+.finance-chart-wrap{
+    border-radius:20px !important;
+}
+.finance-chart-wrap{
+    background:
+      linear-gradient(145deg,rgba(255,255,255,.94),rgba(240,253,250,.72)) !important;
+    border:1px solid rgba(20,184,166,.12) !important;
+    box-shadow:var(--tn-shadow) !important;
+}
+.income-chart-title,
+.income-bar-chart-title{
+    color:#172033 !important;
+    font-weight:900 !important;
+}
+
+/* ---------- 12. CONTACT ---------- */
+.contact-student-card{
+    border:1px solid rgba(148,163,184,.16) !important;
+    background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(248,250,252,.78)) !important;
+}
+.contact-student-card:hover{
+    border-color:rgba(20,184,166,.28) !important;
+    box-shadow:0 15px 35px rgba(15,23,42,.08) !important;
+}
+.contact-student-card .contact-actions a{
+    transition:transform .18s ease,box-shadow .18s ease !important;
+}
+.contact-student-card .contact-actions a:hover{
+    transform:translateY(-2px) !important;
+    box-shadow:0 7px 18px rgba(15,23,42,.10);
+}
+
+/* ---------- 13. CALENDAR ---------- */
+.month-calendar{
+    border-color:rgba(148,163,184,.16) !important;
+    box-shadow:var(--tn-shadow);
+}
+.month-calendar-head{
+    background:linear-gradient(180deg,#f0fdfa,#f8fafc) !important;
+    color:#115e59 !important;
+    border-color:rgba(20,184,166,.12) !important;
+}
+.month-calendar-cell{
+    border-color:rgba(148,163,184,.13) !important;
+    background:rgba(255,255,255,.82) !important;
+}
+.month-calendar-cell.today{
+    box-shadow:inset 0 0 0 2px #14b8a6 !important;
+}
+.month-calendar-cell.has-lessons .month-day-number{
+    background:#ccfbf1 !important;
+    color:#0f766e !important;
+}
+.month-calendar-cell.today .month-day-number{
+    background:linear-gradient(135deg,#0f766e,#14b8a6) !important;
+}
+.month-student{
+    background:#f1f5f9;
+    color:#334155;
+}
+
+/* ---------- 14. MODALS ---------- */
+.fixed.inset-0[class*="bg-slate-900"]{
+    background:rgba(9,20,36,.62) !important;
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+}
+.fixed.inset-0 > div.bg-white{
+    border:1px solid rgba(255,255,255,.55) !important;
+    box-shadow:0 28px 80px rgba(15,23,42,.25) !important;
+}
+#studentsReportsPage{
+    background:
+      radial-gradient(circle at 10% 10%,rgba(20,184,166,.08),transparent 28%),
+      rgba(244,247,251,.98) !important;
+}
+#studentsReportDetailClean,
+#studentsReportsPage .bg-white{
+    border-color:rgba(148,163,184,.16) !important;
+    box-shadow:var(--tn-shadow-lg) !important;
+}
+
+/* ---------- 15. REPORT / PRINT UI ---------- */
+.student-print-btn{
+    background:linear-gradient(135deg,#0f766e,#14b8a6) !important;
+    color:#fff !important;
+    border:0 !important;
+    box-shadow:0 10px 22px rgba(15,118,110,.18) !important;
+}
+.report-actions button{
+    border-radius:12px !important;
+}
+
+/* ---------- 16. MOBILE ---------- */
+@media (max-width:767px){
+    body{
+        background:
+          radial-gradient(circle at 0 0,rgba(20,184,166,.09),transparent 34%),
+          linear-gradient(180deg,#f8fbff,#f1f5f9) !important;
+    }
+    .global-clock-panel{
+        border-radius:16px !important;
+    }
+    .global-teacher-mini{
+        border-radius:15px !important;
+        min-width:0 !important;
+    }
+    main .bg-white{
+        box-shadow:0 8px 24px rgba(15,23,42,.055) !important;
+    }
+    .dashboard-overview-row{
+        gap:8px !important;
+    }
+    .dashboard-next-lesson{
+        border-radius:18px !important;
+    }
+    .weekly-day{
+        box-shadow:none;
+    }
+}
+@media (max-width:430px){
+    main .bg-white{
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
+    }
+    main button{
+        border-radius:11px !important;
+    }
+}
+
+/* ---------- 17. ACCESSIBILITY / MOTION ---------- */
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:.01ms !important;
+        scroll-behavior:auto !important;
+    }
+}
+</style>
+
 </head>
 
 <body
@@ -3202,7 +3757,8 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
      تم وضع واجهة كل صفحة والمودالات التابعة لها بجوارها لسهولة الصيانة.
 ========================================================= -->
 <!-- =========================================================
-     الصفحة 1: الرئيسية
+     PAGE 01 — الرئيسية / DASHBOARD
+     هذا القسم مسؤول عن واجهة البداية والملخص والحصص القادمة واليوم والتقويم.
 ========================================================= -->
             <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-5">
 
@@ -3511,7 +4067,8 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
 
     </div>
 <!-- =========================================================
-     الصفحة 2: سجل الطلاب
+     PAGE 02 — سجل الطلاب / STUDENTS
+     هذا القسم مسؤول عن الطلاب، السجل، الحصص، الدفعات، والتقارير.
 ========================================================= -->
             <!-- =====================================================
                  STUDENTS
@@ -4275,7 +4832,8 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
 
     </div>
 <!-- =========================================================
-     الصفحة 3: المالية
+     PAGE 03 — المالية / FINANCE
+     هذا القسم مسؤول عن الدخل، الدفعات، الديون، والمخططات.
 ========================================================= -->
             <!-- =====================================================
                  FINANCE
@@ -4518,7 +5076,8 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
 
     </div>
 <!-- =========================================================
-     الصفحة 4: تواصل
+     PAGE 04 — تواصل / CONTACT
+     هذا القسم مسؤول عن البحث والتواصل مع الطلاب.
 ========================================================= -->
 <section x-show="activeTab === 'contact'" x-cloak class="space-y-6">
 <div class="contact-search-wrap mb-4">
@@ -4654,7 +5213,8 @@ section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
 </section>
 
 <!-- =========================================================
-     الصفحة 5: حسابي
+     PAGE 05 — حسابي / PROFILE
+     هذا القسم مسؤول عن بيانات المعلم، النسخ الاحتياطي، والإعدادات.
 ========================================================= -->
             <!-- =====================================================
                  TEACHER PROFILE
@@ -6453,6 +7013,15 @@ function teacherApp() {
 
 </div>
 
+
+<!-- =============================================================
+     END OF DOCUMENT
+     -------------------------------------------------------------
+     جميع الصفحات والوظائف محفوظة.
+     القسم البصري الحديث أعلاه مستقل ويمكن تعديله لاحقاً دون لمس
+     teacherApp() أو دوال البيانات والحصص والمالية والتقارير.
+============================================================= -->
+
 </body>
 </html>`;
 
@@ -7676,6 +8245,9 @@ window.addEventListener('orientationchange', () => {
   <div id="srBody" class="sr-body"></div>
  </div>
 </div>
+<!-- =========================================================
+     REPORTS MODULE — STUDENT REPORTS / PRINT / EXPORT
+========================================================= -->
 <script id="student-reports-clean-js">
 (function(){
  let selected=null;
@@ -7765,16 +8337,8 @@ window.addEventListener('orientationchange', () => {
  document.addEventListener('DOMContentLoaded',()=>{document.getElementById('srSearch')?.addEventListener('input',render);document.getElementById('studentsReportDetailClean')?.addEventListener('click',e=>{if(e.target.id==='studentsReportDetailClean')closeDetail()})});
 })();
 </script>
-</body>
-</html>
-<style>
-.global-clock-panel .global-clock-face,
-.global-clock-panel .analog-clock {
-    display: none !important;
-}
-</style>
 
-    <!-- Fixed monthly lessons modal -->
+<!-- Fixed monthly lessons modal -->
     <div x-show="showFixedLessonsModal" x-cloak
          class="fixed inset-0 z-[75] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
          @click.self="showFixedLessonsModal=false">
@@ -7917,3 +8481,6 @@ window.addEventListener('orientationchange', () => {
     z-index:2!important;
 }
 </style>
+
+</body>
+</html>
