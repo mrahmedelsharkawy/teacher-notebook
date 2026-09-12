@@ -3057,16 +3057,7 @@ main textarea::placeholder{
 </style>
 
 
-<style id="student-history-future-only">
-/* سجل الحصص = المستقبل فقط. الأرشيف يحتفظ بالمنجز. */
-.lesson-history-completed,
-.student-lesson-completed,
-.lesson-row.completed,
-.lesson-item.completed,
-[data-lesson-completed="true"]{
-  display:none !important;
-}
-</style>
+
 
 <style id="final-header-nav-size-2026">
 /* Slightly larger global header and bottom navigation */
@@ -5641,10 +5632,19 @@ function teacherApp() {
         /* جميع الحصص مجمعة من الطلاب لعرضها أسفل قائمة الطلاب */
         allLessons() {
 
+            /*
+             * السجل الخارجي لصفحة الطلاب = الحصص المستقبلية غير المكتملة فقط.
+             * الحصة المكتملة تبقى محفوظة داخل سجل الطالب، لكنها لا تظهر هنا؛
+             * نسختها المؤرشفة تظهر في أرشيف الحصص.
+             */
+            const now = new Date();
             const lessons = [];
 
             this.students.forEach(student => {
                 (student.lessons || []).forEach(lesson => {
+                    if (!lesson || lesson.status === 'تم') return;
+                    const lessonDate = new Date(`${lesson.date || '1970-01-01'}T${lesson.time || '00:00'}:00`);
+                    if (!(lessonDate > now)) return;
                     lessons.push({
                         studentId: student.id,
                         studentName: student.name,
@@ -5656,9 +5656,9 @@ function teacherApp() {
             });
 
             return lessons.sort((a, b) => {
-                const aDate = new Date(`${a.lesson.date}T${a.lesson.time || '00:00'}`);
-                const bDate = new Date(`${b.lesson.date}T${b.lesson.time || '00:00'}`);
-                return bDate - aDate;
+                const aDate = new Date(`${a.lesson.date}T${a.lesson.time || '00:00'}:00`);
+                const bDate = new Date(`${b.lesson.date}T${b.lesson.time || '00:00'}:00`);
+                return aDate - bDate;
             });
         },
 
@@ -5683,19 +5683,19 @@ function teacherApp() {
         },
 
         calculateCompletedLessonsCount(student) {
-            const activeDone = (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
-            const archivedDone = (this.lessonArchive || []).filter(item => String(item.studentId) === String(student?.id)).length;
-            return activeDone + archivedDone;
+            /* الحصة المكتملة موجودة أصلًا داخل سجل الطالب؛ الأرشيف مجرد فهرس لها. */
+            return (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
         },
 
         calculateStudentExpected(student) {
-            const activeTotal = (student?.lessons || [])
+            /*
+             * لا نحسب lessonArchive مرة ثانية.
+             * كل حصة لها مصدر مالي واحد فقط: student.lessons.
+             */
+            const total = (student?.lessons || [])
                 .filter(lesson => lesson.status === 'تم')
                 .reduce((sum, lesson) => sum + this.calculateLessonCharge(student, lesson), 0);
-            const archivedTotal = (this.lessonArchive || [])
-                .filter(item => String(item.studentId) === String(student?.id))
-                .reduce((sum, item) => sum + this.calculateLessonCharge(student, item.lesson || {}), 0);
-            return Number((activeTotal + archivedTotal).toFixed(2));
+            return Number(total.toFixed(2));
         },
 
         calculateStudentPaid(student) {
@@ -7377,10 +7377,10 @@ window.addEventListener('orientationchange', () => {
     return '<span class="sr2-status sr2-wait" title="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></span>';
   }
   function allReportLessons(student){
-    const a = app();
-    const active = Array.isArray(student?.lessons) ? student.lessons.map(l => ({lesson:l, archived:false})) : [];
-    const archived = (a?.lessonArchive || []).filter(r => String(r.studentId) === String(student?.id)).map(r => ({lesson:r.lesson || {}, archived:true, archivedAt:r.archivedAt}));
-    return [...active, ...archived].sort((x,y)=>new Date(`${y.lesson?.date||'1970-01-01'}T${y.lesson?.time||'00:00'}`)-new Date(`${x.lesson?.date||'1970-01-01'}T${x.lesson?.time||'00:00'}`));
+    /* سجل التقرير يعتمد على سجل الطالب نفسه مرة واحدة فقط.
+       lessonArchive فهرس إضافي للحصص المكتملة وليس مصدرًا ثانيًا للحصة. */
+    const active = Array.isArray(student?.lessons) ? student.lessons.map(l => ({lesson:l, archived:l?.status === 'تم', archivedAt:null})) : [];
+    return active.sort((x,y)=>new Date(`${y.lesson?.date||'1970-01-01'}T${y.lesson?.time||'00:00'}`)-new Date(`${x.lesson?.date||'1970-01-01'}T${x.lesson?.time||'00:00'}`));
   }
   function studentRecord(student){
     const a=app();
