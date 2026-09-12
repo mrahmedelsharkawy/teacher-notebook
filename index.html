@@ -2821,11 +2821,15 @@ main textarea::placeholder{
     border:1px solid rgba(255,255,255,.16);
 }
 .dashboard-add-lesson{
-    background:linear-gradient(135deg,#ffffff,#f0fdfa) !important;
-    border:1px solid rgba(20,184,166,.18) !important;
+    background:linear-gradient(135deg,#0f766e,#14b8a6 58%,#2563eb) !important;
+    border:1px solid rgba(20,184,166,.35) !important;
+    color:#ffffff !important;
+    box-shadow:0 12px 28px rgba(15,118,110,.18) !important;
 }
+.dashboard-add-lesson *{ color:inherit !important; }
 .dashboard-add-lesson:hover{
-    box-shadow:0 12px 30px rgba(20,184,166,.10);
+    box-shadow:0 16px 34px rgba(15,118,110,.25) !important;
+    transform:translateY(-1px);
 }
 .compact-stat-card{
     background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(248,250,252,.82)) !important;
@@ -3692,15 +3696,17 @@ main textarea::placeholder{
                      ويتحدث تلقائياً عند إضافة أي حصة لطالب
                 ================================================== -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3">
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-800">سجل الحصص</h3>
-                            <p class="text-xs text-slate-400 mt-1">جميع حصص الطلاب، وتظهر الحصة هنا مباشرة بعد إضافتها.</p>
+                    <button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="lessonsLedgerOpen = !lessonsLedgerOpen" :aria-expanded="lessonsLedgerOpen.toString()">
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-calendar-check text-brand-600"></i> سجل الحصص</h3>
+                            <p class="text-xs text-slate-400 mt-1">اضغط لعرض سجل الحصص بالكامل أو إخفائه.</p>
                         </div>
-                        <span class="px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-bold" x-text="allLessons().length + ' حصة'"></span>
-                    </div>
-
-                    <div class="p-4 space-y-3">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-bold" x-text="allLessons().length + ' حصة'"></span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform" :class="lessonsLedgerOpen ? 'rotate-180' : ''"></i>
+                        </div>
+                    </button>
+                    <div x-show="lessonsLedgerOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100">
                         <template x-for="item in allLessons()" :key="item.studentId + '-' + item.lesson.id">
                             <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                 <div class="min-w-0">
@@ -4446,19 +4452,17 @@ main textarea::placeholder{
 
                 <!-- Financial ledger -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3">
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-receipt text-emerald-600"></i>
-                                السجل المالي
-                            </h3>
-                            <p class="text-xs text-slate-400 mt-1">جميع عمليات الدفع المسجلة للطلاب مع التاريخ والمبلغ والتفاصيل.</p>
+                    <button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="financeLedgerOpen = !financeLedgerOpen" :aria-expanded="financeLedgerOpen.toString()">
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-receipt text-emerald-600"></i> السجل المالي</h3>
+                            <p class="text-xs text-slate-400 mt-1">اضغط لعرض السجل المالي بالكامل أو إخفائه.</p>
                         </div>
-                        <span class="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold"
-                              x-text="allFinancialTransactions().length + ' عملية'"></span>
-                    </div>
-
-                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold" x-text="allFinancialTransactions().length + ' عملية'"></span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform" :class="financeLedgerOpen ? 'rotate-180' : ''"></i>
+                        </div>
+                    </button>
+                    <div x-show="financeLedgerOpen" x-cloak class="divide-y divide-slate-100 border-t border-slate-100">
                         <template x-for="transaction in allFinancialTransactions()" :key="'ledger-' + transaction.studentId + '-' + transaction.id">
                             <div class="p-4 hover:bg-slate-50/70 transition">
                                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -5386,7 +5390,18 @@ function teacherApp() {
             const leading = (first.getDay() + 1) % 7;
             const totalCells = Math.ceil((leading + last.getDate()) / 7) * 7;
 
-            const lessonsByDate = this.getAllLessons().reduce((map, item) => {
+            const calendarLessons = [
+                ...this.getAllLessons(),
+                ...(this.lessonArchive || []).map(record => ({
+                    studentId: record.studentId,
+                    studentName: record.studentName || record.studentSnapshot?.name || 'بدون اسم',
+                    subjectType: record.studentSnapshot?.subjectType || '',
+                    lesson: { ...(record.lesson || {}), status: 'تم', archived: true }
+                }))
+            ];
+
+            const lessonsByDate = calendarLessons.reduce((map, item) => {
+                if (!item.lesson?.date) return map;
                 if (!map[item.lesson.date]) map[item.lesson.date] = [];
                 map[item.lesson.date].push(item);
                 return map;
