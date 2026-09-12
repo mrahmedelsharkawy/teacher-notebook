@@ -3602,6 +3602,17 @@ main textarea::placeholder{
 }
 </style>
 
+
+<style id="archive-visual-style">
+#studentLessonArchiveSection{
+  animation:archiveIn .28s ease both;
+}
+@keyframes archiveIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+
 </head>
 
 <body
@@ -8245,6 +8256,95 @@ window.addEventListener('orientationchange', () => {
   <div id="srBody" class="sr-body"></div>
  </div>
 </div>
+
+<!-- =========================================================
+     PAGE 02 — أرشيف الحصص
+     عرض الحصص المكتملة فقط، دون حذفها من بيانات التطبيق.
+========================================================= -->
+<section id="studentLessonArchiveSection" class="mt-5">
+  <div class="bg-white rounded-3xl border border-slate-100 p-4 sm:p-5">
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl flex items-center justify-center"
+             style="background:linear-gradient(135deg,#ede9fe,#ccfbf1);color:#0f766e">
+          <span class="text-xl">✓</span>
+        </div>
+        <div>
+          <h3 class="text-lg font-extrabold text-slate-800">أرشيف الحصص</h3>
+          <p class="text-sm text-slate-500">الحصص المنجزة مرتبة من الأحدث إلى الأقدم</p>
+        </div>
+      </div>
+      <span id="studentLessonArchiveCount"
+            class="px-3 py-1.5 rounded-full text-sm font-bold"
+            style="background:#f1f5f9;color:#475569">0 حصة</span>
+    </div>
+    <div id="studentLessonArchiveList" class="space-y-2">
+      <div class="text-center py-8 text-slate-400">لا توجد حصص مؤرشفة حتى الآن</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- =========================================================
+     MODULE — مشاركة تقرير PDF
+========================================================= -->
+<script id="ios-pdf-share-safe">
+(function () {
+  window.shareOrDownloadStudentReport = function () {
+    var student = null;
+    try {
+      if (typeof selected !== 'undefined') student = selected;
+    } catch (e) {}
+
+    if (!student) {
+      student = window.selectedStudentForReport || null;
+    }
+
+    if (!student) {
+      alert('يرجى اختيار الطالب أولاً');
+      return;
+    }
+
+    // Use a real existing PDF blob only. This is the only reliable way to
+    // invoke iOS file sharing for a PDF from a web app.
+    var blob = null;
+    try {
+      if (window.__studentReportPdfBlob instanceof Blob) {
+        blob = window.__studentReportPdfBlob;
+      }
+    } catch (e) {}
+
+    if (blob && navigator.share && navigator.canShare) {
+      var name = 'تقرير-' + (student.name || 'الطالب') + '.pdf';
+      var file = new File([blob], name, { type: 'application/pdf' });
+
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({
+          title: 'تقرير ' + (student.name || 'الطالب'),
+          text: 'تقرير الطالب',
+          files: [file]
+        }).catch(function (err) {
+          if (!err || err.name !== 'AbortError') {
+            window.printSelectedStudentReportFromReports
+              ? window.printSelectedStudentReportFromReports()
+              : window.print();
+          }
+        });
+        return;
+      }
+    }
+
+    // iPhone/iPad Safari: browser print dialog is the dependable system
+    // "Save to Files / PDF / Share" route when there is no PDF Blob.
+    if (typeof window.printSelectedStudentReportFromReports === 'function') {
+      window.printSelectedStudentReportFromReports();
+    } else {
+      window.print();
+    }
+  };
+})();
+</script>
+
 <!-- =========================================================
      REPORTS MODULE — STUDENT REPORTS / PRINT / EXPORT
 ========================================================= -->
