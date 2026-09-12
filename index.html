@@ -7439,21 +7439,16 @@ window.addEventListener('orientationchange', () => {
       clone.remove();
       const {jsPDF}=window.jspdf;
       const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
-      const pageW=210,pageH=297,margin=8;
-      const imgW=pageW-margin*2;
-      const imgH=canvas.height*imgW/canvas.width;
-      let y=margin,remaining=imgH,srcY=0;
-      const pxPerMm=canvas.width/imgW;
-      while(remaining>0){
-        const sliceMm=Math.min(remaining,pageH-margin*2);
-        const slicePx=Math.round(sliceMm*pxPerMm);
-        const slice=document.createElement('canvas');
-        slice.width=canvas.width; slice.height=Math.min(slicePx,canvas.height-srcY);
-        slice.getContext('2d').drawImage(canvas,0,srcY,canvas.width,slice.height,0,0,slice.width,slice.height);
-        pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',margin,y,imgW,slice.height/pxPerMm);
-        remaining-=sliceMm; srcY+=slice.height;
-        if(remaining>0){pdf.addPage();y=margin;}
-      }
+      // اجعل التقرير كله داخل صفحة A4 واحدة، مع تصغير تلقائي عند الحاجة.
+      const pageW=210,pageH=297,margin=7;
+      const usableW=pageW-margin*2, usableH=pageH-margin*2;
+      const naturalH=canvas.height*usableW/canvas.width;
+      const fitScale=Math.min(1, usableH/naturalH);
+      const imgW=usableW*fitScale;
+      const imgH=naturalH*fitScale;
+      const x=margin+(usableW-imgW)/2;
+      const y=margin;
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',x,y,imgW,imgH,undefined,'FAST');
       const safeName=nameOf(selected).replace(/[\\/:*?"<>|]/g,'_').trim()||'طالب';
       const blob=pdf.output('blob');
       const file=new File([blob],`تقرير-${safeName}.pdf`,{type:'application/pdf'});
@@ -7478,7 +7473,32 @@ window.addEventListener('orientationchange', () => {
     const content=document.getElementById('srBody')?.innerHTML||'';
     const win=window.open('','_blank');
     if(!win){alert('تعذر فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.');return;}
-    win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الطالب - ${esc(nameOf(selected))}</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial,Tahoma,sans-serif;color:#0f172a;font-size:12px;line-height:1.7}h1{font-size:20px;margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #dbe3ec;padding:7px;text-align:right}th{background:#f1f5f9}.sr2-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.sr2-box{border:1px solid #dbe3ec;border-radius:8px;padding:8px}.sr2-box small{display:block;color:#64748b;font-size:9px}.sr2-box strong{font-size:11px}.sr2-section{margin-top:12px}.sr2-section-title{font-weight:bold;margin-bottom:5px}.sr2-status{font-weight:bold}</style></head><body><h1>تقرير الطالب: ${esc(nameOf(selected))}</h1>${content}<script>window.onload=()=>setTimeout(()=>window.print(),250);${String.fromCharCode(60)}/script></body></html>`); win.document.close();
+    win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الطالب - ${esc(nameOf(selected))}</title><style>
+@page{size:A4 portrait;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff}
+body{font-family:Arial,Tahoma,sans-serif;color:#0f172a;font-size:10px;line-height:1.35}
+.print-page{width:210mm;height:297mm;padding:7mm;overflow:hidden;background:#fff}
+.print-content{width:196mm;transform-origin:top center}
+h1{font-size:18px;margin:0 0 7px;color:#0f172a}
+table{width:100%;border-collapse:collapse;margin-top:7px;table-layout:fixed}
+th,td{border:1px solid #dbe3ec;padding:4px 5px;text-align:right;word-break:break-word}
+th{background:#eef2ff;color:#1e3a8a;font-weight:800}
+.sr2-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.sr2-box{border:1px solid #cbd5e1;border-radius:7px;padding:5px;background:#f8fafc;min-height:38px}
+.sr2-box small{display:block;color:#64748b;font-size:7px;margin-bottom:1px}
+.sr2-box strong{font-size:9px;color:#0f172a}
+.sr2-section{margin-top:7px;break-inside:avoid}
+.sr2-section-title{font-weight:900;font-size:10px;margin-bottom:3px;color:#1d4ed8;background:#eff6ff;border-radius:5px;padding:3px 5px}
+.sr2-status{font-weight:bold}
+.sr2-table{font-size:8px}
+.sr2-table th,.sr2-table td{padding:3px 4px}
+</style></head><body><div class="print-page"><div id="printContent" class="print-content"><h1>تقرير الطالب: ${esc(nameOf(selected))}</h1>${content}</div></div><script>
+window.onload=()=>setTimeout(()=>{
+ const page=document.querySelector('.print-page'), box=document.getElementById('printContent');
+ if(page&&box){ const maxH=page.clientHeight-1; const actualH=box.scrollHeight; const scale=Math.min(1,maxH/actualH); box.style.transform='scale(' + scale + ')'; box.style.width=(196/scale)+'mm'; }
+ setTimeout(()=>window.print(),180);
+},180);${String.fromCharCode(60)}/script></body></html>`); win.document.close();
   }
   window.openStudentReport=openDetail;
   window.openStudentsReportsPage=openPage;
