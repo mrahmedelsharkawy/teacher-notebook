@@ -2122,8 +2122,17 @@
 
     if (preparing) return;
 
-    if (!frame || !frame.contentDocument || !frame.contentDocument.body) {
+    if (!frame || !frame.srcdoc) {
       alert('التقرير غير جاهز. افتح التقرير مرة أخرى ثم حاول.');
+      return;
+    }
+
+    if (!frame.contentDocument || !frame.contentDocument.body) {
+      setTimeout(function(){
+        if (typeof window.exportStudentReportPdf === 'function') {
+          window.exportStudentReportPdf();
+        }
+      }, 120);
       return;
     }
 
@@ -2236,7 +2245,7 @@
     } else {
       preview.srcdoc =
         
-        '<html lang="ar" dir="rtl"><body>لا يوجد تقرير</body></html>';
+        '<html lang="ar" dir="rtl"><body>تعذر تصدير التقرير</body></html>';
     }
 
     if (nameElement) {
@@ -2585,6 +2594,459 @@
   }
 }
 </style>
+
+<style id="students-reports-feature-style">
+.students-reports-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:42px;
+  padding:0 15px;
+  border:0;
+  border-radius:12px;
+  background:linear-gradient(135deg,#2563eb,#4f46e5);
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 6px 18px rgba(37,99,235,.18);
+  margin-inline-start:8px;
+}
+.students-reports-button:hover{filter:brightness(1.04)}
+.students-reports-floating{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:1000;
+}
+.students-reports-page{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9990;
+  background:#f8fafc;
+  overflow:auto;
+}
+.students-reports-page.open{display:block}
+.students-reports-shell{
+  width:min(1100px,96vw);
+  margin:0 auto;
+  min-height:100%;
+  padding:22px 0 35px;
+}
+.students-reports-topbar{
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:grid;
+  grid-template-columns:auto 1fr minmax(220px,340px);
+  align-items:center;
+  gap:15px;
+  padding:14px 4px;
+  background:rgba(248,250,252,.88);
+  backdrop-filter:blur(14px);
+}
+.students-reports-back{
+  height:42px;
+  padding:0 12px;
+  border:1px solid #e2e8f0;
+  background:#fff;
+  border-radius:11px;
+  color:#334155;
+  font-weight:800;
+  cursor:pointer;
+}
+.students-reports-heading{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+.students-reports-heading-icon{
+  width:42px;height:42px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:#e0e7ff;color:#4338ca;
+}
+.students-reports-heading h2{
+  margin:0;font-size:21px;color:#0f172a;
+}
+.students-reports-heading p{
+  margin:2px 0 0;color:#64748b;font-size:11px;
+}
+.students-reports-search-wrap{
+  height:42px;
+  display:flex;align-items:center;gap:8px;
+  padding:0 12px;
+  background:#fff;border:1px solid #e2e8f0;
+  border-radius:12px;
+}
+.students-reports-search-wrap i{color:#94a3b8}
+.students-reports-search-wrap input{
+  width:100%;border:0;outline:0;background:transparent;
+  font:inherit;font-size:13px;color:#0f172a;
+}
+.students-reports-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:11px;
+  padding:10px 4px 30px;
+}
+.students-report-student-card{
+  display:flex;align-items:center;gap:11px;
+  width:100%;min-height:66px;
+  padding:10px 12px;
+  border:1px solid #e2e8f0;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 4px 14px rgba(15,23,42,.04);
+  cursor:pointer;text-align:right;
+}
+.students-report-student-card:hover{
+  border-color:#bfdbfe;
+  transform:translateY(-1px);
+}
+.students-report-student-avatar{
+  width:40px;height:40px;flex:0 0 40px;
+  border-radius:12px;background:#eef2ff;color:#4338ca;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;
+}
+.students-report-student-name{
+  font-weight:850;color:#0f172a;font-size:14px;
+}
+.students-report-student-meta{
+  margin-top:3px;color:#94a3b8;font-size:10px;
+}
+.students-report-detail{
+  display:none;
+  position:fixed;inset:0;z-index:10000;
+  align-items:center;justify-content:center;
+  padding:14px;
+  background:rgba(15,23,42,.58);
+  backdrop-filter:blur(5px);
+}
+.students-report-detail.open{display:flex}
+.students-report-detail-card{
+  position:relative;
+  width:min(900px,96vw);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;border-radius:20px;
+  box-shadow:0 30px 90px rgba(15,23,42,.32);
+}
+.students-report-detail-close{
+  position:absolute;top:11px;left:11px;
+  width:34px;height:34px;border:0;border-radius:9px;
+  background:#f1f5f9;color:#475569;cursor:pointer;z-index:2;
+}
+.students-report-detail-header{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:20px 56px 15px 18px;
+  border-bottom:1px solid #e2e8f0;
+}
+.students-report-detail-kicker{
+  font-size:10px;color:#64748b;font-weight:800;
+}
+.students-report-detail-header h2{
+  margin:3px 0 0;font-size:21px;color:#0f172a;
+}
+.students-report-share{
+  display:inline-flex;align-items:center;gap:7px;
+  border:0;border-radius:11px;padding:10px 14px;
+  background:#2563eb;color:#fff;font-weight:850;cursor:pointer;
+  white-space:nowrap;
+}
+.students-report-detail-body{padding:18px}
+.students-report-empty{
+  grid-column:1/-1;text-align:center;
+  padding:50px 15px;color:#64748b;
+}
+.students-report-section{
+  border:1px solid #e2e8f0;border-radius:14px;
+  overflow:hidden;margin-bottom:12px;background:#fff;
+}
+.students-report-section-title{
+  padding:10px 13px;background:#f8fafc;
+  font-weight:900;color:#334155;font-size:13px;
+  border-bottom:1px solid #e2e8f0;
+}
+.students-report-info-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.students-report-info-item{
+  padding:10px 13px;border-bottom:1px solid #f1f5f9;
+}
+.students-report-info-label{font-size:9px;color:#94a3b8}
+.students-report-info-value{margin-top:2px;font-size:12px;color:#0f172a;font-weight:750}
+.students-report-table-wrap{overflow:auto}
+.students-report-table{
+  width:100%;border-collapse:collapse;font-size:11px;
+}
+.students-report-table th,.students-report-table td{
+  padding:8px 9px;border-bottom:1px solid #f1f5f9;
+  text-align:right;white-space:nowrap;
+}
+.students-report-table th{background:#fafafa;color:#64748b;font-weight:850}
+.students-report-total{
+  display:flex;gap:10px;flex-wrap:wrap;padding:12px;
+}
+.students-report-total-box{
+  flex:1;min-width:130px;padding:11px;border-radius:11px;background:#f8fafc;
+}
+.students-report-total-box b{display:block;font-size:9px;color:#64748b}
+.students-report-total-box strong{display:block;margin-top:3px;font-size:16px;color:#0f172a}
+@media(max-width:700px){
+  .students-reports-topbar{
+    grid-template-columns:auto 1fr;
+  }
+  .students-reports-search-wrap{grid-column:1/-1}
+  .students-reports-list{
+    grid-template-columns:1fr;
+  }
+  .students-report-detail-card{width:98vw}
+  .students-report-detail-header{
+    flex-direction:column;align-items:stretch;
+  }
+  .students-report-share{justify-content:center}
+  .students-report-info-grid{grid-template-columns:1fr}
+}
+@media(prefers-color-scheme:dark){
+  .students-reports-page{background:#0f172a}
+}
+</style>
+
+
+<style id="student-month-calendar-export-style">
+.calendar-export-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  padding:0 13px;
+  border:1px solid #bfdbfe;
+  border-radius:11px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+  transition:.15s ease;
+  white-space:nowrap;
+}
+.calendar-export-button:hover{
+  background:#dbeafe;
+  transform:translateY(-1px);
+}
+.student-lesson-month-group{
+  box-shadow:0 2px 8px rgba(15,23,42,.025);
+}
+.student-lesson-month-header{
+  min-height:40px;
+}
+.student-lesson-month-list{
+  background:#fff;
+}
+</style>
+
+
+<style id="final-pages-reset-2026">
+/* =========================================================
+   FINAL RESET — المالية / تواصل / حسابي / سجل حصص الطالب
+   Clean responsive layout for desktop + iPhone/iPad Safari
+========================================================= */
+
+/* ---------- Finance ---------- */
+section[x-show="activeTab === 'finance'"] { width:100%; }
+section[x-show="activeTab === 'finance'"] > div:first-child { margin-bottom:2px; }
+section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
+
+.finance-summary-grid{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:12px!important;
+}
+.finance-summary-card{
+    min-width:0!important;
+    border-radius:18px!important;
+    padding:16px!important;
+}
+.finance-students-card,
+.finance-chart-card,
+.finance-ledger-card{
+    width:100%!important;
+    overflow:hidden!important;
+}
+.finance-student-row{
+    display:grid!important;
+    grid-template-columns:minmax(180px,1.2fr) minmax(0,2fr)!important;
+    align-items:center!important;
+    gap:14px!important;
+    padding:14px 16px!important;
+}
+.finance-student-values{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+}
+.finance-value-box{
+    min-width:0!important;
+    padding:9px 7px!important;
+    border-radius:11px!important;
+    text-align:center!important;
+}
+.finance-payment-list{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:6px!important;
+    margin-top:9px!important;
+    grid-column:1 / -1!important;
+}
+.finance-chart-card{ padding:16px!important; }
+.finance-chart-wrap{ overflow:visible!important; }
+.income-pie-wrap{ width:100%!important; }
+.income-bar-chart-wrap{ width:100%!important; }
+.finance-ledger-row{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:12px!important;
+    padding:13px 16px!important;
+}
+
+/* ---------- Contact ---------- */
+.contact-page-grid{ display:grid!important; grid-template-columns:1fr!important; gap:10px!important; }
+.contact-student-card{
+    width:100%!important;
+    padding:12px!important;
+    border-radius:16px!important;
+}
+.contact-student-card .contact-main-row{
+    display:grid!important;
+    grid-template-columns:minmax(0,1.4fr) minmax(105px,.8fr) auto auto!important;
+    align-items:center!important;
+    gap:10px!important;
+    flex-wrap:nowrap!important;
+}
+.contact-student-card .contact-name-block,
+.contact-student-card .contact-phone-block,
+.contact-student-card .contact-actions,
+.contact-student-card .contact-finance{ min-width:0!important; }
+.contact-student-card .contact-actions{ display:flex!important; gap:5px!important; }
+.contact-student-card .contact-actions a{
+    width:32px!important;height:32px!important;min-width:32px!important;
+}
+.contact-student-card .contact-finance{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(62px,1fr))!important;
+    gap:5px!important;
+}
+.contact-student-card .contact-finance > div{
+    min-width:62px!important;
+    padding:6px 5px!important;
+    border-radius:9px!important;
+}
+.contact-student-card .contact-finance .text-\[11px\]{font-size:8px!important;}
+.contact-student-card .contact-finance .font-bold{font-size:10px!important;}
+.contact-search-wrap{ width:100%!important; }
+.contact-search-input{ width:100%!important; }
+
+/* ---------- Profile / Account ---------- */
+.profile-page-card{ width:100%!important; }
+.profile-cover{ min-height:125px!important; }
+.profile-form-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+}
+.profile-stat-grid{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:10px!important;
+}
+.profile-stat-grid > div{ min-width:0!important; }
+.backup-card{ width:100%!important; }
+
+/* ---------- Student lesson month groups ---------- */
+.student-lesson-month-group{
+    border:1px solid #e2e8f0!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    background:#fff!important;
+}
+.student-lesson-month-header{
+    min-height:46px!important;
+    background:#f8fafc!important;
+    cursor:pointer!important;
+    -webkit-tap-highlight-color:transparent!important;
+}
+.student-lesson-month-header:hover{ background:#f1f5f9!important; }
+.student-lesson-month-list{ background:#fff!important; }
+.student-lesson-month-list .p-3{
+    padding:10px!important;
+    border-radius:11px!important;
+}
+
+@media(max-width:767px){
+    /* Finance */
+    .finance-summary-grid{
+        grid-template-columns:repeat(3,minmax(0,1fr))!important;
+        gap:7px!important;
+    }
+    .finance-summary-card{ padding:10px 7px!important; border-radius:13px!important; }
+    .finance-summary-card p{ font-size:8px!important; line-height:1.35!important; }
+    .finance-summary-card h3{ font-size:14px!important; margin-top:3px!important; }
+    .finance-student-row{
+        grid-template-columns:1fr!important;
+        gap:8px!important;
+        padding:11px!important;
+    }
+    .finance-student-values{ gap:5px!important; }
+    .finance-value-box{ padding:7px 3px!important; }
+    .finance-value-box div:first-child{ font-size:8px!important; }
+    .finance-value-box div:last-child{ font-size:9px!important; }
+    .finance-chart-card{ padding:10px!important; }
+    .finance-chart-card h3{ font-size:12px!important; }
+    .finance-chart-card > p{ font-size:8px!important; }
+    .income-pie-wrap{ height:255px!important; min-height:255px!important; }
+    .income-bar-chart-wrap{ height:180px!important; min-height:180px!important; margin-top:8px!important; }
+    .finance-ledger-row{ padding:10px!important; align-items:flex-start!important; }
+    .finance-ledger-row .font-extrabold{ font-size:11px!important; }
+
+    /* Contact */
+    .contact-student-card .contact-main-row{
+        grid-template-columns:minmax(0,1fr) auto!important;
+        grid-template-areas:
+          "name actions"
+          "phone finance"!important;
+        gap:8px!important;
+    }
+    .contact-student-card .contact-name-block{ grid-area:name!important; }
+    .contact-student-card .contact-actions{ grid-area:actions!important; }
+    .contact-student-card .contact-phone-block{ grid-area:phone!important; display:block!important; }
+    .contact-student-card .contact-finance{ grid-area:finance!important; }
+    .contact-student-card .contact-finance{ grid-template-columns:repeat(3,minmax(55px,1fr))!important; }
+    .contact-student-card .contact-finance > div{ min-width:55px!important; padding:5px 3px!important; }
+    .contact-student-card .contact-phone-block .text-\[9px\]{ font-size:8px!important; }
+    .contact-student-card .contact-phone-block .text-\[10px\]{ font-size:9px!important; }
+    .contact-student-card > .mt-4{ margin-top:8px!important; padding-top:7px!important; font-size:9px!important; }
+
+    /* Profile */
+    .profile-cover{ min-height:105px!important; height:105px!important; }
+    .profile-form-grid{ grid-template-columns:1fr!important; gap:9px!important; }
+    .profile-stat-grid{ grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:6px!important; }
+    .profile-stat-grid > div{ padding:8px!important; }
+    .profile-stat-grid .text-xs{ font-size:8px!important; }
+    .profile-stat-grid .text-xl{ font-size:14px!important; }
+
+    /* Student month groups */
+    .student-lesson-month-header{ min-height:42px!important; padding:8px 10px!important; }
+    .student-lesson-month-list .p-3{ padding:8px!important; }
+}
+
+@media(min-width:768px){
+    .finance-students-card .divide-y > div:last-child{ border-bottom:0!important; }
+}
+</style>
 </head>
 
 <body
@@ -2869,6 +3331,17 @@
                     </div>
 
                     <div class="p-4 md:p-5">
+                        <div class="mb-4 flex justify-center">
+                            <button
+                                type="button"
+                                @click="exportCurrentMonthToCalendar()"
+                                class="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-extrabold shadow-sm hover:bg-brand-700 active:scale-[0.98] transition"
+                            >
+                                <i class="fa-solid fa-calendar-plus"></i>
+                                تصدير حصص الشهر إلى تقويم الآيفون
+                            </button>
+                        </div>
+
                         <div class="month-calendar">
                             <template x-for="name in monthWeekNames" :key="'month-head-' + name">
                                 <div class="month-calendar-head" x-text="name"></div>
@@ -2903,6 +3376,10 @@
                                 </div>
                             </template>
                         </div>
+
+                        <p class="text-[10px] text-slate-400 text-center mt-3">
+                            سيتم تنزيل ملف تقويم بصيغة ICS يمكن فتحه وإضافته إلى تطبيق التقويم في iPhone أو iPad.
+                        </p>
                     </div>
                 </div>
 
@@ -3060,6 +3537,13 @@
                         <i class="fa-solid fa-user-plus"></i>
                         إضافة طالب جديد
                     </button>
+<button id="studentsReportsButton"
+        type="button"
+        class="students-reports-button"
+        onclick="window.openStudentsReportsPage()">
+  <i class="fa-solid fa-file-lines"></i>
+  <span>تقارير</span>
+</button>
 
                 </div>
 
@@ -3447,11 +3931,44 @@
 
 
                             <template
-                                x-for="lesson in selectedStudent.lessons"
-                                :key="lesson.id"
+                                x-for="monthGroup in getStudentLessonMonths(selectedStudent)"
+                                :key="'student-month-' + monthGroup.key"
                             >
+                                <div class="student-lesson-month-group border border-slate-200 rounded-xl overflow-hidden bg-white">
 
-                                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <button
+                                        type="button"
+                                        class="student-lesson-month-header w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition"
+                                        @click="toggleStudentLessonMonth(monthGroup.key)"
+                                    >
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <i
+                                                class="fa-solid text-[10px] text-brand-600"
+                                                :class="monthGroup.expanded ? 'fa-chevron-down' : 'fa-chevron-left'"
+                                            ></i>
+                                            <span class="font-extrabold text-xs text-slate-700 truncate"
+                                                  x-text="monthGroup.label"></span>
+                                            <span
+                                                class="text-[9px] font-extrabold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full"
+                                                x-text="monthGroup.lessons.length + ' حصة'"
+                                            ></span>
+                                        </div>
+                                        <span
+                                            class="text-[9px] text-slate-400 shrink-0"
+                                            x-text="monthGroup.expanded ? 'إخفاء' : 'عرض'"
+                                        ></span>
+                                    </button>
+
+                                    <div
+                                        x-show="monthGroup.expanded"
+                                        x-transition
+                                        class="student-lesson-month-list p-2 space-y-2"
+                                    >
+                                        <template
+                                            x-for="lesson in monthGroup.lessons"
+                                            :key="lesson.id"
+                                        >
+                                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
 
                                     <div class="flex items-center justify-between gap-3">
 
@@ -3514,6 +4031,10 @@
 
                                 </div>
 
+
+                                        </template>
+                                    </div>
+                                </div>
                             </template>
 
                             <template x-if="selectedStudent.lessons.length === 0">
@@ -4462,6 +4983,9 @@ function teacherApp() {
 
         selectedStudent: null,
 
+        // الشهور المفتوحة في سجل حصص الطالب
+        studentLessonMonthOpen: {},
+
         showStudentModal: false,
         showLessonModal: false,
         showPaymentModal: false,
@@ -5162,6 +5686,189 @@ function teacherApp() {
             });
         },
 
+
+        /* =========================
+           STUDENT LESSON MONTHS + CALENDAR EXPORT
+        ========================== */
+
+        getStudentLessonMonths(student) {
+            const lessons = Array.isArray(student?.lessons) ? student.lessons : [];
+            const groups = {};
+
+            lessons.forEach(lesson => {
+                const date = String(lesson?.date || '');
+                const key = /^\d{4}-\d{2}-\d{2}$/.test(date)
+                    ? date.slice(0, 7)
+                    : '0000-00';
+
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(lesson);
+            });
+
+            const now = new Date();
+            const currentKey =
+                now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+            const nextDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const nextKey =
+                nextDate.getFullYear() + '-' + String(nextDate.getMonth() + 1).padStart(2, '0');
+
+            return Object.keys(groups)
+                .filter(key => key !== '0000-00')
+                .sort((a, b) => b.localeCompare(a))
+                .map(key => {
+                    const [year, month] = key.split('-').map(Number);
+                    const label = new Intl.DateTimeFormat(
+                        'ar-SA-u-ca-gregory',
+                        { month: 'long', year: 'numeric' }
+                    ).format(new Date(year, month - 1, 1));
+
+                    const defaultOpen = key === currentKey || key === nextKey;
+                    const manual = this.studentLessonMonthOpen[key];
+
+                    return {
+                        key,
+                        label,
+                        lessons: groups[key].sort((a, b) => {
+                            const aa = `${a.date || ''} ${a.time || ''}`;
+                            const bb = `${b.date || ''} ${b.time || ''}`;
+                            return bb.localeCompare(aa);
+                        }),
+                        expanded: typeof manual === 'boolean' ? manual : defaultOpen
+                    };
+                });
+        },
+
+        toggleStudentLessonMonth(key) {
+            this.studentLessonMonthOpen[key] =
+                !this.studentLessonMonthOpen[key];
+        },
+
+        getDisplayedMonthLessons() {
+            const today = new Date();
+            const viewDate = new Date(
+                today.getFullYear(),
+                today.getMonth() + this.monthOffset,
+                1
+            );
+
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+
+            return this.getAllLessons()
+                .filter(item => {
+                    if (!item?.lesson?.date) return false;
+                    const d = new Date(item.lesson.date + 'T00:00:00');
+                    return d.getFullYear() === year && d.getMonth() === month;
+                })
+                .sort((a, b) => {
+                    const aa = `${a.lesson.date} ${a.lesson.time || ''}`;
+                    const bb = `${b.lesson.date} ${b.lesson.time || ''}`;
+                    return aa.localeCompare(bb);
+                });
+        },
+
+        icsEscape(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/\r?\n/g, '\\n')
+                .replace(/;/g, '\\;')
+                .replace(/,/g, '\\,');
+        },
+
+        formatICSDateTime(dateString, timeString) {
+            const date = String(dateString || '');
+            const time = String(timeString || '00:00').slice(0, 5);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return '';
+
+            const [y, m, d] = date.split('-');
+            const [hh, mm] = time.split(':').map(Number);
+
+            return `${y}${m}${d}T${String(hh || 0).padStart(2,'0')}${String(mm || 0).padStart(2,'0')}00`;
+        },
+
+        exportCurrentMonthToCalendar() {
+            const lessons = this.getDisplayedMonthLessons();
+
+            if (!lessons.length) {
+                alert('لا توجد حصص في الشهر المعروض لتصديرها إلى التقويم.');
+                return;
+            }
+
+            const lines = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//دفتر المعلم//Monthly Lessons//AR',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'X-WR-CALNAME:' + this.icsEscape('حصص ' + this.getCurrentMonthLabel()),
+                'X-WR-TIMEZONE:Asia/Riyadh'
+            ];
+
+            const stamp = new Date().toISOString()
+                .replace(/[-:]/g, '')
+                .replace(/\.\d{3}Z$/, 'Z');
+
+            lessons.forEach((item, index) => {
+                const lesson = item.lesson || {};
+                const student = item.studentName || 'طالب';
+                const start = this.formatICSDateTime(lesson.date, lesson.time);
+                if (!start) return;
+
+                const duration = Math.max(1, Number(lesson.duration || 1));
+                const startDate = new Date(
+                    `${lesson.date}T${String(lesson.time || '00:00').slice(0,5)}:00`
+                );
+                const endDate = new Date(startDate.getTime() + duration * 60000);
+
+                const end =
+                    endDate.getFullYear() +
+                    String(endDate.getMonth() + 1).padStart(2,'0') +
+                    String(endDate.getDate()).padStart(2,'0') + 'T' +
+                    String(endDate.getHours()).padStart(2,'0') +
+                    String(endDate.getMinutes()).padStart(2,'0') + '00';
+
+                const uid = `lesson-${lesson.id || index}-${lesson.date}@teacher-notebook`;
+
+                lines.push(
+                    'BEGIN:VEVENT',
+                    'UID:' + this.icsEscape(uid),
+                    'DTSTAMP:' + stamp,
+                    'DTSTART;TZID=Asia/Riyadh:' + start,
+                    'DTEND;TZID=Asia/Riyadh:' + end,
+                    'SUMMARY:' + this.icsEscape('حصة - ' + student),
+                    'DESCRIPTION:' + this.icsEscape(
+                        [
+                            'الطالب: ' + student,
+                            lesson.notes ? 'ملاحظات: ' + lesson.notes : '',
+                            lesson.status ? 'الحالة: ' + lesson.status : ''
+                        ].filter(Boolean).join(' | ')
+                    ),
+                    'LOCATION:',
+                    'END:VEVENT'
+                );
+            });
+
+            lines.push('END:VCALENDAR');
+
+            const ics = '\uFEFF' + lines.join('\r\n') + '\r\n';
+            const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const filename =
+                ('تقويم-' + this.getCurrentMonthLabel())
+                .replace(/[\/:*?"<>|]/g, '-') + '.ics';
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.rel = 'noopener';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        },
 
         /* =========================
            STUDENT ACTIONS
@@ -6929,6 +7636,135 @@ window.addEventListener('orientationchange', () => {
   </div>
 </div>
 
+<style id="student-reports-clean-css">
+#studentsReportsPage{display:none;position:fixed;inset:0;z-index:9998;background:#f8fafc;overflow:auto;direction:rtl}
+#studentsReportsPage.open{display:block}
+.sr-shell{width:min(1050px,95vw);margin:auto;padding:18px 0 35px}
+.sr-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(248,250,252,.92);backdrop-filter:blur(14px);border-bottom:1px solid #e2e8f0}
+.sr-back{border:0;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:10px 13px;font-weight:800;cursor:pointer}
+.sr-title{flex:1}.sr-title h2{margin:0;font-size:21px;color:#0f172a}.sr-title p{margin:2px 0 0;font-size:11px;color:#64748b}
+.sr-search{width:260px;height:42px;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:0 12px;outline:0}
+.sr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:11px;padding:15px 4px}
+.sr-card{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px;text-align:right;cursor:pointer;box-shadow:0 4px 15px rgba(15,23,42,.04)}
+.sr-card:hover{border-color:#93c5fd;transform:translateY(-1px)}
+.sr-avatar{width:42px;height:42px;border-radius:12px;background:#eef2ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-weight:900}
+.sr-name{font-weight:850;color:#0f172a;font-size:14px}.sr-meta{font-size:10px;color:#94a3b8;margin-top:3px}
+.sr-empty{text-align:center;color:#64748b;padding:45px;grid-column:1/-1}
+#studentsReportDetailClean{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);align-items:center;justify-content:center;padding:12px}
+#studentsReportDetailClean.open{display:flex}
+.sr-detail{position:relative;width:min(920px,97vw);max-height:93vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(15,23,42,.3)}
+.sr-close{position:absolute;top:10px;left:10px;width:34px;height:34px;border:0;border-radius:9px;background:#f1f5f9;color:#475569;cursor:pointer;z-index:2}
+.sr-detail-head{padding:18px 55px 15px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sr-detail-head h2{margin:0;font-size:20px}.sr-share{border:0;border-radius:11px;background:#2563eb;color:#fff;padding:10px 14px;font-weight:850;cursor:pointer;white-space:nowrap}
+.sr-body{padding:16px}.sr-sec{border:1px solid #e2e8f0;border-radius:13px;overflow:hidden;margin-bottom:11px}.sr-sec h3{font-size:13px;margin:0;padding:9px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0}.sr-info{display:grid;grid-template-columns:1fr 1fr}.sr-info div{padding:9px 12px;border-bottom:1px solid #f1f5f9}.sr-info small{display:block;color:#94a3b8;font-size:9px}.sr-info b{font-size:12px}.sr-table{width:100%;border-collapse:collapse;font-size:10px}.sr-table th,.sr-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right}.sr-table th{background:#fafafa;color:#64748b}
+@media(max-width:650px){.sr-head{flex-wrap:wrap}.sr-search{width:100%}.sr-info{grid-template-columns:1fr}.sr-detail-head{flex-direction:column;align-items:stretch}.sr-share{text-align:center}}
+</style>
+<div id="studentsReportsPage" aria-hidden="true">
+ <div class="sr-shell">
+  <div class="sr-head">
+   <button class="sr-back" type="button" onclick="window.closeStudentsReportsPage()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+   <div class="sr-title"><h2>تقارير الطلاب</h2><p>اختر طالبًا لعرض التقرير الكامل</p></div>
+   <input id="srSearch" class="sr-search" type="search" placeholder="ابحث عن الطالب..." autocomplete="off">
+  </div>
+  <div id="srList" class="sr-list"></div>
+ </div>
+</div>
+<div id="studentsReportDetailClean" aria-hidden="true">
+ <div class="sr-detail" role="dialog" aria-modal="true">
+  <button class="sr-close" type="button" onclick="window.closeStudentsReportDetail()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+  <div class="sr-detail-head"><h2 id="srDetailName">تقرير الطالب</h2><button class="sr-share" type="button" onclick="window.shareStudentsReportNative()"><i class="fa-solid fa-share-nodes"></i> مشاركة / حفظ PDF</button></div>
+  <div id="srBody" class="sr-body"></div>
+ </div>
+</div>
+<script id="student-reports-clean-js">
+(function(){
+ let selected=null;
+ function app(){
+  const root=document.querySelector('[x-data="teacherApp()"]');
+  return root && window.Alpine ? Alpine.$data(root) : null;
+ }
+ function name(s){return s && (s.name||s.studentName||s.fullName) || 'الطالب'}
+ function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]))}
+ function initials(n){return n.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'ط'}
+ function money(v){return (Number(v)||0).toLocaleString('ar-SA')+' ر.س'}
+ function render(){
+  const a=app(), list=document.getElementById('srList'), q=(document.getElementById('srSearch')?.value||'').trim().toLowerCase();
+  if(!list)return;
+  const students=Array.isArray(a?.students)?a.students:[];
+  const filtered=students.filter(s=>name(s).toLowerCase().includes(q));
+  list.innerHTML=filtered.length?filtered.map((s,i)=>`<button class="sr-card" type="button" data-i="${i}"><span class="sr-avatar">${esc(initials(name(s)))}</span><span><span class="sr-name">${esc(name(s))}</span><span class="sr-meta">${Array.isArray(s.lessons)?s.lessons.length:0} حصة</span></span></button>`).join(''):'<div class="sr-empty">لا توجد طلاب لعرضها.</div>';
+  list.querySelectorAll('[data-i]').forEach((b)=>b.onclick=()=>openDetail(filtered[Number(b.dataset.i)]));
+ }
+ function openPage(){document.getElementById('studentsReportsPage')?.classList.add('open');document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','false');render()}
+ function closePage(){closeDetail();document.getElementById('studentsReportsPage')?.classList.remove('open');document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','true')}
+ function openDetail(s){selected=s;const lessons=Array.isArray(s.lessons)?s.lessons:[],payments=Array.isArray(s.payments)?s.payments:[];const a=app();const paid=typeof a?.calculateStudentPaid==='function'?a.calculateStudentPaid(s):payments.reduce((x,p)=>x+Number(p.amount||0),0);const due=typeof a?.calculateStudentExpected==='function'?a.calculateStudentExpected(s):Number(s.price||0)*lessons.length;const debt=typeof a?.calculateStudentDebt==='function'?a.calculateStudentDebt(s):Math.max(0,due-paid);document.getElementById('srDetailName').textContent='تقرير الطالب: '+name(s);document.getElementById('srBody').innerHTML=`<div class="sr-sec"><h3>بيانات الطالب</h3><div class="sr-info"><div><small>الاسم</small><b>${esc(name(s))}</b></div><div><small>رقم الجوال</small><b>${esc(s.phone||s.mobile||'—')}</b></div><div><small>المرحلة</small><b>${esc(s.stage||s.educationLevel||'—')}</b></div><div><small>الصف / المادة</small><b>${esc([s.grade,s.subjectType||s.subject].filter(Boolean).join(' / ')||'—')}</b></div></div></div><div class="sr-sec"><h3>ملخص</h3><div class="sr-info"><div><small>عدد الحصص</small><b>${lessons.length}</b></div><div><small>عدد الدفعات</small><b>${payments.length}</b></div><div><small>إجمالي المدفوع</small><b>${money(paid)}</b></div><div><small>المتبقي</small><b>${money(debt)}</b></div></div></div><div class="sr-sec"><h3>سجل الحصص (${lessons.length})</h3><table class="sr-table"><thead><tr><th>التاريخ</th><th>الوقت</th><th>الحالة</th><th>قيمة الحصة</th></tr></thead><tbody>${lessons.length?lessons.map(l=>`<tr><td>${esc(l.date||'—')}</td><td>${esc(l.time||'—')}</td><td>${esc(l.status||'—')}</td><td>${money(l.amount||l.price||0)}</td></tr>`).join(''):'<tr><td colspan="4">لا توجد حصص</td></tr>'}</tbody></table></div><div class="sr-sec"><h3>سجل المدفوعات (${payments.length})</h3><table class="sr-table"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>${payments.length?payments.map(p=>`<tr><td>${esc(p.date||'—')}</td><td>${money(p.amount)}</td><td>${esc(p.notes||'تسديد دفعة')}</td></tr>`).join(''):'<tr><td colspan="3">لا توجد دفعات</td></tr>'}</tbody></table></div>`;document.getElementById('studentsReportDetailClean')?.classList.add('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','false')}
+ function closeDetail(){document.getElementById('studentsReportDetailClean')?.classList.remove('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','true');selected=null}
+ async function share(){
+  if(!selected){
+    alert('اختر طالبًا أولاً.');
+    return;
+  }
+
+  const student = selected;
+  const a = app();
+
+  try{
+    /*
+     * This is the same report generator used by the original Student Record
+     * page. It creates the complete A4 report in #studentReportPopupFrame.
+     */
+    if(typeof a?.printStudentReport !== 'function'){
+      alert('نظام تقرير الطالب غير متاح في هذه النسخة.');
+      return;
+    }
+
+    a.printStudentReport(student);
+
+    /*
+     * Wait until the ORIGINAL report iframe really contains the generated
+     * report. Calling exportStudentReportPdf too early was the reason the
+     * previous version failed.
+     */
+    const waitForReport = (attempt) => {
+      const reportFrame = document.getElementById('studentReportPopupFrame');
+
+      if(reportFrame && reportFrame.srcdoc &&
+         reportFrame.srcdoc.length > 500){
+        if(typeof window.exportStudentReportPdf === 'function'){
+          window.exportStudentReportPdf();
+        }else{
+          const doc = reportFrame.contentDocument ||
+                      reportFrame.contentWindow?.document;
+          if(doc && doc.body){
+            reportFrame.contentWindow.focus();
+            reportFrame.contentWindow.print();
+          }else{
+            alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
+          }
+        }
+        return;
+      }
+
+      if(attempt >= 30){
+        alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
+        return;
+      }
+
+      setTimeout(() => waitForReport(attempt + 1), 100);
+    };
+
+    waitForReport(0);
+
+  }catch(error){
+    console.error('Student report preparation error:', error);
+    alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
+  }
+ }
+ window.openStudentsReportsPage=
+ window.openStudentsReportsPage=openPage;window.closeStudentsReportsPage=closePage;window.closeStudentsReportDetail=closeDetail;window.shareStudentsReportNative=share;
+ document.addEventListener('DOMContentLoaded',()=>{document.getElementById('srSearch')?.addEventListener('input',render);document.getElementById('studentsReportDetailClean')?.addEventListener('click',e=>{if(e.target.id==='studentsReportDetailClean')closeDetail()})});
+})();
+</script>
 </body>
 </html>
 <style>
