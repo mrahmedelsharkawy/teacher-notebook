@@ -65,6 +65,8 @@
 
     <!-- Chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Alpine -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -3736,15 +3738,43 @@ main textarea::placeholder{
             
 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"><div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> الأرشيف</h3><p class="text-xs text-slate-400 mt-1">الطلاب المؤرشفون مع بياناتهم وحصصهم ودفعاتهم وملخصهم المالي.</p></div><span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="archivedStudents.length + ' طالب'"></span></div><div class="p-4 space-y-3"><template x-for="record in archivedStudents" :key="record.id"><div class="p-4 rounded-xl border border-amber-100 bg-amber-50/30"><div class="flex items-start justify-between gap-3"><div class="min-w-0 w-full"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800" x-text="record.student.name || 'بدون اسم'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.stage || '—'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.subjectType || '—'"></span></div><div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-slate-600"><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">أول حصة</span><span class="font-bold" x-text="record.stats.firstLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">آخر حصة</span><span class="font-bold" x-text="record.stats.lastLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">عدد الحصص</span><span class="font-bold" x-text="record.stats.lessonCount"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">المدفوع</span><span class="font-bold text-emerald-700" x-text="record.stats.paid + ' ر.س'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">الدين</span><span class="font-bold" :class="record.stats.debt > 0 ? 'text-rose-600' : 'text-emerald-700'" x-text="record.stats.debt > 0 ? record.stats.debt + ' ر.س' : 'لا يوجد'"></span></div></div></div><button @click="restoreArchivedStudent(record.id)" class="shrink-0 text-slate-400 hover:text-brand-600 p-1" title="إعادة إلى سجل الطلاب"><i class="fa-solid fa-box-open"></i></button></div></div></template><div x-show="archivedStudents.length === 0" class="py-8 text-center text-slate-400"><i class="fa-solid fa-box-archive text-3xl text-slate-300 mb-3"></i><p class="text-sm">لا يوجد طلاب في الأرشيف حتى الآن.</p></div></div></div>
 <div class="students-lesson-archive-entry mt-5">
-  <button type="button" class="students-lesson-archive-card" @click="openLessonArchiveModal()">
-    <span class="students-lesson-archive-icon"><i class="fa-solid fa-box-archive"></i></span>
-    <span class="students-lesson-archive-text">
-      <strong>أرشيف الحصص</strong>
-      <small>عرض جميع الحصص المكتملة مرتبة من الأحدث إلى الأقدم</small>
-    </span>
-    <span class="students-lesson-archive-count" x-text="(lessonArchive || []).length + ' حصة'"></span>
-    <i class="fa-solid fa-chevron-left students-lesson-archive-arrow"></i>
-  </button>
+  <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="lessonArchiveOpen = !lessonArchiveOpen" :aria-expanded="lessonArchiveOpen.toString()">
+      <div class="min-w-0">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> أرشيف الحصص</h3>
+        <p class="text-xs text-slate-400 mt-1">اضغط لعرض الحصص المؤرشفة أو إخفائها.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="(lessonArchive || []).length + ' حصة'"></span>
+        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform" :class="lessonArchiveOpen ? 'rotate-180' : ''"></i>
+      </div>
+    </button>
+    <div x-show="lessonArchiveOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100">
+      <template x-for="record in [...(lessonArchive || [])].sort((a,b) => new Date((b.lesson?.date || '') + 'T' + (b.lesson?.time || '00:00')) - new Date((a.lesson?.date || '') + 'T' + (a.lesson?.time || '00:00')))" :key="record.id">
+        <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-slate-800" x-text="record.studentName || 'بدون اسم'"></span>
+              <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold"><i class="fa-solid fa-check ml-1"></i>مكتملة</span>
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span><i class="fa-regular fa-calendar ml-1"></i><span x-text="formatLessonDate(record.lesson?.date)"></span></span>
+              <span><i class="fa-regular fa-clock ml-1"></i><span x-text="formatTime(record.lesson?.time)"></span></span>
+              <span><i class="fa-solid fa-stopwatch ml-1"></i><span x-text="formatLessonDuration(record.lesson?.duration)"></span></span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" @click="restoreArchivedLesson(record.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="إعادة إلى سجل الحصص"><i class="fa-solid fa-rotate-left"></i></button>
+            <button type="button" @click="deleteArchivedLesson(record.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50" title="حذف من الأرشيف"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        </div>
+      </template>
+      <div x-show="!(lessonArchive || []).length" class="py-10 text-center text-slate-400">
+        <i class="fa-solid fa-box-open text-3xl text-slate-300 mb-3"></i>
+        <p class="text-sm">لا توجد حصص مؤرشفة حتى الآن.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -5001,6 +5031,8 @@ function teacherApp() {
 
         sidebarOpen: false,
         navPulse: null,
+        lessonsLedgerOpen: false,
+        financeLedgerOpen: false,
 
         googleClientId: '97654130737-rnhb42jubfoodeakgmep49c1cjrlimq2.apps.googleusercontent.com',
         googleAccessToken: null,
@@ -5039,6 +5071,7 @@ function teacherApp() {
         showPaymentModal: false,
         showCalendarDayModal: false,
         showLessonArchiveModal: false,
+        lessonArchiveOpen: false,
         calendarDayDate: '',
         calendarDayLabel: '',
         calendarDayLessons: [],
@@ -7376,13 +7409,51 @@ window.addEventListener('orientationchange', () => {
   }
   async function share(){
     if(!selected){alert('اختر الطالب أولاً.');return;}
-    const text=reportText();
+    const reportBody=document.getElementById('srBody');
+    if(!reportBody){alert('تعذر تجهيز التقرير.');return;}
     try{
-      if(navigator.share){ await navigator.share({title:`تقرير ${nameOf(selected)}`,text}); return; }
-    }catch(e){ if(e?.name==='AbortError') return; }
-    try{ await navigator.clipboard.writeText(text); alert('تم نسخ التقرير. يمكنك لصقه ومشاركته الآن.'); }
-    catch(e){ window.prompt('انسخ التقرير من هنا:',text); }
+      if(!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDF_LIBS_UNAVAILABLE');
+      const clone=reportBody.cloneNode(true);
+      clone.style.cssText='position:absolute;left:-100000px;top:0;width:900px;background:#fff;padding:24px;direction:rtl;font-family:Arial,Tahoma,sans-serif;color:#0f172a;';
+      document.body.appendChild(clone);
+      const canvas=await html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+      clone.remove();
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+      const pageW=210,pageH=297,margin=8;
+      const imgW=pageW-margin*2;
+      const imgH=canvas.height*imgW/canvas.width;
+      let y=margin,remaining=imgH,srcY=0;
+      const pxPerMm=canvas.width/imgW;
+      while(remaining>0){
+        const sliceMm=Math.min(remaining,pageH-margin*2);
+        const slicePx=Math.round(sliceMm*pxPerMm);
+        const slice=document.createElement('canvas');
+        slice.width=canvas.width; slice.height=Math.min(slicePx,canvas.height-srcY);
+        slice.getContext('2d').drawImage(canvas,0,srcY,canvas.width,slice.height,0,0,slice.width,slice.height);
+        pdf.addImage(slice.toDataURL('image/jpeg',0.92),'JPEG',margin,y,imgW,slice.height/pxPerMm);
+        remaining-=sliceMm; srcY+=slice.height;
+        if(remaining>0){pdf.addPage();y=margin;}
+      }
+      const safeName=nameOf(selected).replace(/[\\/:*?"<>|]/g,'_').trim()||'طالب';
+      const blob=pdf.output('blob');
+      const file=new File([blob],`تقرير-${safeName}.pdf`,{type:'application/pdf'});
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({title:`تقرير ${nameOf(selected)}`,files:[file]});
+        return;
+      }
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a'); link.href=url; link.download=file.name; link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      alert('تم إنشاء التقرير بصيغة PDF.');
+    }catch(e){
+      if(e?.name==='AbortError') return;
+      console.error('PDF share error',e);
+      alert('تعذر إنشاء ملف PDF للمشاركة. سيتم فتح الطباعة لحفظ التقرير كملف PDF.');
+      printReport();
+    }
   }
+
   function printReport(){
     if(!selected)return;
     const content=document.getElementById('srBody')?.innerHTML||'';
