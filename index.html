@@ -3742,7 +3742,7 @@ main textarea::placeholder{
     <button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="lessonArchiveOpen = !lessonArchiveOpen" :aria-expanded="lessonArchiveOpen.toString()">
       <div class="min-w-0">
         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> أرشيف الحصص</h3>
-        <p class="text-xs text-slate-400 mt-1">اضغط لعرض الحصص المؤرشفة أو إخفائها.</p>
+        <p class="text-xs text-slate-400 mt-1">الحصص المكتملة المؤرشفة — اضغط للسهم لعرضها.</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="(lessonArchive || []).length + ' حصة'"></span>
@@ -3755,17 +3755,25 @@ main textarea::placeholder{
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-bold text-slate-800" x-text="record.studentName || 'بدون اسم'"></span>
-              <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold"><i class="fa-solid fa-check ml-1"></i>مكتملة</span>
+              <span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.studentSnapshot?.stage || ''"></span>
+              <span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.studentSnapshot?.subjectType || ''"></span>
             </div>
             <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span><i class="fa-regular fa-calendar ml-1"></i><span x-text="formatLessonDate(record.lesson?.date)"></span></span>
               <span><i class="fa-regular fa-clock ml-1"></i><span x-text="formatTime(record.lesson?.time)"></span></span>
               <span><i class="fa-solid fa-stopwatch ml-1"></i><span x-text="formatLessonDuration(record.lesson?.duration)"></span></span>
+              <span x-show="record.lesson?.notes"><i class="fa-regular fa-note-sticky ml-1"></i><span x-text="record.lesson?.notes"></span></span>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button type="button" @click="restoreArchivedLesson(record.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="إعادة إلى سجل الحصص"><i class="fa-solid fa-rotate-left"></i></button>
-            <button type="button" @click="deleteArchivedLesson(record.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50" title="حذف من الأرشيف"><i class="fa-regular fa-trash-can"></i></button>
+            <div class="flex items-center gap-1" aria-label="حالة الحصة">
+              <button @click="updateLessonStatus(record.studentId, record.lesson.id, 'تم')" :class="['status-action done', record.lesson?.status === 'تم' ? 'is-active' : '']" title="تمت الحصة" aria-label="تمت الحصة"><i class="fa-solid fa-check"></i></button>
+              <button @click="updateLessonStatus(record.studentId, record.lesson.id, 'انتظار')" :class="['status-action wait', record.lesson?.status === 'انتظار' ? 'is-active' : '']" title="بانتظار الحصة" aria-label="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></button>
+              <button @click="updateLessonStatus(record.studentId, record.lesson.id, 'لم تتم')" :class="['status-action missed', record.lesson?.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <button @click="openEditLessonModal(record.studentId, record.lesson.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="تعديل الحصة"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button type="button" @click.stop="deleteLesson(record.studentId, record.lesson.id, students.find(s => String(s.id) === String(record.studentId))?.lessons?.find(l => String(l.id) === String(record.lesson.id)))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 cursor-pointer" title="حذف الحصة"><i class="fa-regular fa-trash-can"></i></button>
+            <button @click="openStudentDetails(students.find(s => String(s.id) === String(record.studentId)))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button>
           </div>
         </div>
       </template>
@@ -6362,11 +6370,11 @@ function teacherApp() {
             const student = this.students.find(s => String(s.id) === String(studentId));
             if (!student || !Array.isArray(student.lessons)) return false;
 
-            const index = student.lessons.findIndex(l => String(l.id) === String(lessonId));
-            if (index < 0) return false;
+            const lesson = student.lessons.find(l => String(l.id) === String(lessonId));
+            if (!lesson) return false;
 
-            const lesson = { ...student.lessons[index], status: 'تم' };
-            student.lessons.splice(index, 1);
+            lesson.status = 'تم';
+            lesson.archived = true;
 
             if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
 
@@ -6383,7 +6391,7 @@ function teacherApp() {
                     courseType: student.courseType || '',
                     price: student.price || 0
                 },
-                lesson,
+                lesson: { ...lesson, status: 'تم', archived: true },
                 archivedAt: new Date().toISOString()
             };
 
@@ -6412,8 +6420,12 @@ function teacherApp() {
             }
 
             if (!Array.isArray(student.lessons)) student.lessons = [];
-            if (!student.lessons.some(l => String(l.id) === String(record.lesson?.id))) {
-                student.lessons.push({ ...record.lesson, status: 'انتظار' });
+            const existing = student.lessons.find(l => String(l.id) === String(record.lesson?.id));
+            if (existing) {
+                existing.status = 'انتظار';
+                existing.archived = false;
+            } else {
+                student.lessons.push({ ...record.lesson, status: 'انتظار', archived: false });
             }
 
             this.lessonArchive.splice(index, 1);
@@ -6457,6 +6469,10 @@ function teacherApp() {
             const lesson = (student.lessons || []).find(l => String(l.id) === String(lessonId));
             if (lesson) {
                 lesson.status = newStatus;
+                if (newStatus !== 'تم') {
+                    lesson.archived = false;
+                    this.lessonArchive = (this.lessonArchive || []).filter(r => !(String(r.studentId) === String(studentId) && String(r.lesson?.id) === String(lessonId)));
+                }
                 this.persistAppData();
                 this.$nextTick(() => { if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart(); });
             }
@@ -6494,6 +6510,7 @@ function teacherApp() {
             // IMPORTANT: splice the real reactive array.
             // This makes Alpine remove the row immediately.
             student.lessons.splice(index, 1);
+            this.lessonArchive = (this.lessonArchive || []).filter(r => !(String(r.studentId) === String(studentId) && String(r.lesson?.id) === String(lesson.id)));
 
             // selectedStudent is normally the same object, but explicitly
             // refresh it from students to guarantee the modal updates.
@@ -6854,13 +6871,14 @@ function teacherApp() {
                 if (Array.isArray(data.lessonArchive)) this.lessonArchive = data.lessonArchive;
                 this.students.forEach(student => (student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }));
                 this.archivedStudents.forEach(record => { if (record && record.student) (record.student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }); });
-                // Migrate any old completed lessons into the new lesson archive.
+                // Keep completed lessons inside each student's lesson history.
+                // The archive is a mirrored index, not a replacement for the student's record.
                 if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
                 const existingArchiveKeys = new Set(this.lessonArchive.map(item => String(item?.id || '')));
                 this.students.forEach(student => {
-                    const remaining = [];
                     (student.lessons || []).forEach(lesson => {
                         if (lesson && lesson.status === 'تم') {
+                            lesson.archived = true;
                             const key = `${student.id}::${lesson.id}`;
                             if (!existingArchiveKeys.has(key)) {
                                 this.lessonArchive.push({
@@ -6868,16 +6886,13 @@ function teacherApp() {
                                     studentId: student.id,
                                     studentName: student.name || 'بدون اسم',
                                     studentSnapshot: { name: student.name || 'بدون اسم', stage: student.stage || '', grade: student.grade || '', subjectType: student.subjectType || '', courseType: student.courseType || '', price: student.price || 0 },
-                                    lesson: { ...lesson, status: 'تم' },
+                                    lesson: { ...lesson, status: 'تم', archived: true },
                                     archivedAt: new Date().toISOString()
                                 });
                                 existingArchiveKeys.add(key);
                             }
-                        } else {
-                            remaining.push(lesson);
                         }
                     });
-                    student.lessons = remaining;
                 });
                 if (Array.isArray(data.backupLogs)) this.backupLogs = data.backupLogs;
                 if (data.teacher) this.teacher = { ...this.teacher, ...data.teacher };
@@ -7385,7 +7400,7 @@ window.addEventListener('orientationchange', () => {
     const students=[...map.values()].filter(s=>nameOf(s).toLowerCase().includes(q));
     list.innerHTML=students.length ? students.map((s,i)=>{const r=studentRecord(s); return `<button class="sr2-card" type="button" data-i="${i}"><span class="sr2-avatar">${esc(initials(nameOf(s)))}</span><span class="sr2-card-main"><span class="sr2-name">${esc(nameOf(s))}</span><span class="sr2-meta">${r.lessons.length} حصة · ${r.completed} مكتملة · المتبقي ${money(r.debt)}</span></span><span class="sr2-card-share" title="مشاركة التقرير" data-share="${i}"><i class="fa-solid fa-share-nodes"></i></span></button>`;}).join('') : '<div class="sr2-report-empty" style="grid-column:1/-1">لا توجد طلاب لعرض تقاريرهم.</div>';
     list.querySelectorAll('.sr2-card').forEach((b)=>b.addEventListener('click',()=>openDetail(students[Number(b.dataset.i)])));
-    list.querySelectorAll('[data-share]').forEach((b)=>b.addEventListener('click',(e)=>{e.stopPropagation(); selected=students[Number(b.dataset.share)]; share();}));
+    list.querySelectorAll('[data-share]').forEach((b)=>b.addEventListener('click',(e)=>{e.stopPropagation(); selected=students[Number(b.dataset.share)]; share(selected);}));
   }
   function openPage(){ document.getElementById('studentsReportsPage')?.classList.add('open'); document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','false'); render(); }
   function closePage(){ closeDetail(); document.getElementById('studentsReportsPage')?.classList.remove('open'); document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','true'); }
@@ -7407,14 +7422,18 @@ window.addEventListener('orientationchange', () => {
     lines.push('','سجل المدفوعات:'); r.payments.forEach((p,i)=>lines.push(`${i+1}. ${fmtDate(p.date)} — ${money(p.amount)} — ${p.notes||'تسديد دفعة'}`));
     return lines.join('\n');
   }
-  async function share(){
+  async function share(studentArg=null){
+    if(studentArg) selected=studentArg;
     if(!selected){alert('اختر الطالب أولاً.');return;}
+    // Always build the exact same report view used when opening the student report.
+    openDetail(selected);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const reportBody=document.getElementById('srBody');
-    if(!reportBody){alert('تعذر تجهيز التقرير.');return;}
+    if(!reportBody || !reportBody.innerHTML.trim()){alert('تعذر تجهيز التقرير.');return;}
     try{
       if(!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDF_LIBS_UNAVAILABLE');
       const clone=reportBody.cloneNode(true);
-      clone.style.cssText='position:absolute;left:-100000px;top:0;width:900px;background:#fff;padding:24px;direction:rtl;font-family:Arial,Tahoma,sans-serif;color:#0f172a;';
+      clone.style.cssText='position:fixed;left:0;top:0;width:794px;max-width:794px;min-height:1123px;z-index:2147483647;background:#fff;padding:24px;direction:rtl;font-family:Arial,Tahoma,sans-serif;color:#0f172a;box-sizing:border-box;';
       document.body.appendChild(clone);
       const canvas=await html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
       clone.remove();
