@@ -2064,558 +2064,6 @@
 }
 </style>
 
-<style id="student-report-popup-style">
-#studentReportPopup{display:none;position:fixed;inset:0;z-index:2147483640;background:rgba(15,23,42,.48);align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(4px)}
-#studentReportPopup.open{display:flex}
-#studentReportPopupCard{position:relative;width:min(980px,96vw);height:min(900px,94vh);background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 25px 80px rgba(15,23,42,.3)}
-#studentReportPopupFrame{width:100%;height:100%;border:0;background:#fff}
-#studentReportPopupClose{position:absolute;top:9px;left:9px;z-index:10;width:32px;height:32px;border:0;border-radius:9px;background:#f1f5f9;color:#475569;cursor:pointer;font-size:14px}
-</style>
-<div id="studentReportPopup" aria-hidden="true">
-  <div id="studentReportPopupCard">
-    <button id="studentReportPopupClose" type="button" aria-label="إغلاق" title="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-    <iframe id="studentReportPopupFrame" title="تقرير الطالب"></iframe>
-  </div>
-</div>
-<script>
-(function(){
-  let popup = null;
-  let frame = null;
-  let currentStudentName = 'الطالب';
-  let preparing = false;
-
-  function initStudentReportPopup(){
-    popup = document.getElementById('studentReportPopup');
-    frame = document.getElementById('studentReportPopupFrame');
-
-    const close = document.getElementById('studentReportPopupClose');
-
-    if (close && !close.dataset.bound) {
-      close.dataset.bound = '1';
-      close.addEventListener('click', closeStudentReportPopup);
-    }
-
-    if (popup && !popup.dataset.bound) {
-      popup.dataset.bound = '1';
-      popup.addEventListener('click', function(e){
-        if (e.target === popup) closeStudentReportPopup();
-      });
-    }
-
-    initStudentPdfSavePopup();
-  }
-
-  function openStudentReportPopup(){
-    initStudentReportPopup();
-
-    if (!popup || !frame) {
-      console.error('Student report popup elements not found.');
-      return null;
-    }
-
-    popup.classList.add('open');
-    popup.setAttribute('aria-hidden','false');
-
-    return frame;
-  }
-
-  function closeStudentReportPopup(){
-    initStudentReportPopup();
-
-    if (popup) {
-      popup.classList.remove('open');
-      popup.setAttribute('aria-hidden','true');
-    }
-
-    if (frame) {
-      frame.srcdoc = '';
-    }
-
-    closeStudentPdfSavePopup();
-  }
-
-  /*
-   * This is intentionally browser-native.
-   * No html2canvas, jsPDF, CDN, Web Share or external library is used.
-   */
-  async function exportStudentReportPdf(){
-    initStudentReportPopup();
-
-    if (preparing) return;
-
-    if (!frame || !frame.srcdoc) {
-      alert('التقرير غير جاهز. افتح التقرير مرة أخرى ثم حاول.');
-      return;
-    }
-
-    if (!frame.contentDocument || !frame.contentDocument.body) {
-      setTimeout(function(){
-        if (typeof window.exportStudentReportPdf === 'function') {
-          window.exportStudentReportPdf();
-        }
-      }, 120);
-      return;
-    }
-
-    preparing = true;
-
-    const button = frame.contentDocument.getElementById(
-      'studentPdfExportButton'
-    );
-
-    if (button) {
-      button.disabled = true;
-      button.innerHTML =
-        '<i class="fa-solid fa-spinner fa-spin"></i> جاري تجهيز التقرير...';
-    }
-
-    try {
-      /*
-       * Give the report iframe two rendering frames so the A4 layout,
-       * Arabic text and tables are fully painted before previewing.
-       */
-      await new Promise(function(resolve){
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            setTimeout(resolve, 120);
-          });
-        });
-      });
-
-      showStudentPdfSavePopup(currentStudentName);
-
-      if (button) {
-        button.disabled = false;
-        button.innerHTML =
-          '<i class="fa-solid fa-download"></i> تصدير / تحميل PDF';
-      }
-    } catch (error) {
-      console.error('Student report export error:', error);
-
-      if (button) {
-        button.disabled = false;
-        button.innerHTML =
-          '<i class="fa-solid fa-download"></i> تصدير / تحميل PDF';
-      }
-
-      alert('تعذر تجهيز التقرير. حاول مرة أخرى.');
-    } finally {
-      preparing = false;
-    }
-  }
-
-  function initStudentPdfSavePopup(){
-    const savePopup =
-      document.getElementById('studentPdfSavePopup');
-
-    if (!savePopup || savePopup.dataset.bound) return;
-
-    savePopup.dataset.bound = '1';
-
-    const close =
-      document.getElementById('studentPdfSaveClose');
-
-    if (close) {
-      close.addEventListener(
-        'click',
-        closeStudentPdfSavePopup
-      );
-    }
-
-    savePopup.addEventListener('click', function(e){
-      if (e.target === savePopup) {
-        closeStudentPdfSavePopup();
-      }
-    });
-
-    const saveButton =
-      document.getElementById('studentPdfSaveButton');
-
-    if (saveButton) {
-      saveButton.addEventListener(
-        'click',
-        saveStudentReportAsPdf
-      );
-    }
-  }
-
-  function showStudentPdfSavePopup(studentName){
-    initStudentPdfSavePopup();
-
-    const savePopup =
-      document.getElementById('studentPdfSavePopup');
-
-    const preview =
-      document.getElementById('studentPdfSavePreview');
-
-    const nameElement =
-      document.getElementById('studentPdfSaveName');
-
-    if (!savePopup || !preview) {
-      console.error('Student PDF save popup not found.');
-      return;
-    }
-
-    /*
-     * Show the already prepared A4 report in the second popup.
-     * This is not a fake PDF: the same document contains @page A4 rules
-     * and the Save button invokes the browser's native PDF printer.
-     */
-    if (frame && frame.srcdoc) {
-      preview.srcdoc = frame.srcdoc;
-    } else {
-      preview.srcdoc =
-        
-        '<html lang="ar" dir="rtl"><body>تعذر تصدير التقرير</body></html>';
-    }
-
-    if (nameElement) {
-      const safeName =
-        String(studentName || 'الطالب')
-          .replace(/[\/:*?"<>|]/g, '-')
-          .trim();
-
-      nameElement.textContent =
-        'تقرير-' + (safeName || 'الطالب') + '.pdf';
-    }
-
-    savePopup.classList.add('open');
-    savePopup.setAttribute('aria-hidden','false');
-  }
-
-  function closeStudentPdfSavePopup(){
-    const savePopup =
-      document.getElementById('studentPdfSavePopup');
-
-    const preview =
-      document.getElementById('studentPdfSavePreview');
-
-    if (preview) {
-      preview.srcdoc = '';
-    }
-
-    if (savePopup) {
-      savePopup.classList.remove('open');
-      savePopup.setAttribute('aria-hidden','true');
-    }
-  }
-
-  async function saveStudentReportAsPdf(){
-    const filenameElement =
-      document.getElementById('studentPdfSaveName');
-
-    let filename =
-      filenameElement && filenameElement.textContent
-        ? filenameElement.textContent.trim()
-        : 'تقرير-الطالب.pdf';
-
-    if (!/\.pdf$/i.test(filename)) filename += '.pdf';
-
-    const pdfBlob = window.__studentReportPdfBlob;
-
-    try {
-      /*
-       * iPhone/iPad Safari + Home Screen:
-       * The most reliable web-compatible route is to hand a real PDF Blob
-       * to the native share sheet, where the user can choose "Save to Files".
-       * It stays in the current app/webview and does not open a new tab.
-       */
-      const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-      const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true;
-
-      if (pdfBlob instanceof Blob &&
-          pdfBlob.type === 'application/pdf' &&
-          isIOS) {
-
-        const file = new File([pdfBlob], filename, {
-          type: 'application/pdf',
-          lastModified: Date.now()
-        });
-
-        /*
-         * Prefer the Web Share API with files on iOS. This is the mechanism
-         * Safari provides for "Save to Files" without leaving the app.
-         */
-        if (navigator.share) {
-          if (!navigator.canShare || navigator.canShare({files:[file]})) {
-            await navigator.share({
-              files: [file],
-              title: filename,
-              text: 'تقرير الطالب'
-            });
-            return;
-          }
-        }
-
-        /*
-         * Some iOS versions/web app contexts do not expose file sharing.
-         * Fall back to a same-document PDF preview and invoke print/save
-         * without creating a new tab.
-         */
-        const preview =
-          document.getElementById('studentPdfSavePreview');
-
-        if (preview && pdfBlob) {
-          const url = URL.createObjectURL(pdfBlob);
-          preview.src = url;
-          preview.dataset.pdfObjectUrl = url;
-          return;
-        }
-      }
-
-      /*
-       * Desktop browsers supporting File System Access API:
-       * show the actual Save As dialog.
-       */
-      if (pdfBlob instanceof Blob &&
-          pdfBlob.type === 'application/pdf' &&
-          typeof window.showSaveFilePicker === 'function') {
-
-        const handle = await window.showSaveFilePicker({
-          suggestedName: filename,
-          types: [{
-            description: 'PDF',
-            accept: {'application/pdf': ['.pdf']}
-          }]
-        });
-
-        const writable = await handle.createWritable();
-        await writable.write(pdfBlob);
-        await writable.close();
-        closeStudentPdfSavePopup();
-        return;
-      }
-
-      /*
-       * Generic browser fallback: download the real PDF.
-       */
-      if (pdfBlob instanceof Blob &&
-          pdfBlob.type === 'application/pdf') {
-
-        const url = URL.createObjectURL(pdfBlob);
-        const link = document.createElement('a');
-
-        link.href = url;
-        link.download = filename;
-        link.rel = 'noopener';
-        link.style.display = 'none';
-
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        setTimeout(function(){
-          URL.revokeObjectURL(url);
-        }, 5000);
-
-        return;
-      }
-
-      /*
-       * Last fallback: print the prepared A4 report in-place.
-       * No new tab is opened.
-       */
-      const preview =
-        document.getElementById('studentPdfSavePreview');
-
-      if (preview && preview.contentWindow) {
-        preview.contentWindow.focus();
-        preview.contentWindow.print();
-        return;
-      }
-
-      if (frame && frame.contentWindow) {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-        return;
-      }
-
-      window.print();
-
-    } catch (error) {
-      /*
-       * User cancelled the iOS share sheet / Save to Files:
-       * do not show an error.
-       */
-      if (error && error.name === 'AbortError') return;
-
-      console.error('iOS PDF save error:', error);
-      alert(
-        'تعذر حفظ التقرير. افتح قائمة المشاركة واختر "حفظ في الملفات".'
-      );
-    }
-  }
-
-  window.openStudentReportPopup =
-    openStudentReportPopup;
-
-  window.closeStudentReportPopup =
-    closeStudentReportPopup;
-
-  window.exportStudentReportPdf =
-    exportStudentReportPdf;
-
-  window.shareStudentReportPdf =
-    exportStudentReportPdf;
-
-  window.prepareStudentReportPdf =
-    exportStudentReportPdf;
-
-  window.printStudentReportPdf =
-    exportStudentReportPdf;
-
-  window.closeStudentPdfSavePopup =
-    closeStudentPdfSavePopup;
-
-  window.setStudentReportName = function(name){
-    currentStudentName =
-      String(name || 'الطالب');
-  };
-
-  document.addEventListener(
-    'DOMContentLoaded',
-    initStudentReportPopup
-  );
-})();
-</script>
-
-
-
-<style id="student-pdf-native-print-style">
-@page { size: A4 portrait; margin: 10mm; }
-</style>
-
-<style id="student-pdf-save-popup-style">
-#studentPdfSavePopup{
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:2147483647;
-  align-items:center;
-  justify-content:center;
-  padding:14px;
-  background:rgba(15,23,42,.58);
-  backdrop-filter:blur(5px);
-}
-#studentPdfSavePopup.open{
-  display:flex;
-}
-#studentPdfSaveCard{
-  position:relative;
-  width:min(520px,94vw);
-  height:min(780px,92vh);
-  background:#fff;
-  border-radius:20px;
-  overflow:hidden;
-  box-shadow:0 30px 90px rgba(15,23,42,.35);
-  display:flex;
-  flex-direction:column;
-}
-#studentPdfSaveClose{
-  position:absolute;
-  top:10px;
-  left:10px;
-  z-index:5;
-  width:34px;
-  height:34px;
-  border:0;
-  border-radius:9px;
-  background:#f1f5f9;
-  color:#475569;
-  cursor:pointer;
-}
-.student-pdf-save-header{
-  flex:0 0 auto;
-  padding:16px 56px 12px 16px;
-  border-bottom:1px solid #e2e8f0;
-}
-.student-pdf-save-title{
-  font-size:16px;
-  font-weight:900;
-  color:#0f172a;
-}
-.student-pdf-save-name{
-  margin-top:4px;
-  font-size:10px;
-  color:#64748b;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.student-pdf-save-preview{
-  flex:1 1 auto;
-  min-height:0;
-  padding:10px;
-  background:#e2e8f0;
-}
-#studentPdfSavePreview{
-  display:block;
-  width:100%;
-  height:100%;
-  min-height:400px;
-  border:1px solid #dbe3ec;
-  border-radius:12px;
-  background:#fff;
-}
-.student-pdf-save-actions{
-  flex:0 0 auto;
-  padding:11px;
-  border-top:1px solid #e2e8f0;
-  display:flex;
-  gap:8px;
-}
-#studentPdfSaveButton{
-  flex:1;
-  height:46px;
-  border:0;
-  border-radius:12px;
-  background:#2563eb;
-  color:#fff;
-  font-weight:900;
-  cursor:pointer;
-}
-.student-pdf-save-cancel{
-  width:46px;
-  height:46px;
-  border:1px solid #e2e8f0;
-  border-radius:12px;
-  background:#fff;
-  color:#475569;
-  cursor:pointer;
-}
-</style>
-
-<style id="student-pdf-save-hint-style">
-.student-pdf-save-hint{margin-top:4px;font-size:10px;line-height:1.5;color:#64748b}
-</style>
-<style id="student-pdf-ios-style">
-#studentPdfSavePreview{
-  display:block;
-  width:100%;
-  height:100%;
-  min-height:400px;
-  border:1px solid #dbe3ec;
-  border-radius:12px;
-  background:#fff;
-}
-@media (max-width:600px){
-  #studentPdfSaveCard{
-    width:96vw;
-    height:92vh;
-    border-radius:16px;
-  }
-  .student-pdf-save-header{
-    padding-top:14px;
-    padding-bottom:10px;
-  }
-}
-</style>
-
 <style id="students-reports-feature-style">
 .students-reports-button{
   display:inline-flex;
@@ -3603,16 +3051,28 @@ main textarea::placeholder{
 </style>
 
 
-<style id="archive-visual-style">
-#studentLessonArchiveSection{
-  animation:archiveIn .28s ease both;
-}
-@keyframes archiveIn{
-  from{opacity:0;transform:translateY(6px)}
-  to{opacity:1;transform:translateY(0)}
+<style id="student-history-future-only">
+/* سجل الحصص = المستقبل فقط. الأرشيف يحتفظ بالمنجز. */
+.lesson-history-completed,
+.student-lesson-completed,
+.lesson-row.completed,
+.lesson-item.completed,
+[data-lesson-completed="true"]{
+  display:none !important;
 }
 </style>
 
+<style id="final-header-nav-size-2026">
+/* Slightly larger global header and bottom navigation */
+.global-clock-panel{min-height:64px!important;height:64px!important;padding:8px 20px!important;gap:16px!important}
+.global-clock-time{font-size:22px!important}.global-clock-day{font-size:12px!important}.global-clock-date{font-size:11px!important}.global-clock-live{font-size:10px!important}
+.main-with-nav{padding-top:78px!important}
+.bottom-app-nav{padding:10px 12px calc(10px + env(safe-area-inset-bottom))!important}
+.bottom-nav-item{min-width:84px!important;padding:6px 11px 5px!important}
+.bottom-nav-icon{width:46px!important;height:38px!important;font-size:20px!important;border-radius:14px!important}
+.bottom-nav-label{font-size:12px!important}
+@media(max-width:767px){.global-clock-panel{min-height:58px!important;height:58px!important;padding:7px 12px!important;gap:10px!important}.global-clock-time{font-size:18px!important}.global-clock-day{font-size:10px!important}.global-clock-date{font-size:9px!important}.global-clock-live{font-size:8px!important}.main-with-nav{padding-top:70px!important}.bottom-app-nav{padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important}.bottom-nav-item{min-width:70px!important;padding:5px 7px 4px!important}.bottom-nav-icon{width:42px!important;height:34px!important;font-size:18px!important}.bottom-nav-label{font-size:11px!important}}
+</style>
 </head>
 
 <body
@@ -4269,6 +3729,19 @@ main textarea::placeholder{
 
             
 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"><div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> الأرشيف</h3><p class="text-xs text-slate-400 mt-1">الطلاب المؤرشفون مع بياناتهم وحصصهم ودفعاتهم وملخصهم المالي.</p></div><span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="archivedStudents.length + ' طالب'"></span></div><div class="p-4 space-y-3"><template x-for="record in archivedStudents" :key="record.id"><div class="p-4 rounded-xl border border-amber-100 bg-amber-50/30"><div class="flex items-start justify-between gap-3"><div class="min-w-0 w-full"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800" x-text="record.student.name || 'بدون اسم'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.stage || '—'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.subjectType || '—'"></span></div><div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-slate-600"><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">أول حصة</span><span class="font-bold" x-text="record.stats.firstLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">آخر حصة</span><span class="font-bold" x-text="record.stats.lastLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">عدد الحصص</span><span class="font-bold" x-text="record.stats.lessonCount"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">المدفوع</span><span class="font-bold text-emerald-700" x-text="record.stats.paid + ' ر.س'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">الدين</span><span class="font-bold" :class="record.stats.debt > 0 ? 'text-rose-600' : 'text-emerald-700'" x-text="record.stats.debt > 0 ? record.stats.debt + ' ر.س' : 'لا يوجد'"></span></div></div></div><button @click="restoreArchivedStudent(record.id)" class="shrink-0 text-slate-400 hover:text-brand-600 p-1" title="إعادة إلى سجل الطلاب"><i class="fa-solid fa-box-open"></i></button></div></div></template><div x-show="archivedStudents.length === 0" class="py-8 text-center text-slate-400"><i class="fa-solid fa-box-archive text-3xl text-slate-300 mb-3"></i><p class="text-sm">لا يوجد طلاب في الأرشيف حتى الآن.</p></div></div></div>
+<div class="students-lesson-archive-entry mt-5">
+  <button type="button" class="students-lesson-archive-card" @click="openLessonArchiveModal()">
+    <span class="students-lesson-archive-icon"><i class="fa-solid fa-box-archive"></i></span>
+    <span class="students-lesson-archive-text">
+      <strong>أرشيف الحصص</strong>
+      <small>عرض جميع الحصص المكتملة مرتبة من الأحدث إلى الأقدم</small>
+    </span>
+    <span class="students-lesson-archive-count" x-text="(lessonArchive || []).length + ' حصة'"></span>
+    <i class="fa-solid fa-chevron-left students-lesson-archive-arrow"></i>
+  </button>
+</div>
+
+
 </section>
 
 <!-- مودالات صفحة سجل الطلاب -->
@@ -4322,12 +3795,12 @@ main textarea::placeholder{
                         <div class="flex items-center gap-2">
                             <button
                                 type="button"
-                                @click="printStudentReport(selectedStudent)"
+                                @click="openStudentReport(selectedStudent)"
                                 class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 hover:bg-brand-100 border border-brand-100 flex items-center justify-center transition"
-                                title="تصدير تقرير الطالب PDF"
-                                aria-label="تصدير تقرير الطالب PDF"
+                                title="فتح تقرير الطالب ومشاركته"
+                                aria-label="فتح تقرير الطالب ومشاركته"
                             >
-                                <i class="fa-solid fa-download"></i>
+                                <i class="fa-solid fa-share-nodes"></i>
                             </button>
 
                             <button
@@ -5561,6 +5034,7 @@ function teacherApp() {
         showLessonModal: false,
         showPaymentModal: false,
         showCalendarDayModal: false,
+        showLessonArchiveModal: false,
         calendarDayDate: '',
         calendarDayLabel: '',
         calendarDayLessons: [],
@@ -5629,6 +5103,7 @@ function teacherApp() {
            ARCHIVE
         ========================== */
         archivedStudents: [],
+        lessonArchive: [],
 
         /* =========================
            FORMS
@@ -6152,14 +5627,19 @@ function teacherApp() {
         },
 
         calculateCompletedLessonsCount(student) {
-            return (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
+            const activeDone = (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
+            const archivedDone = (this.lessonArchive || []).filter(item => String(item.studentId) === String(student?.id)).length;
+            return activeDone + archivedDone;
         },
 
         calculateStudentExpected(student) {
-            return Number((student?.lessons || [])
+            const activeTotal = (student?.lessons || [])
                 .filter(lesson => lesson.status === 'تم')
-                .reduce((sum, lesson) => sum + this.calculateLessonCharge(student, lesson), 0)
-                .toFixed(2));
+                .reduce((sum, lesson) => sum + this.calculateLessonCharge(student, lesson), 0);
+            const archivedTotal = (this.lessonArchive || [])
+                .filter(item => String(item.studentId) === String(student?.id))
+                .reduce((sum, item) => sum + this.calculateLessonCharge(student, item.lesson || {}), 0);
+            return Number((activeTotal + archivedTotal).toFixed(2));
         },
 
         calculateStudentPaid(student) {
@@ -6446,604 +5926,7 @@ function teacherApp() {
         ========================== */
 
         printStudentReport(student) {
-            if (!student) return;
-
-            const lessons = Array.isArray(student.lessons)
-                ? [...student.lessons]
-                : [];
-
-            const payments = Array.isArray(student.payments)
-                ? [...student.payments]
-                : [];
-
-            lessons.sort((a, b) => {
-                const da = new Date(
-                    `${a.date || '1970-01-01'}T${a.time || '00:00'}`
-                );
-
-                const db = new Date(
-                    `${b.date || '1970-01-01'}T${b.time || '00:00'}`
-                );
-
-                return da - db;
-            });
-
-            payments.sort((a, b) => {
-                return new Date(
-                    `${a.date || '1970-01-01'}T00:00:00`
-                ) - new Date(
-                    `${b.date || '1970-01-01'}T00:00:00`
-                );
-            });
-
-            const totalLessons = lessons.length;
-
-            const completedLessons =
-                lessons.filter(l => l.status === 'تم').length;
-
-            const waitingLessons =
-                lessons.filter(l => l.status === 'انتظار').length;
-
-            const missedLessons =
-                lessons.filter(l => l.status === 'لم تتم').length;
-
-            const expected =
-                this.calculateStudentExpected(student);
-
-            const paid =
-                this.calculateStudentPaid(student);
-
-            const debt =
-                this.calculateStudentDebt(student);
-
-            const money = value =>
-                `${Number(value || 0).toLocaleString('ar-SA')} ر.س`;
-
-            const escapeHtml = value =>
-                String(value ?? '')
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-
-            const dateText = value =>
-                value ? this.formatDate(value) : '—';
-
-            const timeText = value =>
-                value ? this.formatTime(value) : '—';
-
-            const lessonRows = lessons.length
-                ? lessons.map((lesson, index) => {
-
-                    const charge =
-                        this.calculateLessonCharge(student, lesson);
-
-                    return `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${escapeHtml(dateText(lesson.date))}</td>
-                            <td>${escapeHtml(timeText(lesson.time))}</td>
-                            <td>${escapeHtml(
-                                lesson.duration ||
-                                this.getLessonDuration(lesson) ||
-                                '1'
-                            )}</td>
-                            <td>${escapeHtml(
-                                lesson.status || '—'
-                            )}</td>
-                            <td>${money(charge)}</td>
-                        </tr>
-                    `;
-
-                }).join('')
-                : `
-                    <tr>
-                        <td colspan="6" class="empty">
-                            لا توجد حصص مسجلة.
-                        </td>
-                    </tr>
-                `;
-
-            const paymentRows = payments.length
-                ? payments.map((payment, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${escapeHtml(dateText(payment.date))}</td>
-                        <td>${money(payment.amount)}</td>
-                        <td>${escapeHtml(
-                            payment.notes || 'تسديد دفعة'
-                        )}</td>
-                    </tr>
-                `).join('')
-                : `
-                    <tr>
-                        <td colspan="4" class="empty">
-                            لا توجد دفعات مسجلة.
-                        </td>
-                    </tr>
-                `;
-
-            window.setStudentReportName?.(
-                student.name || 'الطالب'
-            );
-
-            const reportFrame =
-                window.openStudentReportPopup?.();
-
-            if (!reportFrame) return;
-
-            const reportDocument =
-                reportFrame.contentDocument ||
-                reportFrame.contentWindow.document;
-
-            const reportHtml = `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تقرير الطالب - ${escapeHtml(student.name || 'الطالب')}</title>
-
-<style>
-    @page {
-        size: A4;
-        margin: 10mm;
-    }
-
-    * {
-        box-sizing: border-box;
-    }
-
-    html,
-    body {
-        margin: 0;
-        padding: 0;
-        background: #e2e8f0;
-        color: #0f172a;
-        font-family: Arial, Tahoma, sans-serif;
-        direction: rtl;
-    }
-
-    body {
-        min-height: 100vh;
-    }
-
-    .page {
-        width: 794px;
-        min-height: 1123px;
-        margin: 20px auto;
-        padding: 34px;
-        background: #ffffff;
-        box-shadow: 0 5px 25px rgba(15,23,42,.10);
-    }
-
-    .header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
-        border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 16px;
-    }
-
-    .title {
-        font-size: 25px;
-        font-weight: 800;
-        margin: 0 0 5px;
-    }
-
-    .sub {
-        color: #64748b;
-        font-size: 11px;
-    }
-
-    .student-box {
-        margin-top: 16px;
-        padding: 15px;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 13px;
-    }
-
-    .student-name {
-        font-size: 20px;
-        font-weight: 800;
-    }
-
-    .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 9px;
-    }
-
-    .chip {
-        background: #ffffff;
-        border: 1px solid #dbeafe;
-        color: #334155;
-        border-radius: 999px;
-        padding: 5px 9px;
-        font-size: 9px;
-        font-weight: 700;
-    }
-
-    .stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        margin-top: 13px;
-    }
-
-    .stat {
-        padding: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 11px;
-        background: #fff;
-    }
-
-    .stat-label {
-        color: #64748b;
-        font-size: 9px;
-    }
-
-    .stat-value {
-        font-size: 15px;
-        font-weight: 800;
-        margin-top: 4px;
-    }
-
-    .green { color: #059669; }
-    .red { color: #e11d48; }
-    .blue { color: #2563eb; }
-
-    .section {
-        margin-top: 20px;
-    }
-
-    .section-title {
-        font-size: 14px;
-        font-weight: 800;
-        margin-bottom: 8px;
-        padding-bottom: 6px;
-        border-bottom: 2px solid #e2e8f0;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 9px;
-    }
-
-    th {
-        background: #eff6ff;
-        color: #1e3a8a;
-        font-weight: 800;
-    }
-
-    th,
-    td {
-        border: 1px solid #e2e8f0;
-        padding: 6px 5px;
-        text-align: center;
-    }
-
-    td.empty {
-        padding: 15px;
-        color: #94a3b8;
-    }
-
-    .footer {
-        margin-top: 20px;
-        padding-top: 9px;
-        border-top: 1px solid #e2e8f0;
-        display: flex;
-        justify-content: space-between;
-        color: #64748b;
-        font-size: 8px;
-    }
-
-    .no-print {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        display: flex;
-        gap: 7px;
-        justify-content: flex-start;
-        padding: 8px;
-        background: rgba(255,255,255,.96);
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .no-print button {
-        border: 0;
-        border-radius: 9px;
-        padding: 9px 13px;
-        background: #2563eb;
-        color: #fff;
-        font-weight: 800;
-        cursor: pointer;
-    }
-
-    .no-print button:disabled {
-        opacity: .55;
-        cursor: wait;
-    }
-
-    .no-print button:first-child {
-        background: #475569;
-    }
-
-    @media print {
-        html,
-        body {
-            background: #fff;
-        }
-
-        .page {
-            width: 100%;
-            min-height: 0;
-            margin: 0;
-            padding: 0;
-            box-shadow: none;
-        }
-
-        .no-print {
-            display: none !important;
-        }
-
-        tr {
-            page-break-inside: avoid;
-        }
-    }
-
-    @media(max-width:650px) {
-        .page {
-            width: 100%;
-            min-height: 0;
-            margin: 0;
-            padding: 16px;
-        }
-
-        .stats {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .header {
-            display: block;
-        }
-    }
-</style>
-</head>
-
-<body>
-
-<div class="no-print">
-    <button
-        type="button"
-        onclick="window.parent.closeStudentReportPopup()"
-    >
-        ↩️ رجوع
-    </button>
-
-    <button
-        id="studentPdfExportButton"
-        type="button"
-        onclick="window.parent.exportStudentReportPdf()"
-    >
-        <i class="fa-solid fa-download"></i>
-        تصدير / تحميل PDF
-    </button>
-</div>
-
-<div class="page">
-
-    <div class="header">
-
-        <div>
-            <h1 class="title">تقرير الطالب</h1>
-
-            <div class="sub">
-                تقرير شامل للحصص والمدفوعات والملخص المالي
-            </div>
-        </div>
-
-        <div class="sub">
-            تاريخ التقرير:
-            ${escapeHtml(
-                new Date().toLocaleDateString(
-                    'ar-SA-u-ca-gregory',
-                    {
-                        calendar: 'gregory',
-                        numberingSystem: 'latn'
-                    }
-                )
-            )}
-        </div>
-
-    </div>
-
-    <div class="student-box">
-
-        <div class="student-name">
-            ${escapeHtml(student.name || 'بدون اسم')}
-        </div>
-
-        <div class="chips">
-
-            <span class="chip">
-                المرحلة: ${escapeHtml(student.stage || '—')}
-            </span>
-
-            <span class="chip">
-                الصف: ${escapeHtml(student.grade || '—')}
-            </span>
-
-            <span class="chip">
-                المادة: ${escapeHtml(student.subjectType || '—')}
-            </span>
-
-            <span class="chip">
-                نوع الدورة: ${escapeHtml(student.courseType || '—')}
-            </span>
-
-            <span class="chip">
-                سعر الحصة: ${money(student.price)}
-            </span>
-
-        </div>
-
-    </div>
-
-    <div class="stats">
-
-        <div class="stat">
-            <div class="stat-label">إجمالي الحصص</div>
-            <div class="stat-value blue">
-                ${totalLessons}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">الحصص المكتملة</div>
-            <div class="stat-value green">
-                ${completedLessons}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">إجمالي المستحق</div>
-            <div class="stat-value">
-                ${money(expected)}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">إجمالي المدفوع</div>
-            <div class="stat-value green">
-                ${money(paid)}
-            </div>
-        </div>
-
-    </div>
-
-    <div class="stats">
-
-        <div class="stat">
-            <div class="stat-label">المتبقي</div>
-            <div class="stat-value ${debt > 0 ? 'red' : 'green'}">
-                ${money(debt)}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">بانتظار الحصة</div>
-            <div class="stat-value">
-                ${waitingLessons}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">لم تتم</div>
-            <div class="stat-value">
-                ${missedLessons}
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-label">عدد الدفعات</div>
-            <div class="stat-value">
-                ${payments.length}
-            </div>
-        </div>
-
-    </div>
-
-    <div class="section">
-
-        <div class="section-title">
-            سجل الحصص
-        </div>
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>التاريخ</th>
-                    <th>الوقت</th>
-                    <th>المدة</th>
-                    <th>الحالة</th>
-                    <th>قيمة الحصة</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                ${lessonRows}
-            </tbody>
-
-        </table>
-
-    </div>
-
-    <div class="section">
-
-        <div class="section-title">
-            سجل المدفوعات
-        </div>
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>التاريخ</th>
-                    <th>المبلغ</th>
-                    <th>البيان</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                ${paymentRows}
-            </tbody>
-
-        </table>
-
-    </div>
-
-    <div class="footer">
-
-        <span>
-            تقرير الطالب — دفتر المعلم
-        </span>
-
-        <span>
-            ${escapeHtml(student.name || '')}
-        </span>
-
-    </div>
-
-</div>
-
-
-<!-- =============================================================
-     END OF DOCUMENT
-     -------------------------------------------------------------
-     جميع الصفحات والوظائف محفوظة.
-     القسم البصري الحديث أعلاه مستقل ويمكن تعديله لاحقاً دون لمس
-     teacherApp() أو دوال البيانات والحصص والمالية والتقارير.
-============================================================= -->
-
-</body>
-</html>`;
-
-            reportFrame.srcdoc = reportHtml;
-
-            // Give the iframe time to render its Arabic text/tables.
-            reportFrame.onload = () => {
-                try {
-                    reportFrame.contentWindow.scrollTo(0, 0);
-                } catch (e) {}
-            };
+            if (student) window.openStudentReport?.(student);
         },
 
         openStudentDetails(student) {
@@ -7089,6 +5972,19 @@ function teacherApp() {
             this.students.push(restored);
             this.archivedStudents = this.archivedStudents.filter(item => item.id !== recordId);
             this.persistAppData();
+        },
+
+
+        openLessonArchiveModal() {
+            this.showLessonArchiveModal = true;
+            this.$nextTick(() => {
+                const dialog = document.querySelector('.lesson-archive-dialog');
+                if (dialog) dialog.scrollTop = 0;
+            });
+        },
+
+        closeLessonArchiveModal() {
+            this.showLessonArchiveModal = false;
         },
 
 
@@ -7398,6 +6294,11 @@ function teacherApp() {
                 });
             }
 
+            if (this.lessonForm.status === 'تم') {
+                const doneLessonId = Number(this.lessonForm.id || student.lessons[student.lessons.length - 1]?.id);
+                if (Number.isFinite(doneLessonId)) this.archiveLesson(student.id, doneLessonId);
+            }
+
             if (this.selectedStudent) {
                 const current = this.students.find(s => s.id === this.selectedStudent.id);
                 if (current) this.selectedStudent = current;
@@ -7409,10 +6310,103 @@ function teacherApp() {
             this.$nextTick(() => { if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart(); });
         },
 
+        archiveLesson(studentId, lessonId) {
+            const student = this.students.find(s => String(s.id) === String(studentId));
+            if (!student || !Array.isArray(student.lessons)) return false;
+
+            const index = student.lessons.findIndex(l => String(l.id) === String(lessonId));
+            if (index < 0) return false;
+
+            const lesson = { ...student.lessons[index], status: 'تم' };
+            student.lessons.splice(index, 1);
+
+            if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
+
+            const archiveKey = `${student.id}::${lesson.id}`;
+            const record = {
+                id: archiveKey,
+                studentId: student.id,
+                studentName: student.name || 'بدون اسم',
+                studentSnapshot: {
+                    name: student.name || 'بدون اسم',
+                    stage: student.stage || '',
+                    grade: student.grade || '',
+                    subjectType: student.subjectType || '',
+                    courseType: student.courseType || '',
+                    price: student.price || 0
+                },
+                lesson,
+                archivedAt: new Date().toISOString()
+            };
+
+            this.lessonArchive = [
+                record,
+                ...this.lessonArchive.filter(item => item && item.id !== archiveKey)
+            ];
+
+            this.persistAppData();
+            this.$nextTick(() => {
+                if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
+            });
+            return true;
+        },
+
+        restoreArchivedLesson(archiveId) {
+            const index = (this.lessonArchive || []).findIndex(item => String(item.id) === String(archiveId));
+            if (index < 0) return;
+
+            const record = this.lessonArchive[index];
+            const student = this.students.find(s => String(s.id) === String(record.studentId));
+
+            if (!student) {
+                alert('لا يمكن إعادة الحصة لأن الطالب غير موجود في سجل الطلاب.');
+                return;
+            }
+
+            if (!Array.isArray(student.lessons)) student.lessons = [];
+            if (!student.lessons.some(l => String(l.id) === String(record.lesson?.id))) {
+                student.lessons.push({ ...record.lesson, status: 'انتظار' });
+            }
+
+            this.lessonArchive.splice(index, 1);
+            this.persistAppData();
+            this.$nextTick(() => {
+                if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
+            });
+        },
+
+        deleteArchivedLesson(archiveId) {
+            const index = (this.lessonArchive || []).findIndex(item => String(item.id) === String(archiveId));
+            if (index < 0) return;
+            const record = this.lessonArchive[index];
+            if (!window.confirm(`هل تريد حذف الحصة المؤرشفة للطالب «${record.studentName || 'بدون اسم'}»؟`)) return;
+            this.lessonArchive.splice(index, 1);
+            this.persistAppData();
+            this.$nextTick(() => {
+                if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
+            });
+        },
+
+        getStudentArchivedLessons(studentId) {
+            return (this.lessonArchive || [])
+                .filter(item => String(item.studentId) === String(studentId))
+                .sort((a, b) => {
+                    const da = new Date(`${a.lesson?.date || '1970-01-01'}T${a.lesson?.time || '00:00'}`);
+                    const db = new Date(`${b.lesson?.date || '1970-01-01'}T${b.lesson?.time || '00:00'}`);
+                    return db - da;
+                });
+        },
+
         updateLessonStatus(studentId, lessonId, newStatus) {
-            const student = this.students.find(s => s.id === Number(studentId));
+            const student = this.students.find(s => String(s.id) === String(studentId));
             if (!student) return;
-            const lesson = (student.lessons || []).find(l => l.id === Number(lessonId));
+
+            if (newStatus === 'تم') {
+                this.archiveLesson(studentId, lessonId);
+                return;
+            }
+
+            const lesson = (student.lessons || []).find(l => String(l.id) === String(lessonId));
             if (lesson) {
                 lesson.status = newStatus;
                 this.persistAppData();
@@ -7735,7 +6729,7 @@ function teacherApp() {
                 const raw = await file.text();
                 const data = JSON.parse(raw);
                 const valid = data && typeof data === 'object' &&
-                    (data.version || Array.isArray(data.students) || Array.isArray(data.archivedStudents));
+                    (data.version || Array.isArray(data.students) || Array.isArray(data.archivedStudents) || Array.isArray(data.lessonArchive));
 
                 if (!valid) throw new Error('Invalid backup');
 
@@ -7745,6 +6739,7 @@ function teacherApp() {
 
                 this.students = Array.isArray(data.students) ? data.students : [];
                 this.archivedStudents = Array.isArray(data.archivedStudents) ? data.archivedStudents : [];
+                this.lessonArchive = Array.isArray(data.lessonArchive) ? data.lessonArchive : [];
                 if (data.teacher && typeof data.teacher === 'object') {
                     this.teacher = { ...this.teacher, ...data.teacher };
                     this.teacherForm = JSON.parse(JSON.stringify(this.teacher));
@@ -7776,6 +6771,7 @@ function teacherApp() {
                 teacher: this.teacher,
                 students: this.students,
                 archivedStudents: this.archivedStudents,
+                lessonArchive: this.lessonArchive,
                 backupLogs: this.backupLogs
             };
         },
@@ -7797,6 +6793,7 @@ function teacherApp() {
                     }
                     this.students = [];
                     this.archivedStudents = [];
+                    this.lessonArchive = [];
                     this.backupLogs = [];
                     localStorage.removeItem('teacherNotebookData');
                     return;
@@ -7806,8 +6803,34 @@ function teacherApp() {
                 const data = JSON.parse(saved);
                 if (Array.isArray(data.students)) this.students = data.students;
                 if (Array.isArray(data.archivedStudents)) this.archivedStudents = data.archivedStudents;
+                if (Array.isArray(data.lessonArchive)) this.lessonArchive = data.lessonArchive;
                 this.students.forEach(student => (student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }));
                 this.archivedStudents.forEach(record => { if (record && record.student) (record.student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }); });
+                // Migrate any old completed lessons into the new lesson archive.
+                if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
+                const existingArchiveKeys = new Set(this.lessonArchive.map(item => String(item?.id || '')));
+                this.students.forEach(student => {
+                    const remaining = [];
+                    (student.lessons || []).forEach(lesson => {
+                        if (lesson && lesson.status === 'تم') {
+                            const key = `${student.id}::${lesson.id}`;
+                            if (!existingArchiveKeys.has(key)) {
+                                this.lessonArchive.push({
+                                    id: key,
+                                    studentId: student.id,
+                                    studentName: student.name || 'بدون اسم',
+                                    studentSnapshot: { name: student.name || 'بدون اسم', stage: student.stage || '', grade: student.grade || '', subjectType: student.subjectType || '', courseType: student.courseType || '', price: student.price || 0 },
+                                    lesson: { ...lesson, status: 'تم' },
+                                    archivedAt: new Date().toISOString()
+                                });
+                                existingArchiveKeys.add(key);
+                            }
+                        } else {
+                            remaining.push(lesson);
+                        }
+                    });
+                    student.lessons = remaining;
+                });
                 if (Array.isArray(data.backupLogs)) this.backupLogs = data.backupLogs;
                 if (data.teacher) this.teacher = { ...this.teacher, ...data.teacher };
             } catch (error) {
@@ -8173,268 +7196,192 @@ window.addEventListener('orientationchange', () => {
 </script>
 
 
-<!-- Student PDF Save Popup -->
-<div id="studentPdfSavePopup" aria-hidden="true">
-  <div id="studentPdfSaveCard"
-       role="dialog"
-       aria-modal="true"
-       aria-label="حفظ تقرير الطالب PDF">
-    <button id="studentPdfSaveClose"
-            type="button"
-            aria-label="إغلاق"
-            title="إغلاق">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-
-    <div class="student-pdf-save-header">
-      <div class="student-pdf-save-title">تم تجهيز التقرير</div>
-      <div class="student-pdf-save-hint">
-        على iPhone / iPad اختر «حفظ في الملفات» من نافذة النظام لحفظ التقرير.
-      </div>
-      <div id="studentPdfSaveName"
-           class="student-pdf-save-name">تقرير-الطالب.pdf</div>
-    </div>
-
-    <div class="student-pdf-save-preview">
-      <iframe id="studentPdfSavePreview"
-              title="معاينة تقرير الطالب"></iframe>
-    </div>
-
-    <div class="student-pdf-save-actions">
-      <button id="studentPdfSaveButton" type="button">
-        <i class="fa-solid fa-download"></i>
-        حفظ / تصدير PDF
-      </button>
-      <button type="button"
-              class="student-pdf-save-cancel"
-              onclick="window.closeStudentPdfSavePopup()"
-              aria-label="إغلاق"
-              title="إغلاق">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<style id="student-reports-clean-css">
-#studentsReportsPage{display:none;position:fixed;inset:0;z-index:9998;background:#f8fafc;overflow:auto;direction:rtl}
+<!-- =========================================================
+     STUDENT REPORTS — REBUILT FROM SCRATCH
+     ========================================================= -->
+<style id="student-reports-rebuilt-style">
+#studentsReportsPage{display:none;position:fixed;inset:0;z-index:9998;background:#f5f7fb;overflow:auto;direction:rtl}
 #studentsReportsPage.open{display:block}
-.sr-shell{width:min(1050px,95vw);margin:auto;padding:18px 0 35px}
-.sr-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;padding:12px;background:rgba(248,250,252,.92);backdrop-filter:blur(14px);border-bottom:1px solid #e2e8f0}
-.sr-back{border:0;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:10px 13px;font-weight:800;cursor:pointer}
-.sr-title{flex:1}.sr-title h2{margin:0;font-size:21px;color:#0f172a}.sr-title p{margin:2px 0 0;font-size:11px;color:#64748b}
-.sr-search{width:260px;height:42px;background:#fff;border:1px solid #e2e8f0;border-radius:11px;padding:0 12px;outline:0}
-.sr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:11px;padding:15px 4px}
-.sr-card{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px;display:flex;align-items:center;gap:10px;text-align:right;cursor:pointer;box-shadow:0 4px 15px rgba(15,23,42,.04)}
-.sr-card:hover{border-color:#93c5fd;transform:translateY(-1px)}
-.sr-avatar{width:42px;height:42px;border-radius:12px;background:#eef2ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-weight:900}
-.sr-name{font-weight:850;color:#0f172a;font-size:14px}.sr-meta{font-size:10px;color:#94a3b8;margin-top:3px}
-.sr-empty{text-align:center;color:#64748b;padding:45px;grid-column:1/-1}
-#studentsReportDetailClean{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);align-items:center;justify-content:center;padding:12px}
+.sr2-shell{width:min(1100px,94vw);margin:auto;padding:18px 0 40px}
+.sr2-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:12px;padding:12px 0;background:rgba(245,247,251,.94);backdrop-filter:blur(16px);border-bottom:1px solid #e2e8f0}
+.sr2-back,.sr2-share,.sr2-print{border:0;border-radius:12px;min-height:42px;padding:0 14px;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.sr2-back{background:#fff;color:#334155;border:1px solid #e2e8f0}
+.sr2-share{background:#2563eb;color:#fff}.sr2-print{background:#f1f5f9;color:#334155}
+.sr2-title{flex:1}.sr2-title h2{margin:0;font-size:21px;color:#0f172a}.sr2-title p{margin:3px 0 0;color:#64748b;font-size:11px}
+.sr2-search{width:270px;height:42px;border:1px solid #dbe3ec;border-radius:12px;background:#fff;padding:0 12px;font-family:inherit;outline:none}
+.sr2-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:12px;padding:16px 0}
+.sr2-card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px;display:flex;align-items:center;gap:11px;text-align:right;box-shadow:0 8px 24px rgba(15,23,42,.05);cursor:pointer;transition:.18s ease}
+.sr2-card:hover{transform:translateY(-2px);border-color:#93c5fd;box-shadow:0 14px 30px rgba(15,23,42,.08)}
+.sr2-avatar{width:46px;height:46px;flex:0 0 46px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#e0e7ff);color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.sr2-card-main{min-width:0;flex:1}.sr2-name{font-size:14px;font-weight:900;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sr2-meta{font-size:10px;color:#64748b;margin-top:3px}.sr2-card-share{width:36px;height:36px;border:0;border-radius:10px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 36px}
+#studentsReportDetailClean{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.62);align-items:center;justify-content:center;padding:12px;backdrop-filter:blur(8px)}
 #studentsReportDetailClean.open{display:flex}
-.sr-detail{position:relative;width:min(920px,97vw);max-height:93vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(15,23,42,.3)}
-.sr-close{position:absolute;top:10px;left:10px;width:34px;height:34px;border:0;border-radius:9px;background:#f1f5f9;color:#475569;cursor:pointer;z-index:2}
-.sr-detail-head{padding:18px 55px 15px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.sr-detail-head h2{margin:0;font-size:20px}.sr-share{border:0;border-radius:11px;background:#2563eb;color:#fff;padding:10px 14px;font-weight:850;cursor:pointer;white-space:nowrap}
-.sr-body{padding:16px}.sr-sec{border:1px solid #e2e8f0;border-radius:13px;overflow:hidden;margin-bottom:11px}.sr-sec h3{font-size:13px;margin:0;padding:9px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0}.sr-info{display:grid;grid-template-columns:1fr 1fr}.sr-info div{padding:9px 12px;border-bottom:1px solid #f1f5f9}.sr-info small{display:block;color:#94a3b8;font-size:9px}.sr-info b{font-size:12px}.sr-table{width:100%;border-collapse:collapse;font-size:10px}.sr-table th,.sr-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right}.sr-table th{background:#fafafa;color:#64748b}
-@media(max-width:650px){.sr-head{flex-wrap:wrap}.sr-search{width:100%}.sr-info{grid-template-columns:1fr}.sr-detail-head{flex-direction:column;align-items:stretch}.sr-share{text-align:center}}
+.sr2-detail{width:min(960px,97vw);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;box-shadow:0 30px 100px rgba(15,23,42,.28)}
+.sr2-detail-head{position:sticky;top:0;z-index:2;padding:15px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px)}
+.sr2-detail-head h2{margin:0;flex:1;font-size:20px;color:#0f172a}.sr2-close{width:38px;height:38px;border:0;border-radius:10px;background:#f1f5f9;color:#475569;cursor:pointer}
+.sr2-body{padding:16px}.sr2-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.sr2-box{border:1px solid #e2e8f0;border-radius:14px;padding:11px;background:#fff}.sr2-box small{display:block;color:#94a3b8;font-size:9px;margin-bottom:3px}.sr2-box strong{font-size:13px;color:#0f172a}.sr2-section{border:1px solid #e2e8f0;border-radius:15px;overflow:hidden;margin-top:12px}.sr2-section-title{padding:10px 12px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:900;color:#334155}.sr2-table{width:100%;border-collapse:collapse;font-size:10px}.sr2-table th,.sr2-table td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:right}.sr2-table th{background:#fafafa;color:#64748b;font-weight:900}.sr2-status{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center}.sr2-done{background:#dcfce7;color:#16a34a}.sr2-wait{background:#fef3c7;color:#d97706}.sr2-missed{background:#fee2e2;color:#dc2626}
+.sr2-report-empty{text-align:center;color:#94a3b8;padding:28px}
+@media(max-width:700px){.sr2-head{flex-wrap:wrap}.sr2-search{width:100%;order:5}.sr2-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sr2-detail-head{flex-wrap:wrap}.sr2-detail-head h2{min-width:100%;order:2}.sr2-detail-head .sr2-share,.sr2-detail-head .sr2-print{flex:1}.sr2-body{padding:11px}.sr2-list{grid-template-columns:1fr}}
 </style>
+
 <div id="studentsReportsPage" aria-hidden="true">
- <div class="sr-shell">
-  <div class="sr-head">
-   <button class="sr-back" type="button" onclick="window.closeStudentsReportsPage()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
-   <div class="sr-title"><h2>تقارير الطلاب</h2><p>اختر طالبًا لعرض التقرير الكامل</p></div>
-   <input id="srSearch" class="sr-search" type="search" placeholder="ابحث عن الطالب..." autocomplete="off">
+  <div class="sr2-shell">
+    <div class="sr2-head">
+      <button class="sr2-back" type="button" onclick="window.closeStudentsReportsPage()"><i class="fa-solid fa-arrow-right"></i> رجوع</button>
+      <div class="sr2-title"><h2>تقارير الطلاب</h2><p>تقرير مستقل لكل طالب مع مشاركة مباشرة</p></div>
+      <input id="srSearch" class="sr2-search" type="search" placeholder="ابحث عن الطالب..." autocomplete="off">
+    </div>
+    <div id="srList" class="sr2-list"></div>
   </div>
-  <div id="srList" class="sr-list"></div>
- </div>
-</div>
-<div id="studentsReportDetailClean" aria-hidden="true">
- <div class="sr-detail" role="dialog" aria-modal="true">
-  <button class="sr-close" type="button" onclick="window.closeStudentsReportDetail()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
-  <div class="sr-detail-head"><h2 id="srDetailName">تقرير الطالب</h2><button class="sr-share" type="button" onclick="window.shareStudentsReportNative()"><i class="fa-solid fa-share-nodes"></i> مشاركة / حفظ PDF</button></div>
-  <div id="srBody" class="sr-body"></div>
- </div>
 </div>
 
-<!-- =========================================================
-     PAGE 02 — أرشيف الحصص
-     عرض الحصص المكتملة فقط، دون حذفها من بيانات التطبيق.
-========================================================= -->
-<section id="studentLessonArchiveSection" class="mt-5">
-  <div class="bg-white rounded-3xl border border-slate-100 p-4 sm:p-5">
-    <div class="flex items-center justify-between gap-3 mb-4">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-2xl flex items-center justify-center"
-             style="background:linear-gradient(135deg,#ede9fe,#ccfbf1);color:#0f766e">
-          <span class="text-xl">✓</span>
-        </div>
-        <div>
-          <h3 class="text-lg font-extrabold text-slate-800">أرشيف الحصص</h3>
-          <p class="text-sm text-slate-500">الحصص المنجزة مرتبة من الأحدث إلى الأقدم</p>
+<div id="studentsReportDetailClean" aria-hidden="true">
+  <div class="sr2-detail" role="dialog" aria-modal="true" aria-labelledby="srDetailName">
+    <div class="sr2-detail-head">
+      <button class="sr2-close" type="button" onclick="window.closeStudentsReportDetail()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+      <h2 id="srDetailName">تقرير الطالب</h2>
+      <button class="sr2-share" type="button" onclick="window.shareStudentsReportNative()"><i class="fa-solid fa-share-nodes"></i> مشاركة التقرير</button>
+      <button class="sr2-print" type="button" onclick="window.printStudentsReport()"><i class="fa-solid fa-print"></i> طباعة / PDF</button>
+    </div>
+    <div id="srBody" class="sr2-body"></div>
+  </div>
+</div>
+
+<!-- أرشيف الحصص: يظهر كصندوق/زر داخل صفحة الطلاب فقط، وتفاصيله في نافذة منبثقة. -->
+<!-- نافذة أرشيف الحصص — تُفتح من صفحة الطلاب فقط -->
+<div x-show="activeTab === 'students' && showLessonArchiveModal" x-cloak class="lesson-archive-modal" @keydown.escape.window="closeLessonArchiveModal()">
+  <div class="lesson-archive-backdrop" @click="closeLessonArchiveModal()"></div>
+  <div class="lesson-archive-dialog" role="dialog" aria-modal="true" aria-labelledby="lessonArchiveTitle">
+    <div class="lesson-archive-dialog-head">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="lesson-archive-dialog-icon"><i class="fa-solid fa-box-archive"></i></div>
+        <div class="min-w-0">
+          <h3 id="lessonArchiveTitle">أرشيف الحصص</h3>
+          <p x-text="(lessonArchive || []).length + ' حصة مكتملة'">0 حصة مكتملة</p>
         </div>
       </div>
-      <span id="studentLessonArchiveCount"
-            class="px-3 py-1.5 rounded-full text-sm font-bold"
-            style="background:#f1f5f9;color:#475569">0 حصة</span>
+      <button type="button" class="lesson-archive-close" @click="closeLessonArchiveModal()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div id="studentLessonArchiveList" class="space-y-2">
-      <div class="text-center py-8 text-slate-400">لا توجد حصص مؤرشفة حتى الآن</div>
+
+    <div class="lesson-archive-list">
+      <template x-for="record in [...(lessonArchive || [])].sort((a,b) => new Date((b.lesson?.date || '') + 'T' + (b.lesson?.time || '00:00')) - new Date((a.lesson?.date || '') + 'T' + (a.lesson?.time || '00:00')))" :key="record.id">
+        <div class="lesson-archive-row">
+          <div class="lesson-archive-main">
+            <div class="lesson-archive-title-row">
+              <strong x-text="record.studentName || 'بدون اسم'"></strong>
+              <span><i class="fa-solid fa-check"></i> مكتملة</span>
+            </div>
+            <div class="lesson-archive-meta">
+              <span><i class="fa-regular fa-calendar"></i><b x-text="formatLessonDate(record.lesson?.date)"></b></span>
+              <span><i class="fa-regular fa-clock"></i><b x-text="formatTime(record.lesson?.time)"></b></span>
+              <span><i class="fa-solid fa-stopwatch"></i><b x-text="formatLessonDuration(record.lesson?.duration)"></b></span>
+            </div>
+          </div>
+          <div class="lesson-archive-actions">
+            <button type="button" @click="restoreArchivedLesson(record.id); closeLessonArchiveModal()" title="إعادة إلى سجل الحصص" aria-label="إعادة إلى سجل الحصص"><i class="fa-solid fa-rotate-left"></i></button>
+            <button type="button" @click="deleteArchivedLesson(record.id)" title="حذف من الأرشيف" aria-label="حذف من الأرشيف" class="danger"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        </div>
+      </template>
+
+      <div x-show="!(lessonArchive || []).length" class="lesson-archive-empty">
+        <i class="fa-solid fa-box-open"></i>
+        <strong>لا توجد حصص مؤرشفة</strong>
+        <span>عند الضغط على علامة ✓ «تم» في الحصة ستنتقل تلقائيًا إلى هنا.</span>
+      </div>
     </div>
   </div>
-</section>
-
-
-<!-- =========================================================
-     MODULE — مشاركة تقرير PDF
-========================================================= -->
-<script id="ios-pdf-share-safe">
-(function () {
-  window.shareOrDownloadStudentReport = function () {
-    var student = null;
-    try {
-      if (typeof selected !== 'undefined') student = selected;
-    } catch (e) {}
-
-    if (!student) {
-      student = window.selectedStudentForReport || null;
-    }
-
-    if (!student) {
-      alert('يرجى اختيار الطالب أولاً');
-      return;
-    }
-
-    // Use a real existing PDF blob only. This is the only reliable way to
-    // invoke iOS file sharing for a PDF from a web app.
-    var blob = null;
-    try {
-      if (window.__studentReportPdfBlob instanceof Blob) {
-        blob = window.__studentReportPdfBlob;
-      }
-    } catch (e) {}
-
-    if (blob && navigator.share && navigator.canShare) {
-      var name = 'تقرير-' + (student.name || 'الطالب') + '.pdf';
-      var file = new File([blob], name, { type: 'application/pdf' });
-
-      if (navigator.canShare({ files: [file] })) {
-        navigator.share({
-          title: 'تقرير ' + (student.name || 'الطالب'),
-          text: 'تقرير الطالب',
-          files: [file]
-        }).catch(function (err) {
-          if (!err || err.name !== 'AbortError') {
-            window.printSelectedStudentReportFromReports
-              ? window.printSelectedStudentReportFromReports()
-              : window.print();
-          }
-        });
-        return;
-      }
-    }
-
-    // iPhone/iPad Safari: browser print dialog is the dependable system
-    // "Save to Files / PDF / Share" route when there is no PDF Blob.
-    if (typeof window.printSelectedStudentReportFromReports === 'function') {
-      window.printSelectedStudentReportFromReports();
-    } else {
-      window.print();
-    }
-  };
-})();
-</script>
+</div>
 
 <!-- =========================================================
-     REPORTS MODULE — STUDENT REPORTS / PRINT / EXPORT
-========================================================= -->
-<script id="student-reports-clean-js">
+     REBUILT REPORT ENGINE
+     ========================================================= -->
+<script id="student-reports-rebuilt-js">
 (function(){
- let selected=null;
- function app(){
-  const root=document.querySelector('[x-data="teacherApp()"]');
-  return root && window.Alpine ? Alpine.$data(root) : null;
- }
- function name(s){return s && (s.name||s.studentName||s.fullName) || 'الطالب'}
- function esc(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[c]))}
- function initials(n){return n.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'ط'}
- function money(v){return (Number(v)||0).toLocaleString('ar-SA')+' ر.س'}
- function render(){
-  const a=app(), list=document.getElementById('srList'), q=(document.getElementById('srSearch')?.value||'').trim().toLowerCase();
-  if(!list)return;
-  const students=Array.isArray(a?.students)?a.students:[];
-  const filtered=students.filter(s=>name(s).toLowerCase().includes(q));
-  list.innerHTML=filtered.length?filtered.map((s,i)=>`<button class="sr-card" type="button" data-i="${i}"><span class="sr-avatar">${esc(initials(name(s)))}</span><span><span class="sr-name">${esc(name(s))}</span><span class="sr-meta">${Array.isArray(s.lessons)?s.lessons.length:0} حصة</span></span></button>`).join(''):'<div class="sr-empty">لا توجد طلاب لعرضها.</div>';
-  list.querySelectorAll('[data-i]').forEach((b)=>b.onclick=()=>openDetail(filtered[Number(b.dataset.i)]));
- }
- function openPage(){document.getElementById('studentsReportsPage')?.classList.add('open');document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','false');render()}
- function closePage(){closeDetail();document.getElementById('studentsReportsPage')?.classList.remove('open');document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','true')}
- function openDetail(s){selected=s;const lessons=Array.isArray(s.lessons)?s.lessons:[],payments=Array.isArray(s.payments)?s.payments:[];const a=app();const paid=typeof a?.calculateStudentPaid==='function'?a.calculateStudentPaid(s):payments.reduce((x,p)=>x+Number(p.amount||0),0);const due=typeof a?.calculateStudentExpected==='function'?a.calculateStudentExpected(s):Number(s.price||0)*lessons.length;const debt=typeof a?.calculateStudentDebt==='function'?a.calculateStudentDebt(s):Math.max(0,due-paid);document.getElementById('srDetailName').textContent='تقرير الطالب: '+name(s);document.getElementById('srBody').innerHTML=`<div class="sr-sec"><h3>بيانات الطالب</h3><div class="sr-info"><div><small>الاسم</small><b>${esc(name(s))}</b></div><div><small>رقم الجوال</small><b>${esc(s.phone||s.mobile||'—')}</b></div><div><small>المرحلة</small><b>${esc(s.stage||s.educationLevel||'—')}</b></div><div><small>الصف / المادة</small><b>${esc([s.grade,s.subjectType||s.subject].filter(Boolean).join(' / ')||'—')}</b></div></div></div><div class="sr-sec"><h3>ملخص</h3><div class="sr-info"><div><small>عدد الحصص</small><b>${lessons.length}</b></div><div><small>عدد الدفعات</small><b>${payments.length}</b></div><div><small>إجمالي المدفوع</small><b>${money(paid)}</b></div><div><small>المتبقي</small><b>${money(debt)}</b></div></div></div><div class="sr-sec"><h3>سجل الحصص (${lessons.length})</h3><table class="sr-table"><thead><tr><th>التاريخ</th><th>الوقت</th><th>الحالة</th><th>قيمة الحصة</th></tr></thead><tbody>${lessons.length?lessons.map(l=>`<tr><td>${esc(l.date||'—')}</td><td>${esc(l.time||'—')}</td><td>${esc(l.status||'—')}</td><td>${money(l.amount||l.price||0)}</td></tr>`).join(''):'<tr><td colspan="4">لا توجد حصص</td></tr>'}</tbody></table></div><div class="sr-sec"><h3>سجل المدفوعات (${payments.length})</h3><table class="sr-table"><thead><tr><th>التاريخ</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>${payments.length?payments.map(p=>`<tr><td>${esc(p.date||'—')}</td><td>${money(p.amount)}</td><td>${esc(p.notes||'تسديد دفعة')}</td></tr>`).join(''):'<tr><td colspan="3">لا توجد دفعات</td></tr>'}</tbody></table></div>`;document.getElementById('studentsReportDetailClean')?.classList.add('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','false')}
- function closeDetail(){document.getElementById('studentsReportDetailClean')?.classList.remove('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','true');selected=null}
- async function share(){
-  if(!selected){
-    alert('اختر طالبًا أولاً.');
-    return;
+  let selected = null;
+
+  function app(){
+    const root = document.querySelector('[x-data="teacherApp()"]');
+    return root && window.Alpine ? Alpine.$data(root) : null;
   }
-
-  const student = selected;
-  const a = app();
-
-  try{
-    /*
-     * This is the same report generator used by the original Student Record
-     * page. It creates the complete A4 report in #studentReportPopupFrame.
-     */
-    if(typeof a?.printStudentReport !== 'function'){
-      alert('نظام تقرير الطالب غير متاح في هذه النسخة.');
-      return;
-    }
-
-    a.printStudentReport(student);
-
-    /*
-     * Wait until the ORIGINAL report iframe really contains the generated
-     * report. Calling exportStudentReportPdf too early was the reason the
-     * previous version failed.
-     */
-    const waitForReport = (attempt) => {
-      const reportFrame = document.getElementById('studentReportPopupFrame');
-
-      if(reportFrame && reportFrame.srcdoc &&
-         reportFrame.srcdoc.length > 500){
-        if(typeof window.exportStudentReportPdf === 'function'){
-          window.exportStudentReportPdf();
-        }else{
-          const doc = reportFrame.contentDocument ||
-                      reportFrame.contentWindow?.document;
-          if(doc && doc.body){
-            reportFrame.contentWindow.focus();
-            reportFrame.contentWindow.print();
-          }else{
-            alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
-          }
-        }
-        return;
-      }
-
-      if(attempt >= 30){
-        alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
-        return;
-      }
-
-      setTimeout(() => waitForReport(attempt + 1), 100);
-    };
-
-    waitForReport(0);
-
-  }catch(error){
-    console.error('Student report preparation error:', error);
-    alert('تعذر تجهيز تقرير الطالب. حاول مرة أخرى.');
+  function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+  function nameOf(s){ return s?.name || 'بدون اسم'; }
+  function money(v){ return `${Number(v || 0).toLocaleString('ar-SA')} ر.س`; }
+  function initials(n){ return String(n).trim().split(/\s+/).slice(0,2).map(x=>x[0] || '').join('').toUpperCase() || 'ط'; }
+  function statusHtml(status){
+    if(status === 'تم') return '<span class="sr2-status sr2-done" title="تمت الحصة"><i class="fa-solid fa-check"></i></span>';
+    if(status === 'لم تتم') return '<span class="sr2-status sr2-missed" title="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></span>';
+    return '<span class="sr2-status sr2-wait" title="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></span>';
   }
- }
- window.openStudentsReportsPage=
- window.openStudentsReportsPage=openPage;window.closeStudentsReportsPage=closePage;window.closeStudentsReportDetail=closeDetail;window.shareStudentsReportNative=share;
- document.addEventListener('DOMContentLoaded',()=>{document.getElementById('srSearch')?.addEventListener('input',render);document.getElementById('studentsReportDetailClean')?.addEventListener('click',e=>{if(e.target.id==='studentsReportDetailClean')closeDetail()})});
+  function allReportLessons(student){
+    const a = app();
+    const active = Array.isArray(student?.lessons) ? student.lessons.map(l => ({lesson:l, archived:false})) : [];
+    const archived = (a?.lessonArchive || []).filter(r => String(r.studentId) === String(student?.id)).map(r => ({lesson:r.lesson || {}, archived:true, archivedAt:r.archivedAt}));
+    return [...active, ...archived].sort((x,y)=>new Date(`${y.lesson?.date||'1970-01-01'}T${y.lesson?.time||'00:00'}`)-new Date(`${x.lesson?.date||'1970-01-01'}T${x.lesson?.time||'00:00'}`));
+  }
+  function studentRecord(student){
+    const a=app();
+    const lessons=allReportLessons(student);
+    const payments=Array.isArray(student?.payments)?student.payments:[];
+    const paid=typeof a?.calculateStudentPaid==='function'?a.calculateStudentPaid(student):payments.reduce((sum,p)=>sum+Number(p.amount||0),0);
+    const expected=typeof a?.calculateStudentExpected==='function'?a.calculateStudentExpected(student):lessons.filter(x=>x.lesson?.status==='تم').reduce((sum,x)=>sum+(Number(student?.price||0)*Number(x.lesson?.duration||1)),0);
+    const debt=Math.max(0,Number((expected-paid).toFixed(2)));
+    return {lessons,payments,paid,expected,debt,completed:lessons.filter(x=>x.lesson?.status==='تم').length};
+  }
+  function render(){
+    const a=app(), list=document.getElementById('srList'); if(!list) return;
+    const q=(document.getElementById('srSearch')?.value||'').trim().toLowerCase();
+    const active=Array.isArray(a?.students)?a.students:[];
+    const archivedStudents=Array.isArray(a?.archivedStudents)?a.archivedStudents.map(r=>r.student).filter(Boolean):[];
+    const map=new Map(); [...active,...archivedStudents].forEach(s=>{if(s?.id!=null && !map.has(String(s.id))) map.set(String(s.id),s);});
+    const students=[...map.values()].filter(s=>nameOf(s).toLowerCase().includes(q));
+    list.innerHTML=students.length ? students.map((s,i)=>{const r=studentRecord(s); return `<button class="sr2-card" type="button" data-i="${i}"><span class="sr2-avatar">${esc(initials(nameOf(s)))}</span><span class="sr2-card-main"><span class="sr2-name">${esc(nameOf(s))}</span><span class="sr2-meta">${r.lessons.length} حصة · ${r.completed} مكتملة · المتبقي ${money(r.debt)}</span></span><span class="sr2-card-share" title="مشاركة التقرير" data-share="${i}"><i class="fa-solid fa-share-nodes"></i></span></button>`;}).join('') : '<div class="sr2-report-empty" style="grid-column:1/-1">لا توجد طلاب لعرض تقاريرهم.</div>';
+    list.querySelectorAll('.sr2-card').forEach((b)=>b.addEventListener('click',()=>openDetail(students[Number(b.dataset.i)])));
+    list.querySelectorAll('[data-share]').forEach((b)=>b.addEventListener('click',(e)=>{e.stopPropagation(); selected=students[Number(b.dataset.share)]; share();}));
+  }
+  function openPage(){ document.getElementById('studentsReportsPage')?.classList.add('open'); document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','false'); render(); }
+  function closePage(){ closeDetail(); document.getElementById('studentsReportsPage')?.classList.remove('open'); document.getElementById('studentsReportsPage')?.setAttribute('aria-hidden','true'); }
+  function openDetail(s){
+    if(!s) return; selected=s;
+    const a=app(), r=studentRecord(s), body=document.getElementById('srBody');
+    document.getElementById('srDetailName').textContent='تقرير الطالب: '+nameOf(s);
+    const lessonRows=r.lessons.length ? r.lessons.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.lesson?.date||'—')}</td><td>${esc(typeof a?.formatTime==='function'?a.formatTime(x.lesson?.time):x.lesson?.time||'—')}</td><td>${esc(typeof a?.formatLessonDuration==='function'?a.formatLessonDuration(x.lesson?.duration):String(x.lesson?.duration||'1'))}</td><td>${statusHtml(x.lesson?.status)}</td><td>${x.archived?'<span class="text-emerald-700 font-bold">أرشيف</span>':'<span class="text-slate-500">السجل</span>'}</td></tr>`).join('') : '<tr><td colspan="6" class="sr2-report-empty">لا توجد حصص.</td></tr>';
+    const paymentRows=r.payments.length ? r.payments.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.date||'—')}</td><td>${money(p.amount)}</td><td>${esc(p.notes||'تسديد دفعة')}</td></tr>`).join('') : '<tr><td colspan="4" class="sr2-report-empty">لا توجد دفعات.</td></tr>';
+    body.innerHTML=`<div class="sr2-grid"><div class="sr2-box"><small>الاسم</small><strong>${esc(nameOf(s))}</strong></div><div class="sr2-box"><small>المرحلة</small><strong>${esc(s.stage||'—')}</strong></div><div class="sr2-box"><small>الصف</small><strong>${esc(s.grade||'—')}</strong></div><div class="sr2-box"><small>المادة</small><strong>${esc(s.subjectType||s.subject||'—')}</strong></div><div class="sr2-box"><small>نوع الدراسة</small><strong>${esc(s.courseType||'—')}</strong></div><div class="sr2-box"><small>رقم الجوال</small><strong>${esc(s.phone||s.mobile||'—')}</strong></div><div class="sr2-box"><small>إجمالي الحصص</small><strong>${r.lessons.length}</strong></div><div class="sr2-box"><small>الحصص المكتملة</small><strong>${r.completed}</strong></div></div><div class="sr2-grid" style="margin-top:9px"><div class="sr2-box"><small>إجمالي المستحق</small><strong>${money(r.expected)}</strong></div><div class="sr2-box"><small>إجمالي المدفوع</small><strong>${money(r.paid)}</strong></div><div class="sr2-box"><small>المتبقي</small><strong>${money(r.debt)}</strong></div><div class="sr2-box"><small>عدد الدفعات</small><strong>${r.payments.length}</strong></div></div><div class="sr2-section"><div class="sr2-section-title">سجل الحصص</div><table class="sr2-table"><thead><tr><th>#</th><th>التاريخ</th><th>الوقت</th><th>المدة</th><th>الحالة</th><th>المصدر</th></tr></thead><tbody>${lessonRows}</tbody></table></div><div class="sr2-section"><div class="sr2-section-title">سجل المدفوعات</div><table class="sr2-table"><thead><tr><th>#</th><th>التاريخ</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>${paymentRows}</tbody></table></div>`;
+    document.getElementById('studentsReportDetailClean')?.classList.add('open'); document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','false');
+  }
+  function closeDetail(){document.getElementById('studentsReportDetailClean')?.classList.remove('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','true');selected=null;}
+  function reportText(){
+    const a=app(), r=studentRecord(selected); if(!selected) return '';
+    const fmtDate=v=>v||'—', fmtTime=v=>typeof a?.formatTime==='function'?a.formatTime(v):v||'—';
+    const lines=[`تقرير الطالب — ${nameOf(selected)}`,'',`المرحلة: ${selected.stage||'—'}`,`الصف: ${selected.grade||'—'}`,`المادة: ${selected.subjectType||selected.subject||'—'}`,`نوع الدراسة: ${selected.courseType||'—'}`,`الجوال: ${selected.phone||selected.mobile||'—'}`,'',`إجمالي الحصص: ${r.lessons.length}`,`الحصص المكتملة: ${r.completed}`,`إجمالي المستحق: ${money(r.expected)}`,`إجمالي المدفوع: ${money(r.paid)}`,`المتبقي: ${money(r.debt)}`,'','سجل الحصص:'];
+    r.lessons.forEach((x,i)=>lines.push(`${i+1}. ${fmtDate(x.lesson?.date)} — ${fmtTime(x.lesson?.time)} — ${x.lesson?.status||'انتظار'}${x.archived?' — أرشيف':''}`));
+    lines.push('','سجل المدفوعات:'); r.payments.forEach((p,i)=>lines.push(`${i+1}. ${fmtDate(p.date)} — ${money(p.amount)} — ${p.notes||'تسديد دفعة'}`));
+    return lines.join('\n');
+  }
+  async function share(){
+    if(!selected){alert('اختر الطالب أولاً.');return;}
+    const text=reportText();
+    try{
+      if(navigator.share){ await navigator.share({title:`تقرير ${nameOf(selected)}`,text}); return; }
+    }catch(e){ if(e?.name==='AbortError') return; }
+    try{ await navigator.clipboard.writeText(text); alert('تم نسخ التقرير. يمكنك لصقه ومشاركته الآن.'); }
+    catch(e){ window.prompt('انسخ التقرير من هنا:',text); }
+  }
+  function printReport(){
+    if(!selected)return;
+    const content=document.getElementById('srBody')?.innerHTML||'';
+    const win=window.open('','_blank');
+    if(!win){alert('تعذر فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.');return;}
+    win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الطالب - ${esc(nameOf(selected))}</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial,Tahoma,sans-serif;color:#0f172a;font-size:12px;line-height:1.7}h1{font-size:20px;margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #dbe3ec;padding:7px;text-align:right}th{background:#f1f5f9}.sr2-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.sr2-box{border:1px solid #dbe3ec;border-radius:8px;padding:8px}.sr2-box small{display:block;color:#64748b;font-size:9px}.sr2-box strong{font-size:11px}.sr2-section{margin-top:12px}.sr2-section-title{font-weight:bold;margin-bottom:5px}.sr2-status{font-weight:bold}</style></head><body><h1>تقرير الطالب: ${esc(nameOf(selected))}</h1>${content}<script>window.onload=()=>setTimeout(()=>window.print(),250);${String.fromCharCode(60)}/script></body></html>`); win.document.close();
+  }
+  window.openStudentReport=openDetail;
+  window.openStudentsReportsPage=openPage;
+  window.closeStudentsReportsPage=closePage;
+  window.closeStudentsReportDetail=closeDetail;
+  window.shareStudentsReportNative=share;
+  window.printStudentsReport=printReport;
+  document.addEventListener('DOMContentLoaded',()=>{document.getElementById('srSearch')?.addEventListener('input',render);document.getElementById('studentsReportDetailClean')?.addEventListener('click',e=>{if(e.target.id==='studentsReportDetailClean')closeDetail();});});
 })();
 </script>
 
@@ -8582,5 +7529,5 @@ window.addEventListener('orientationchange', () => {
 }
 </style>
 
-</body>
+\n<style id="nav-bars-slightly-larger">\n/* تكبير بسيط للشريط العلوي والسفلي والأيقونات والخطوط */\n.global-clock-panel{min-height:78px!important;padding:10px 12px!important;gap:11px!important;}\n.global-clock-panel .global-clock-face{width:58px!important;height:58px!important;flex-basis:58px!important;}\n.global-clock-time{font-size:18px!important;}\n.global-clock-day{font-size:12px!important;}\n.global-clock-date{font-size:10px!important;}\n.bottom-app-nav{padding-top:10px!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;}\n.bottom-nav-item{min-width:82px!important;padding:6px 11px 5px!important;}\n.bottom-nav-icon{width:46px!important;height:37px!important;font-size:20px!important;}\n.bottom-nav-label{font-size:12px!important;}\n@media (max-width:767px){\n  .global-clock-panel{min-height:56px!important;height:56px!important;padding:7px 11px!important;}\n  .global-clock-panel .global-clock-face{width:46px!important;height:46px!important;flex-basis:46px!important;}\n  .global-clock-time{font-size:15px!important;}\n  .global-clock-day{font-size:10px!important;}\n  .global-clock-date{font-size:9px!important;}\n  .bottom-app-nav{padding-top:9px!important;padding-bottom:calc(9px + env(safe-area-inset-bottom))!important;}\n  .bottom-nav-item{min-width:76px!important;padding:6px 9px 5px!important;}\n  .bottom-nav-icon{width:44px!important;height:36px!important;font-size:19px!important;}\n  .bottom-nav-label{font-size:11.5px!important;}\n}\n</style>\n\n<style id="students-lesson-archive-only-page">\n/* أرشيف الحصص: مدخل داخل صفحة الطلاب فقط */\n.students-lesson-archive-entry{display:block;}\n.students-lesson-archive-card{\n  width:100%; display:flex; align-items:center; gap:13px; text-align:right;\n  padding:15px 16px; border:1px solid #e2e8f0; border-radius:20px;\n  background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.05);\n  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:pointer;\n}\n.students-lesson-archive-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.08);border-color:#bbf7d0;}\n.students-lesson-archive-icon{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dcfce7,#ccfbf1);color:#15803d;font-size:20px;}\n.students-lesson-archive-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;}\n.students-lesson-archive-text strong{font-size:16px;font-weight:900;color:#0f172a;}\n.students-lesson-archive-text small{font-size:11px;color:#64748b;font-weight:600;}\n.students-lesson-archive-count{padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;white-space:nowrap;}\n.students-lesson-archive-arrow{color:#94a3b8;font-size:13px;}\n\n/* نافذة الأرشيف */\n.lesson-archive-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;}\n.lesson-archive-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}\n.lesson-archive-dialog{position:relative;width:min(760px,96vw);max-height:min(86vh,760px);overflow:hidden;background:#f8fafc;border-radius:26px;box-shadow:0 25px 70px rgba(15,23,42,.28);border:1px solid rgba(255,255,255,.7);}\n.lesson-archive-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#fff;border-bottom:1px solid #e2e8f0;}\n.lesson-archive-dialog-icon{width:45px;height:45px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#047857;font-size:19px;flex:0 0 45px;}\n.lesson-archive-dialog-head h3{margin:0;font-size:18px;font-weight:900;color:#0f172a;}\n.lesson-archive-dialog-head p{margin:3px 0 0;font-size:11px;color:#64748b;font-weight:700;}\n.lesson-archive-close{width:40px;height:40px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex:0 0 40px;}\n.lesson-archive-close:hover{background:#e2e8f0;color:#0f172a;}\n.lesson-archive-list{padding:12px;overflow-y:auto;max-height:calc(min(86vh,760px) - 78px);display:flex;flex-direction:column;gap:8px;}\n.lesson-archive-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 13px;}\n.lesson-archive-main{min-width:0;flex:1;}\n.lesson-archive-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}\n.lesson-archive-title-row strong{font-size:14px;font-weight:900;color:#0f172a;}\n.lesson-archive-title-row span{font-size:9px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:4px 7px;}\n.lesson-archive-title-row span i{margin-left:3px;}\n.lesson-archive-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#64748b;font-size:10px;}\n.lesson-archive-meta span{display:inline-flex;align-items:center;gap:4px;}\n.lesson-archive-meta i{color:#94a3b8;}\n.lesson-archive-meta b{font-weight:700;}\n.lesson-archive-actions{display:flex;gap:5px;flex:0 0 auto;}\n.lesson-archive-actions button{width:35px;height:35px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.lesson-archive-actions button:hover{color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}\n.lesson-archive-actions button.danger:hover{color:#e11d48;background:#fff1f2;border-color:#fecdd3;}\n.lesson-archive-empty{padding:45px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;}\n.lesson-archive-empty i{font-size:34px;color:#cbd5e1;margin-bottom:3px;}\n.lesson-archive-empty strong{font-size:14px;color:#64748b;}\n.lesson-archive-empty span{font-size:11px;}\n@media (max-width:600px){\n  .students-lesson-archive-card{padding:13px 12px;gap:10px;}\n  .students-lesson-archive-icon{width:42px;height:42px;flex-basis:42px;border-radius:13px;font-size:18px;}\n  .students-lesson-archive-text strong{font-size:14px;}\n  .students-lesson-archive-text small{font-size:9px;}\n  .students-lesson-archive-count{font-size:9px;padding:6px 8px;}\n  .lesson-archive-modal{padding:8px;}\n  .lesson-archive-dialog{width:100%;max-height:92vh;border-radius:22px;}\n  .lesson-archive-list{max-height:calc(92vh - 78px);padding:8px;}\n  .lesson-archive-row{align-items:flex-start;padding:11px;}\n  .lesson-archive-meta{gap:7px;}\n}\n</style>\n</body>
 </html>
