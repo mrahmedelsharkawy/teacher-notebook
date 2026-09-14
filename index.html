@@ -3346,7 +3346,7 @@ main textarea::placeholder{
                                 <button type="button" @click="changeMonth(-1)" class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition" title="الشهر السابق" aria-label="الشهر السابق">
                                     <i class="fa-solid fa-chevron-left text-[10px]"></i>
                                 </button>
-                                <span class="text-[10px] font-bold bg-slate-50 text-slate-500 px-2.5 py-1.5 rounded-full whitespace-nowrap"></span>
+                                <button type="button" @click="goToCurrentMonth()" class="h-7 px-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition text-[10px] font-bold whitespace-nowrap" title="العودة إلى الشهر الحالي">اليوم</button>
                                 <button type="button" @click="changeMonth(1)" class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:bg-brand-50 hover:text-brand-600 transition" title="الشهر التالي" aria-label="الشهر التالي">
                                     <i class="fa-solid fa-chevron-right text-[10px]"></i>
                                 </button>
@@ -5350,7 +5350,7 @@ function teacherApp() {
                     String(date.getMonth() + 1).padStart(2, '0') + '-' +
                     String(date.getDate()).padStart(2, '0');
 
-                const lessons = this.getAllLessons()
+                const lessons = this.getCalendarLessons()
                     .filter(item => item.lesson.date === iso)
                     .sort((a, b) => a.lesson.time.localeCompare(b.lesson.time));
 
@@ -5408,34 +5408,117 @@ function teacherApp() {
             this.monthOffset += Number(direction) || 0;
         },
 
+        goToCurrentMonth() {
+            this.monthOffset = 0;
+        },
+
+        /*
+         * مصدر موحد لتقويم الشهر/الأسبوع.
+         *
+         * مهم: لا نعتمد على lessonArchive وحده، لأن الأرشيف عبارة عن
+         * فهرس للحصص المكتملة. مصدر الحقيقة للحصة هو سجل الطالب نفسه.
+         * وفي الوقت نفسه نضيف الطلاب المؤرشفين وفهرس الأرشيف حتى لا تضيع
+         * أي حصة عند نقل الطالب إلى أرشيف الطلاب أو عند وجود بيانات قديمة.
+         * يتم إزالة التكرار باستخدام studentId + lesson.id.
+         */
+        getCalendarLessons() {
+            const sources = [];
+
+            const addStudentLessons = (student) => {
+                if (!student || !Array.isArray(student.lessons)) return;
+                student.lessons.forEach(lesson => {
+                    if (!lesson || !lesson.date) return;
+                    sources.push({
+                        studentId: student.id,
+                        studentName: student.name || 'بدون اسم',
+                        subjectType: student.subjectType || '',
+                        studentArchived: false,
+                        lesson
+                    });
+                });
+            };
+
+            // 1) الطلاب الحاليون — يشمل الحصص القادمة والسابقة والمكتملة.
+            (this.students || []).forEach(addStudentLessons);
+
+            // 2) الطلاب الموجودون في أرشيف الطلاب — لا نحذف تاريخهم من التقويم.
+            (this.archivedStudents || []).forEach(record => {
+                const student = record?.student;
+                if (!student) return;
+                if (!Array.isArray(student.lessons)) return;
+                student.lessons.forEach(lesson => {
+                    if (!lesson || !lesson.date) return;
+                    sources.push({
+                        studentId: student.id,
+                        studentName: student.name || 'بدون اسم',
+                        subjectType: student.subjectType || '',
+                        studentArchived: true,
+                        lesson
+                    });
+                });
+            });
+
+            // 3) فهرس أرشيف الحصص — يُستخدم لاستعادة أي سجل قديم غير موجود
+            // في student.lessons، مع منع التكرار إذا كانت الحصة موجودة بالفعل.
+            (this.lessonArchive || []).forEach(record => {
+                const lesson = record?.lesson;
+                if (!lesson?.date) return;
+                sources.push({
+                    studentId: record.studentId,
+                    studentName: record.studentName || record.studentSnapshot?.name || 'بدون اسم',
+                    subjectType: record.studentSnapshot?.subjectType || '',
+                    studentArchived: false,
+                    lesson: { ...lesson, status: 'تم', archived: true }
+                });
+            });
+
+            const unique = new Map();
+            sources.forEach(item => {
+                const lessonId = item.lesson?.id != null
+                    ? String(item.lesson.id)
+                    : `${item.lesson.date}::${item.lesson.time || '00:00'}::${item.studentName}`;
+                const key = `${String(item.studentId)}::${lessonId}`;
+
+                // أولوية المصدر: سجل الطالب > أرشيف الحصص.
+                // لذلك لا تظهر الحصة المكتملة مرتين.
+                if (!unique.has(key) || unique.get(key).lesson?.archived !== true) {
+                    unique.set(key, item);
+                }
+            });
+
+            return [...unique.values()].sort((a, b) => {
+                const ad = `${a.lesson.date}T${a.lesson.time || '00:00'}`;
+                const bd = `${b.lesson.date}T${b.lesson.time || '00:00'}`;
+                return ad.localeCompare(bd);
+            });
+        },
+
         getCurrentMonthCalendar() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            const viewDate = new Date(today.getFullYear(), today.getMonth() + this.monthOffset, 1);
+            // monthOffset يمكن أن يكون موجباً أو سالباً بلا حد، وبالتالي
+            // يستطيع المستخدم الرجوع لأي شهر سابق أو التقدم لأي شهر قادم.
+            const viewDate = new Date(
+                today.getFullYear(),
+                today.getMonth() + Number(this.monthOffset || 0),
+                1
+            );
             const year = viewDate.getFullYear();
             const month = viewDate.getMonth();
 
             const first = new Date(year, month, 1);
             const last = new Date(year, month + 1, 0);
 
+            // يبدأ الأسبوع من السبت كما هو معتمد في واجهة التطبيق.
             const leading = (first.getDay() + 1) % 7;
             const totalCells = Math.ceil((leading + last.getDate()) / 7) * 7;
 
-            const calendarLessons = [
-                ...this.getAllLessons(),
-                ...(this.lessonArchive || []).map(record => ({
-                    studentId: record.studentId,
-                    studentName: record.studentName || record.studentSnapshot?.name || 'بدون اسم',
-                    subjectType: record.studentSnapshot?.subjectType || '',
-                    lesson: { ...(record.lesson || {}), status: 'تم', archived: true }
-                }))
-            ];
-
-            const lessonsByDate = calendarLessons.reduce((map, item) => {
-                if (!item.lesson?.date) return map;
-                if (!map[item.lesson.date]) map[item.lesson.date] = [];
-                map[item.lesson.date].push(item);
+            const lessonsByDate = this.getCalendarLessons().reduce((map, item) => {
+                const date = item.lesson?.date;
+                if (!date) return map;
+                if (!map[date]) map[date] = [];
+                map[date].push(item);
                 return map;
             }, {});
 
@@ -5448,15 +5531,19 @@ function teacherApp() {
                     String(cellDate.getMonth() + 1).padStart(2, '0') + '-' +
                     String(cellDate.getDate()).padStart(2, '0');
 
+                const lessons = outside ? [] : (lessonsByDate[iso] || []).slice().sort((a, b) => {
+                    const timeA = String(a.lesson?.time || '00:00');
+                    const timeB = String(b.lesson?.time || '00:00');
+                    return timeA.localeCompare(timeB) || String(a.studentName || '').localeCompare(String(b.studentName || ''), 'ar');
+                });
+
                 return {
                     key: iso + '-' + index,
                     date: iso,
                     dayNumber: cellDate.getDate(),
                     outside,
                     isToday: !outside && iso === this.getTodayISO(),
-                    lessons: outside ? [] : (lessonsByDate[iso] || []).sort(
-                        (a, b) => a.lesson.time.localeCompare(b.lesson.time)
-                    )
+                    lessons
                 };
             });
         },
@@ -5862,7 +5949,7 @@ function teacherApp() {
             const year = viewDate.getFullYear();
             const month = viewDate.getMonth();
 
-            return this.getAllLessons()
+            return this.getCalendarLessons()
                 .filter(item => {
                     if (!item?.lesson?.date) return false;
                     const d = new Date(item.lesson.date + 'T00:00:00');
@@ -7526,8 +7613,14 @@ window.addEventListener('orientationchange', () => {
             <div class="mt-4 space-y-2 max-h-[55vh] overflow-y-auto">
                 <template x-for="item in calendarDayLessons" :key="'popup-'+item.studentId+'-'+item.lesson.id">
                     <div class="calendar-day-lesson">
-                        <div class="popup-student-name" x-text="item.studentName"></div>
-                        <div class="popup-lesson-time" x-text="formatTime(item.lesson.time)"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="popup-student-name" x-text="item.studentName"></div>
+                            <div class="popup-lesson-time" x-text="formatTime(item.lesson.time)"></div>
+                        </div>
+                        <span class="text-[9px] font-extrabold px-2 py-1 rounded-full"
+                              :class="item.lesson.status === 'تم' ? 'bg-emerald-50 text-emerald-700' : (item.lesson.status === 'لم تتم' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700')"
+                              x-text="item.lesson.status === 'تم' ? 'مكتملة' : (item.lesson.status === 'لم تتم' ? 'لم تتم' : 'انتظار')"></span>
+                        <span x-show="item.lesson.archived" class="text-[8px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-600">أرشيف</span>
                         <button
                             type="button"
                             class="popup-delete"
