@@ -358,15 +358,17 @@
 .weekly-lesson-time { font-size:11px; font-weight:800; color:#2563eb; }
 .weekly-lesson-name { font-size:12px; font-weight:800; color:#0f172a; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .weekly-lesson-meta { font-size:9px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.month-calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:1px solid #e2e8f0; border-radius:18px; overflow:hidden; background:#fff; }
-.month-calendar-head { padding:10px 4px; text-align:center; font-size:11px; font-weight:800; color:#475569; background:#f8fafc; border-left:1px solid #e2e8f0; }
-.month-calendar-cell { min-height:92px; padding:7px; border-left:1px solid #e2e8f0; border-top:1px solid #e2e8f0; background:#fff; }
-.month-calendar-cell.outside { background:#f8fafc; }
-.month-calendar-cell.today { box-shadow:inset 0 0 0 2px #2563eb; position:relative; z-index:1; }
-.month-day-number { width:25px; height:25px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#475569; margin-bottom:4px; }
-.month-calendar-cell.has-lessons .month-day-number { background:#dbeafe; color:#1d4ed8; }
-.month-calendar-cell.today .month-day-number { background:#2563eb; color:#fff; }
-.month-student { display:block; font-size:8px; line-height:1.35; font-weight:700; margin-top:3px; padding:2px 4px; border-radius:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.month-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;background:transparent}
+.month-calendar-head{padding:8px 3px;text-align:center;font-size:10px;font-weight:900;color:#0f766e;background:#ecfeff;border:1px solid #ccfbf1;border-radius:11px}
+.month-calendar-cell{min-height:96px;padding:7px;border:1px solid #e2e8f0;border-radius:15px;background:#fff;box-shadow:0 3px 10px rgba(15,23,42,.035);transition:.15s}
+.month-calendar-cell:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(15,23,42,.07);border-color:#99f6e4}
+.month-calendar-cell.outside{background:#f8fafc;opacity:.55}
+.month-calendar-cell.today{box-shadow:inset 0 0 0 2px #0f766e,0 5px 16px rgba(15,118,110,.10);border-color:#5eead4;position:relative;z-index:1}
+.month-day-number{width:27px;height:27px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#334155;margin-bottom:5px;background:#f1f5f9}
+.month-calendar-cell.has-lessons .month-day-number{background:#ccfbf1;color:#0f766e}
+.month-calendar-cell.today .month-day-number{background:#0f766e;color:#fff}
+.month-student{display:block;font-size:8px;line-height:1.35;font-weight:800;margin-top:3px;padding:3px 5px;border-radius:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(255,255,255,.7)}
+@media(max-width:640px){.month-calendar{gap:4px}.month-calendar-head{padding:7px 1px;font-size:9px;border-radius:9px}.month-calendar-cell{min-height:76px;padding:5px;border-radius:12px}.month-day-number{width:23px;height:23px;border-radius:8px;font-size:10px;margin-bottom:3px}.month-student{font-size:7px;padding:2px 3px;margin-top:2px}}
 @media (max-width: 900px) {
   .weekly-days { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }
@@ -1520,7 +1522,15 @@
     color:#334155!important;
 }
 
-</style>
+        /* Lesson ledger status colors */
+        .ledger-lesson-overdue { background: #fef2f2; border-color: #fecaca; }
+        .ledger-lesson-overdue .font-bold { color: #b91c1c; }
+        .ledger-lesson-waiting-past { background: #fffbeb; border-color: #fde68a; }
+        .ledger-lesson-waiting-past .font-bold { color: #a16207; }
+        .ledger-lesson-future { background: #eff6ff; border-color: #bfdbfe; }
+        .ledger-lesson-future .font-bold { color: #1d4ed8; }
+
+    </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <link rel="manifest" href="./manifest.json">
@@ -3199,6 +3209,10 @@ main textarea::placeholder{
             <div class="global-clock-day" x-text="todayName"></div>
             <div class="global-clock-date" x-text="todayDate"></div>
         </div>
+        <button type="button" class="app-notification-button" @click="showNotificationModal = true; notificationOpen = false" :aria-expanded="notificationOpen.toString()" aria-label="الإشعارات" title="الإشعارات">
+            <i class="fa-solid fa-bell"></i><span x-show="notifications.length" x-text="notifications.length" class="app-notification-badge"></span>
+        </button>
+        
     </div>
 
     <!-- =====================================================
@@ -3245,6 +3259,10 @@ main textarea::placeholder{
 
                 </div>
 
+                <div class="app-data-refresh-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-white text-brand-600 border border-brand-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-arrows-rotate"></i></div><div class="min-w-0"><h3 class="font-extrabold text-slate-800 text-sm">تحديث بيانات التطبيق</h3><p class="text-[11px] text-slate-500 mt-1">إعادة قراءة البيانات المحفوظة وتحديث الواجهة دون حذف أي سجل.</p></div></div>
+                    <button type="button" @click="refreshAppData()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-extrabold hover:bg-brand-700 transition"><i class="fa-solid fa-rotate ml-1"></i> تحديث الآن</button>
+                </div>
 
                 <!-- =================================================
                      DASHBOARD QUICK ACTIONS
@@ -3701,7 +3719,7 @@ main textarea::placeholder{
                     </button>
                     <div x-show="lessonsLedgerOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100">
                         <template x-for="item in allLessons()" :key="item.studentId + '-' + item.lesson.id">
-                            <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div class="p-4 rounded-xl border flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-colors" :class="lessonLedgerClass(item.lesson)">
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-bold text-slate-800" x-text="item.studentName"></span>
@@ -3727,7 +3745,7 @@ main textarea::placeholder{
                 </div>
 
             
-<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"><div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> الأرشيف</h3><p class="text-xs text-slate-400 mt-1">الطلاب المؤرشفون مع بياناتهم وحصصهم ودفعاتهم وملخصهم المالي.</p></div><span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="archivedStudents.length + ' طالب'"></span></div><div class="p-4 space-y-3"><template x-for="record in archivedStudents" :key="record.id"><div class="p-4 rounded-xl border border-amber-100 bg-amber-50/30"><div class="flex items-start justify-between gap-3"><div class="min-w-0 w-full"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800" x-text="record.student.name || 'بدون اسم'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.stage || '—'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.subjectType || '—'"></span></div><div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-slate-600"><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">أول حصة</span><span class="font-bold" x-text="record.stats.firstLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">آخر حصة</span><span class="font-bold" x-text="record.stats.lastLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">عدد الحصص</span><span class="font-bold" x-text="record.stats.lessonCount"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">المدفوع</span><span class="font-bold text-emerald-700" x-text="record.stats.paid + ' ر.س'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">الدين</span><span class="font-bold" :class="record.stats.debt > 0 ? 'text-rose-600' : 'text-emerald-700'" x-text="record.stats.debt > 0 ? record.stats.debt + ' ر.س' : 'لا يوجد'"></span></div></div></div><button @click="restoreArchivedStudent(record.id)" class="shrink-0 text-slate-400 hover:text-brand-600 p-1" title="إعادة إلى سجل الطلاب"><i class="fa-solid fa-box-open"></i></button></div></div></template><div x-show="archivedStudents.length === 0" class="py-8 text-center text-slate-400"><i class="fa-solid fa-box-archive text-3xl text-slate-300 mb-3"></i><p class="text-sm">لا يوجد طلاب في الأرشيف حتى الآن.</p></div></div></div>
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"><button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="studentArchiveOpen = !studentArchiveOpen" :aria-expanded="studentArchiveOpen.toString()"><div class="min-w-0"><h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-600"></i> الأرشيف</h3><p class="text-xs text-slate-400 mt-1">الطلاب المؤرشفون مع بياناتهم وحصصهم ودفعاتهم وملخصهم المالي.</p></div><div class="flex items-center gap-2 shrink-0"><span class="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold" x-text="archivedStudents.length + ' طالب'"></span><i class="fa-solid fa-chevron-down text-slate-400 transition-transform" :class="studentArchiveOpen ? 'rotate-180' : ''"></i></div></button><div x-show="studentArchiveOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100"><template x-for="record in archivedStudents" :key="record.id"><div class="p-4 rounded-xl border border-amber-100 bg-amber-50/30"><div class="flex items-start justify-between gap-3"><div class="min-w-0 w-full"><div class="flex items-center gap-2 flex-wrap"><span class="font-bold text-slate-800" x-text="record.student.name || 'بدون اسم'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.stage || '—'"></span><span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500" x-text="record.student.subjectType || '—'"></span></div><div class="mt-2 grid grid-cols-2 md:grid-cols-5 gap-2 text-[11px] text-slate-600"><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">أول حصة</span><span class="font-bold" x-text="record.stats.firstLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">آخر حصة</span><span class="font-bold" x-text="record.stats.lastLessonAt || '—'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">عدد الحصص</span><span class="font-bold" x-text="record.stats.lessonCount"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">المدفوع</span><span class="font-bold text-emerald-700" x-text="record.stats.paid + ' ر.س'"></span></div><div class="bg-white rounded-lg border border-slate-100 p-2"><span class="block text-slate-400">الدين</span><span class="font-bold" :class="record.stats.debt > 0 ? 'text-rose-600' : 'text-emerald-700'" x-text="record.stats.debt > 0 ? record.stats.debt + ' ر.س' : 'لا يوجد'"></span></div></div></div><button @click="restoreArchivedStudent(record.id)" class="shrink-0 text-slate-400 hover:text-brand-600 p-1" title="إعادة إلى سجل الطلاب"><i class="fa-solid fa-box-open"></i></button></div></div></template><div x-show="archivedStudents.length === 0" class="py-8 text-center text-slate-400"><i class="fa-solid fa-box-archive text-3xl text-slate-300 mb-3"></i><p class="text-sm">لا يوجد طلاب في الأرشيف حتى الآن.</p></div></div></div>
 <div class="students-lesson-archive-entry mt-5">
   <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
     <button type="button" class="w-full p-5 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition" @click="lessonArchiveOpen = !lessonArchiveOpen" :aria-expanded="lessonArchiveOpen.toString()">
@@ -4044,7 +4062,9 @@ main textarea::placeholder{
                                             x-for="lesson in monthGroup.lessons"
                                             :key="lesson.id"
                                         >
-                                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl"
+                                                 :data-notification-lesson-id="lesson.id"
+                                                 :class="String(notificationLessonFocusId) === String(lesson.id) ? 'notification-lesson-focus' : ''">
 
                                     <div class="flex items-center justify-between gap-3">
 
@@ -4989,10 +5009,99 @@ main textarea::placeholder{
                     </div>
                 </div>
 
-            </section>
+                            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 md:p-6">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-11 h-11 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+                            <div><h3 class="font-bold text-lg text-slate-800">البروفايلات والمستخدمون</h3><p class="text-sm text-slate-500 mt-1">إضافة مستخدم جديد وحفظ بيانات البروفايلات للرجوع إليها.</p></div>
+                        </div>
+                        <button type="button" @click="openNewUserProfile()" class="shrink-0 px-3 py-2 rounded-xl bg-brand-600 text-white text-xs font-extrabold"><i class="fa-solid fa-user-plus ml-1"></i> مستخدم جديد</button>
+                    </div>
+                    <div class="mt-4 p-4 rounded-2xl border border-brand-100 bg-brand-50/50">
+                        <label class="block text-xs font-extrabold text-slate-700 mb-2">البروفايل المستخدم حالياً</label>
+                        <select x-model="currentProfileId" @change="useUserProfileById(currentProfileId)" class="w-full p-3 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:border-brand-500">
+                            <option value="" disabled>اختر بروفايل...</option>
+                            <template x-for="profile in userProfiles" :key="'select-'+profile.id">
+                                <option :value="profile.id" x-text="profile.name || 'بدون اسم'"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="user-profile-grid mt-4">
+                        <template x-for="profile in userProfiles" :key="profile.id">
+                            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+                                <button type="button" @click="useUserProfile(profile)" class="min-w-0 text-right" :class="String(currentProfileId) === String(profile.id) ? 'ring-2 ring-brand-200 rounded-xl' : ''">
+                                    <div class="font-extrabold text-slate-800 truncate" x-text="profile.name || 'بدون اسم'"></div>
+                                    <div class="text-[10px] text-slate-500 mt-1 truncate" x-text="profile.specialty || 'بدون تخصص'"></div>
+                                </button>
+                                <button type="button" @click="editUserProfile(profile)" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="تعديل بيانات المستخدم"><i class="fa-solid fa-pen"></i></button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+</section>
 
         </div>
-    </main>
+        <div x-show="showUserProfileModal" x-cloak class="fixed inset-0 z-[90] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6" @click.outside="showUserProfileModal=false">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div><h3 class="font-extrabold text-lg text-slate-800" x-text="isEditingUserProfile ? 'تعديل المستخدم' : 'مستخدم جديد'"></h3><p class="text-xs text-slate-400 mt-1">أدخل البيانات التي تريد حفظها لهذا البروفايل.</p></div>
+                <button type="button" @click="showUserProfileModal=false" class="w-9 h-9 rounded-xl bg-slate-50 text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form @submit.prevent="saveUserProfile()" class="mt-5 space-y-3 text-xs">
+                <input required type="text" x-model="userProfileForm.name" placeholder="اسم المستخدم / المعلم" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" x-model="userProfileForm.specialty" placeholder="التخصص" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input type="text" x-model="userProfileForm.city" placeholder="المدينة" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input type="tel" x-model="userProfileForm.phone" placeholder="رقم الهاتف" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input type="email" x-model="userProfileForm.email" placeholder="البريد الإلكتروني" class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                </div>
+                <input type="number" x-model="userProfileForm.experience" placeholder="سنوات الخبرة" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <textarea x-model="userProfileForm.bio" rows="3" placeholder="نبذة" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" @click="showUserProfileModal=false" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 text-white font-bold"><i class="fa-solid fa-user-plus ml-1"></i> حفظ المستخدم</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <div x-show="showNotificationModal" x-cloak class="fixed inset-0 z-[95] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" @keydown.escape.window="showNotificationModal=false">
+            <div class="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl" @click.outside="showNotificationModal=false">
+                <div class="p-5 flex items-center justify-between border-b border-slate-100">
+                    <div>
+                        <h3 class="font-extrabold text-lg text-slate-800">الإشعارات</h3>
+                        <p class="text-xs text-slate-400 mt-1">الحصص التي تجاوز وقتها دون تحديد حالتها.</p>
+                    </div>
+                    <button type="button" @click="showNotificationModal=false" class="w-10 h-10 rounded-xl bg-slate-50 text-slate-500"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="p-4 space-y-3">
+                    <template x-for="notice in notifications" :key="notice.id">
+                        <div class="notification-swipe-item"
+                             @touchstart.passive="startNotificationSwipe($event, notice)"
+                             @touchend="endNotificationSwipe($event, notice)">
+                            <div class="notification-card p-4 rounded-2xl border border-amber-200 bg-amber-50"
+                                 @click="openNotificationLesson(notice)">
+                                <div class="flex items-center gap-2 text-amber-800 font-extrabold text-sm">
+                                    <i class="fa-solid fa-bell"></i><span x-text="notice.title"></span>
+                                </div>
+                                <div class="mt-3 text-sm leading-7 text-slate-700" x-text="notice.message"></div>
+                                <div class="mt-2 text-xs text-slate-500">اضغط لفتح الحصة وتحديد حالتها — اسحب لليسار لحذف التنبيه.</div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="notifications.length===0" class="py-10 text-center text-slate-400">
+                        <i class="fa-regular fa-bell-slash text-3xl mb-3"></i>
+                        <p class="text-sm">لا توجد إشعارات حالياً.</p>
+                    </div>
+                </div>
+                <div class="px-4 pb-4 flex justify-end">
+                    <button type="button" @click="notifications=[];persistNotificationState()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm">مسح الإشعارات</button>
+                </div>
+            </div>
+        </div>
+
+</main>
     <!-- =====================================================
          MODERN BOTTOM APP NAVIGATION
     ====================================================== -->
@@ -5032,6 +5141,7 @@ function teacherApp() {
         navPulse: null,
         lessonsLedgerOpen: false,
         financeLedgerOpen: false,
+        studentArchiveOpen: false,
 
         googleClientId: '97654130737-rnhb42jubfoodeakgmep49c1cjrlimq2.apps.googleusercontent.com',
         googleAccessToken: null,
@@ -5128,6 +5238,19 @@ function teacherApp() {
 
         backupLogs: [],
 
+        notifications: [],
+        notifiedLessonIds: [],
+        notificationOpen: false,
+        userProfiles: [],
+        currentProfileId: '',
+        showNotificationModal: false,
+        notificationLessonFocusId: '',
+        notificationSwipeStartX: 0,
+        notificationSwipeStartY: 0,
+        notificationSwipeNoticeId: '',
+        showUserProfileModal: false,
+        isEditingUserProfile: false,
+        userProfileForm: { id:null, name:'', specialty:'', phone:'', email:'', city:'', experience:'', bio:'', photo:'' },
 
         /* =========================
            STUDENTS
@@ -5176,17 +5299,21 @@ function teacherApp() {
 
         init() {
 
-            this.loadAppData();
             this.loadTeacher();
+            this.loadUserProfiles();
+            this.loadAppData();
             this.teacherForm = JSON.parse(
                 JSON.stringify(this.teacher)
             );
 
             this.updateClock();
+            this.loadNotificationState();
+            this.checkOverdueLessonNotifications();
 
             setInterval(() => {
                 this.updateClock();
                 this.timeTick++;
+                this.checkOverdueLessonNotifications();
             }, 1000);
 
             this.$nextTick(() => {
@@ -5720,18 +5847,15 @@ function teacherApp() {
         allLessons() {
 
             /*
-             * السجل الخارجي لصفحة الطلاب = الحصص المستقبلية غير المكتملة فقط.
-             * الحصة المكتملة تبقى محفوظة داخل سجل الطالب، لكنها لا تظهر هنا؛
-             * نسختها المؤرشفة تظهر في أرشيف الحصص.
+             * سجل الحصص في صفحة الطلاب = كل الحصص غير المكتملة.
+             * الحصص التي لم تتم أو ما زالت في الانتظار تبقى ظاهرة،
+             * ويتغير لونها تلقائياً بحسب حالتها ومرور وقتها.
              */
-            const now = new Date();
             const lessons = [];
 
             this.students.forEach(student => {
                 (student.lessons || []).forEach(lesson => {
                     if (!lesson || lesson.status === 'تم') return;
-                    const lessonDate = new Date(`${lesson.date || '1970-01-01'}T${lesson.time || '00:00'}:00`);
-                    if (!(lessonDate > now)) return;
                     lessons.push({
                         studentId: student.id,
                         studentName: student.name,
@@ -5750,7 +5874,15 @@ function teacherApp() {
         },
 
 
-        getLessonDuration(lesson) {
+        lessonLedgerClass(lesson) {
+            if (!lesson) return 'ledger-lesson-future';
+            if (lesson.status === 'لم تتم') return 'ledger-lesson-overdue';
+            const start = new Date(`${lesson.date || '1970-01-01'}T${lesson.time || '00:00'}:00`);
+            if (!Number.isNaN(start.getTime()) && start <= new Date()) return 'ledger-lesson-waiting-past';
+            return 'ledger-lesson-future';
+        },
+
+                getLessonDuration(lesson) {
             const duration = Number(lesson?.duration);
             return Number.isFinite(duration) && duration > 0 ? duration : 1;
         },
@@ -5804,30 +5936,20 @@ function teacherApp() {
         ========================== */
 
         getTotalIncome() {
-
-            return this.students.reduce(
-                (total, student) =>
-                    total + this.calculateStudentPaid(student),
-                0
-            );
+            const allStudents = [...(this.students || []), ...((this.archivedStudents || []).map(r => r?.student).filter(Boolean))];
+            return allStudents.reduce((total, student) => total + this.calculateStudentPaid(student), 0);
         },
 
 
         getExpectedIncome() {
-            return this.students.reduce(
-                (total, student) => total + this.calculateStudentExpected(student),
-                0
-            );
+            const allStudents = [...(this.students || []), ...((this.archivedStudents || []).map(r => r?.student).filter(Boolean))];
+            return allStudents.reduce((total, student) => total + this.calculateStudentExpected(student), 0);
         },
 
 
         getTotalDebts() {
-
-            return this.students.reduce(
-                (total, student) =>
-                    total + this.calculateStudentDebt(student),
-                0
-            );
+            const allStudents = [...(this.students || []), ...((this.archivedStudents || []).map(r => r?.student).filter(Boolean))];
+            return allStudents.reduce((total, student) => total + this.calculateStudentDebt(student), 0);
         },
 
 
@@ -6821,6 +6943,195 @@ function teacherApp() {
 
 
         /* =========================
+           APP REFRESH / NOTIFICATIONS / USER PROFILES
+        ========================== */
+
+        refreshAppData() {
+            try {
+                const saved = localStorage.getItem(this.getProfileDataStorageKey());
+                if (saved) {
+                    this.normalizeLoadedProfileData(JSON.parse(saved));
+                    this.teacherForm = JSON.parse(JSON.stringify(this.teacher));
+                }
+                this.loadNotificationState();
+                this.checkOverdueLessonNotifications();
+                this.timeTick++;
+                alert('تم تحديث بيانات التطبيق بنجاح.');
+            } catch (error) {
+                console.error(error);
+                alert('تعذر تحديث بيانات التطبيق.');
+            }
+        },
+
+        getNotificationStorageKey(profileId = this.currentProfileId) {
+            return 'teacherNotebookNotifications-' + String(profileId || 'profile-main');
+        },
+
+        loadNotificationState() {
+            try {
+                const data = JSON.parse(localStorage.getItem(this.getNotificationStorageKey()) || '{}');
+                this.notifiedLessonIds = Array.isArray(data.notifiedLessonIds) ? data.notifiedLessonIds : [];
+                this.notifications = Array.isArray(data.notifications) ? data.notifications : [];
+            } catch (e) {
+                this.notifiedLessonIds = [];
+                this.notifications = [];
+            }
+        },
+
+        persistNotificationState() {
+            localStorage.setItem(this.getNotificationStorageKey(), JSON.stringify({
+                notifiedLessonIds: this.notifiedLessonIds || [],
+                notifications: this.notifications || []
+            }));
+        },
+
+        openNotificationLesson(notice) {
+            if (!notice) return;
+            const student = (this.students || []).find(s => String(s.id) === String(notice.studentId));
+            if (!student) return;
+            this.showNotificationModal = false;
+            this.notificationLessonFocusId = String(notice.lessonId || '');
+            this.openStudentDetails(student);
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    const safeId = String(notice.lessonId || '').replace(/"/g, '');
+                    const target = document.querySelector('[data-notification-lesson-id="' + safeId + '"]');
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => { this.notificationLessonFocusId = ''; }, 2200);
+                }, 120);
+            });
+        },
+
+        startNotificationSwipe(event, notice) {
+            const touch = event?.changedTouches?.[0];
+            if (!touch || !notice) return;
+            this.notificationSwipeStartX = touch.clientX;
+            this.notificationSwipeStartY = touch.clientY;
+            this.notificationSwipeNoticeId = String(notice.id);
+        },
+
+        endNotificationSwipe(event, notice) {
+            const touch = event?.changedTouches?.[0];
+            if (!touch || !notice || String(this.notificationSwipeNoticeId) !== String(notice.id)) return;
+            const dx = touch.clientX - this.notificationSwipeStartX;
+            const dy = touch.clientY - this.notificationSwipeStartY;
+            this.notificationSwipeStartX = 0;
+            this.notificationSwipeStartY = 0;
+            this.notificationSwipeNoticeId = '';
+            if (dx < -70 && Math.abs(dx) > Math.abs(dy)) this.deleteNotification(notice.id);
+        },
+
+        deleteNotification(id) {
+            this.notifications = (this.notifications || []).filter(n => String(n.id) !== String(id));
+            this.persistNotificationState();
+        },
+
+        checkOverdueLessonNotifications() {
+            const now = new Date();
+            const lessons = this.getAllLessons ? this.getAllLessons() : [];
+            let changed = false;
+            lessons.forEach(item => {
+                const lesson = item?.lesson;
+                if (!lesson || !lesson.id || !lesson.date || !lesson.time || lesson.status !== 'انتظار') return;
+                const key = String(item.studentId) + '-' + String(lesson.id);
+                if ((this.notifiedLessonIds || []).includes(key)) return;
+                const start = new Date(lesson.date + 'T' + lesson.time + ':00');
+                if (Number.isNaN(start.getTime()) || now < start) return;
+                this.notifications.unshift({
+                    id:'lesson-overdue-'+key, type:'lesson-overdue', lessonId:lesson.id, studentId:item.studentId,
+                    title:'حصة لم تُحدد حالتها',
+                    message:'حصة ' + (item.studentName || 'بدون اسم') + ' في ' + this.formatDate(lesson.date) + ' الساعة ' + this.formatTime(lesson.time) + ' ما زالت على حالة انتظار.'
+                });
+                this.notifiedLessonIds.push(key);
+                changed = true;
+            });
+            if (this.notifications.length > 30) this.notifications = this.notifications.slice(0,30);
+            if (this.notifiedLessonIds.length > 500) this.notifiedLessonIds = this.notifiedLessonIds.slice(-500);
+            if (changed) { this.notificationOpen = true; this.persistNotificationState(); }
+        },
+
+        loadUserProfiles() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('teacherNotebookProfiles') || '[]');
+                this.userProfiles = Array.isArray(saved) ? saved : [];
+                if (!this.userProfiles.some(p => String(p.id) === String(this.teacher?.id))) {
+                    const profile = { ...this.teacher, id: this.teacher.id || 'profile-main' };
+                    this.teacher.id = profile.id;
+                    this.userProfiles.unshift(JSON.parse(JSON.stringify(profile)));
+                    this.persistUserProfiles();
+                }
+                this.currentProfileId = localStorage.getItem('teacherNotebookCurrentProfile') || String(this.teacher?.id || this.userProfiles[0]?.id || '');
+                if (!this.userProfiles.some(p => String(p.id) === String(this.currentProfileId))) {
+                    this.currentProfileId = String(this.userProfiles[0]?.id || '');
+                }
+            } catch (e) { this.userProfiles = []; this.currentProfileId = ''; }
+        },
+
+        persistUserProfiles() {
+            localStorage.setItem('teacherNotebookProfiles', JSON.stringify(this.userProfiles || []));
+        },
+
+        openNewUserProfile() {
+            this.isEditingUserProfile = false;
+            this.userProfileForm = {id:null,name:'',specialty:'',phone:'',email:'',city:'',experience:'',bio:'',photo:''};
+            this.showUserProfileModal = true;
+        },
+
+        editUserProfile(profile) {
+            this.isEditingUserProfile = true;
+            this.userProfileForm = JSON.parse(JSON.stringify(profile || {}));
+            this.showUserProfileModal = true;
+        },
+
+        saveUserProfile() {
+            const form = JSON.parse(JSON.stringify(this.userProfileForm));
+            if (!form.name || !String(form.name).trim()) return;
+            if (this.isEditingUserProfile) {
+                const index = this.userProfiles.findIndex(p => String(p.id) === String(form.id));
+                if (index !== -1) this.userProfiles[index] = form;
+            } else {
+                form.id = 'profile-' + Date.now();
+                this.userProfiles.push(form);
+                localStorage.setItem(this.getProfileDataStorageKey(form.id), JSON.stringify({
+                    version: 4,
+                    updatedAt: new Date().toISOString(),
+                    profileId: String(form.id),
+                    teacher: form,
+                    students: [],
+                    archivedStudents: [],
+                    lessonArchive: [],
+                    backupLogs: []
+                }));
+            }
+            this.persistUserProfiles();
+            this.showUserProfileModal = false;
+        },
+
+        useUserProfileById(id) {
+            const profile = (this.userProfiles || []).find(p => String(p.id) === String(id));
+            if (profile) this.useUserProfile(profile);
+        },
+
+        useUserProfile(profile) {
+            if (!profile) return;
+            const nextId = String(profile.id || '');
+            if (!nextId || nextId === String(this.currentProfileId)) return;
+
+            // Save the complete data of the current teacher before switching.
+            if (this.currentProfileId) {
+                this.persistAppData();
+                this.persistNotificationState();
+            }
+
+            this.loadProfileData(nextId, JSON.parse(JSON.stringify(profile)));
+            localStorage.setItem('teacherNotebookCurrentProfile', nextId);
+
+            this.$nextTick(() => {
+                if (typeof this.refreshIncomeChart === 'function') this.refreshIncomeChart();
+            });
+        },
+
+        /* =========================
            LOCAL BACKUP
         ========================== */
 
@@ -6916,10 +7227,15 @@ function teacherApp() {
            LOCAL DATA + GOOGLE DRIVE
         ========================== */
 
+        getProfileDataStorageKey(profileId = this.currentProfileId) {
+            return 'teacherNotebookProfileData-' + String(profileId || 'profile-main');
+        },
+
         getAppData() {
             return {
-                version: 3,
+                version: 4,
                 updatedAt: new Date().toISOString(),
+                profileId: this.currentProfileId,
                 teacher: this.teacher,
                 students: this.students,
                 archivedStudents: this.archivedStudents,
@@ -6928,69 +7244,112 @@ function teacherApp() {
             };
         },
 
-        loadAppData() {
-            try {
-                const resetKey = 'teacherNotebookDemoClearedV3';
-                const saved = localStorage.getItem('teacherNotebookData');
+        normalizeLoadedProfileData(data) {
+            if (!data || typeof data !== 'object') return;
+            if (data.teacher && typeof data.teacher === 'object') this.teacher = { ...this.teacher, ...data.teacher };
+            if (Array.isArray(data.students)) this.students = data.students;
+            if (Array.isArray(data.archivedStudents)) this.archivedStudents = data.archivedStudents;
+            if (Array.isArray(data.lessonArchive)) this.lessonArchive = data.lessonArchive;
+            if (Array.isArray(data.backupLogs)) this.backupLogs = data.backupLogs;
 
-                // One-time cleanup of the old demo student data.
-                // Real teacher profile data is preserved.
-                if (!localStorage.getItem(resetKey)) {
-                    localStorage.setItem(resetKey, '1');
-                    if (saved) {
-                        const data = JSON.parse(saved);
-                        if (data && data.teacher) {
-                            this.teacher = { ...this.teacher, ...data.teacher };
+            this.students.forEach(student => (student.lessons || []).forEach(lesson => {
+                if (!(Number(lesson.duration) > 0)) lesson.duration = 1;
+            }));
+            this.archivedStudents.forEach(record => {
+                if (record && record.student) (record.student.lessons || []).forEach(lesson => {
+                    if (!(Number(lesson.duration) > 0)) lesson.duration = 1;
+                });
+            });
+
+            if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
+            const existingArchiveKeys = new Set(this.lessonArchive.map(item => String(item?.id || '')));
+            this.students.forEach(student => {
+                (student.lessons || []).forEach(lesson => {
+                    if (lesson && lesson.status === 'تم') {
+                        lesson.archived = true;
+                        const key = `${student.id}::${lesson.id}`;
+                        if (!existingArchiveKeys.has(key)) {
+                            this.lessonArchive.push({
+                                id: key,
+                                studentId: student.id,
+                                studentName: student.name || 'بدون اسم',
+                                studentSnapshot: {
+                                    name: student.name || 'بدون اسم',
+                                    stage: student.stage || '',
+                                    grade: student.grade || '',
+                                    subjectType: student.subjectType || '',
+                                    courseType: student.courseType || '',
+                                    price: student.price || 0
+                                },
+                                lesson: { ...lesson, status: 'تم', archived: true },
+                                archivedAt: new Date().toISOString()
+                            });
+                            existingArchiveKeys.add(key);
                         }
                     }
+                });
+            });
+        },
+
+        loadAppData() {
+            try {
+                const profileId = String(this.currentProfileId || localStorage.getItem('teacherNotebookCurrentProfile') || this.teacher?.id || 'profile-main');
+                this.currentProfileId = profileId;
+                const scopedKey = this.getProfileDataStorageKey(profileId);
+                let savedScoped = localStorage.getItem(scopedKey);
+
+                // One-time migration of the old single-profile store into the active profile only.
+                if (!savedScoped) {
+                    const legacy = localStorage.getItem('teacherNotebookData');
+                    if (legacy) {
+                        localStorage.setItem(scopedKey, legacy);
+                        savedScoped = legacy;
+                    }
+                }
+
+                if (!savedScoped) {
                     this.students = [];
                     this.archivedStudents = [];
                     this.lessonArchive = [];
                     this.backupLogs = [];
-                    localStorage.removeItem('teacherNotebookData');
                     return;
                 }
 
-                if (!saved) return;
-                const data = JSON.parse(saved);
-                if (Array.isArray(data.students)) this.students = data.students;
-                if (Array.isArray(data.archivedStudents)) this.archivedStudents = data.archivedStudents;
-                if (Array.isArray(data.lessonArchive)) this.lessonArchive = data.lessonArchive;
-                this.students.forEach(student => (student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }));
-                this.archivedStudents.forEach(record => { if (record && record.student) (record.student.lessons || []).forEach(lesson => { if (!(Number(lesson.duration) > 0)) lesson.duration = 1; }); });
-                // Keep completed lessons inside each student's lesson history.
-                // The archive is a mirrored index, not a replacement for the student's record.
-                if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
-                const existingArchiveKeys = new Set(this.lessonArchive.map(item => String(item?.id || '')));
-                this.students.forEach(student => {
-                    (student.lessons || []).forEach(lesson => {
-                        if (lesson && lesson.status === 'تم') {
-                            lesson.archived = true;
-                            const key = `${student.id}::${lesson.id}`;
-                            if (!existingArchiveKeys.has(key)) {
-                                this.lessonArchive.push({
-                                    id: key,
-                                    studentId: student.id,
-                                    studentName: student.name || 'بدون اسم',
-                                    studentSnapshot: { name: student.name || 'بدون اسم', stage: student.stage || '', grade: student.grade || '', subjectType: student.subjectType || '', courseType: student.courseType || '', price: student.price || 0 },
-                                    lesson: { ...lesson, status: 'تم', archived: true },
-                                    archivedAt: new Date().toISOString()
-                                });
-                                existingArchiveKeys.add(key);
-                            }
-                        }
-                    });
-                });
-                if (Array.isArray(data.backupLogs)) this.backupLogs = data.backupLogs;
-                if (data.teacher) this.teacher = { ...this.teacher, ...data.teacher };
+                this.normalizeLoadedProfileData(JSON.parse(savedScoped));
             } catch (error) {
                 console.warn('تعذر تحميل بيانات التطبيق', error);
             }
         },
 
+        loadProfileData(profileId, profile) {
+            this.students = [];
+            this.archivedStudents = [];
+            this.lessonArchive = [];
+            this.backupLogs = [];
+
+            try {
+                const raw = localStorage.getItem(this.getProfileDataStorageKey(profileId));
+                if (raw) this.normalizeLoadedProfileData(JSON.parse(raw));
+            } catch (error) {
+                console.warn('تعذر تحميل بيانات البروفايل', error);
+            }
+
+            this.teacher = { ...(profile || {}) };
+            delete this.teacher.id;
+            this.teacherForm = JSON.parse(JSON.stringify(this.teacher));
+            this.currentProfileId = String(profileId);
+            localStorage.setItem('teacherNotebookCurrentProfile', this.currentProfileId);
+            localStorage.setItem('teacherProfile', JSON.stringify(this.teacher));
+            this.loadNotificationState();
+            this.checkOverdueLessonNotifications();
+            this.timeTick++;
+        },
+
         persistAppData() {
             try {
-                localStorage.setItem('teacherNotebookData', JSON.stringify(this.getAppData()));
+                const data = this.getAppData();
+                localStorage.setItem(this.getProfileDataStorageKey(), JSON.stringify(data));
+                localStorage.setItem('teacherNotebookData', JSON.stringify(data));
             } catch (error) {
                 console.warn('تعذر حفظ بيانات التطبيق محلياً', error);
             }
@@ -7656,5 +8015,18 @@ window.addEventListener('orientationchange', () => {
 }
 </style>
 
-\n<style id="nav-bars-slightly-larger">\n/* تكبير بسيط للشريط العلوي والسفلي والأيقونات والخطوط */\n.global-clock-panel{min-height:78px!important;padding:10px 12px!important;gap:11px!important;}\n.global-clock-panel .global-clock-face{width:58px!important;height:58px!important;flex-basis:58px!important;}\n.global-clock-time{font-size:18px!important;}\n.global-clock-day{font-size:12px!important;}\n.global-clock-date{font-size:10px!important;}\n.bottom-app-nav{padding-top:10px!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;}\n.bottom-nav-item{min-width:82px!important;padding:6px 11px 5px!important;}\n.bottom-nav-icon{width:46px!important;height:37px!important;font-size:20px!important;}\n.bottom-nav-label{font-size:12px!important;}\n@media (max-width:767px){\n  .global-clock-panel{min-height:56px!important;height:56px!important;padding:7px 11px!important;}\n  .global-clock-panel .global-clock-face{width:46px!important;height:46px!important;flex-basis:46px!important;}\n  .global-clock-time{font-size:15px!important;}\n  .global-clock-day{font-size:10px!important;}\n  .global-clock-date{font-size:9px!important;}\n  .bottom-app-nav{padding-top:9px!important;padding-bottom:calc(9px + env(safe-area-inset-bottom))!important;}\n  .bottom-nav-item{min-width:76px!important;padding:6px 9px 5px!important;}\n  .bottom-nav-icon{width:44px!important;height:36px!important;font-size:19px!important;}\n  .bottom-nav-label{font-size:11.5px!important;}\n}\n</style>\n\n<style id="students-lesson-archive-only-page">\n/* أرشيف الحصص: مدخل داخل صفحة الطلاب فقط */\n.students-lesson-archive-entry{display:block;}\n.students-lesson-archive-card{\n  width:100%; display:flex; align-items:center; gap:13px; text-align:right;\n  padding:15px 16px; border:1px solid #e2e8f0; border-radius:20px;\n  background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.05);\n  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:pointer;\n}\n.students-lesson-archive-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.08);border-color:#bbf7d0;}\n.students-lesson-archive-icon{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dcfce7,#ccfbf1);color:#15803d;font-size:20px;}\n.students-lesson-archive-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;}\n.students-lesson-archive-text strong{font-size:16px;font-weight:900;color:#0f172a;}\n.students-lesson-archive-text small{font-size:11px;color:#64748b;font-weight:600;}\n.students-lesson-archive-count{padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;white-space:nowrap;}\n.students-lesson-archive-arrow{color:#94a3b8;font-size:13px;}\n\n/* نافذة الأرشيف */\n.lesson-archive-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;}\n.lesson-archive-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}\n.lesson-archive-dialog{position:relative;width:min(760px,96vw);max-height:min(86vh,760px);overflow:hidden;background:#f8fafc;border-radius:26px;box-shadow:0 25px 70px rgba(15,23,42,.28);border:1px solid rgba(255,255,255,.7);}\n.lesson-archive-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#fff;border-bottom:1px solid #e2e8f0;}\n.lesson-archive-dialog-icon{width:45px;height:45px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#047857;font-size:19px;flex:0 0 45px;}\n.lesson-archive-dialog-head h3{margin:0;font-size:18px;font-weight:900;color:#0f172a;}\n.lesson-archive-dialog-head p{margin:3px 0 0;font-size:11px;color:#64748b;font-weight:700;}\n.lesson-archive-close{width:40px;height:40px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex:0 0 40px;}\n.lesson-archive-close:hover{background:#e2e8f0;color:#0f172a;}\n.lesson-archive-list{padding:12px;overflow-y:auto;max-height:calc(min(86vh,760px) - 78px);display:flex;flex-direction:column;gap:8px;}\n.lesson-archive-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 13px;}\n.lesson-archive-main{min-width:0;flex:1;}\n.lesson-archive-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}\n.lesson-archive-title-row strong{font-size:14px;font-weight:900;color:#0f172a;}\n.lesson-archive-title-row span{font-size:9px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:4px 7px;}\n.lesson-archive-title-row span i{margin-left:3px;}\n.lesson-archive-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#64748b;font-size:10px;}\n.lesson-archive-meta span{display:inline-flex;align-items:center;gap:4px;}\n.lesson-archive-meta i{color:#94a3b8;}\n.lesson-archive-meta b{font-weight:700;}\n.lesson-archive-actions{display:flex;gap:5px;flex:0 0 auto;}\n.lesson-archive-actions button{width:35px;height:35px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.lesson-archive-actions button:hover{color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}\n.lesson-archive-actions button.danger:hover{color:#e11d48;background:#fff1f2;border-color:#fecdd3;}\n.lesson-archive-empty{padding:45px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;}\n.lesson-archive-empty i{font-size:34px;color:#cbd5e1;margin-bottom:3px;}\n.lesson-archive-empty strong{font-size:14px;color:#64748b;}\n.lesson-archive-empty span{font-size:11px;}\n@media (max-width:600px){\n  .students-lesson-archive-card{padding:13px 12px;gap:10px;}\n  .students-lesson-archive-icon{width:42px;height:42px;flex-basis:42px;border-radius:13px;font-size:18px;}\n  .students-lesson-archive-text strong{font-size:14px;}\n  .students-lesson-archive-text small{font-size:9px;}\n  .students-lesson-archive-count{font-size:9px;padding:6px 8px;}\n  .lesson-archive-modal{padding:8px;}\n  .lesson-archive-dialog{width:100%;max-height:92vh;border-radius:22px;}\n  .lesson-archive-list{max-height:calc(92vh - 78px);padding:8px;}\n  .lesson-archive-row{align-items:flex-start;padding:11px;}\n  .lesson-archive-meta{gap:7px;}\n}\n</style>\n</body>
+\n<style id="targeted-new-features">
+.notification-swipe-item{position:relative;overflow:hidden;border-radius:16px;touch-action:pan-y;}
+.notification-card{cursor:pointer;transition:transform .22s ease,box-shadow .22s ease;}
+.notification-card:active{transform:scale(.985);}
+.notification-lesson-focus{outline:3px solid rgba(245,158,11,.45);box-shadow:0 0 0 6px rgba(245,158,11,.10);}
+.app-notification-button{position:relative;width:38px;height:38px;flex:0 0 38px;border:1px solid #ccfbf1;border-radius:12px;background:#f0fdfa;color:#0f766e;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.18s}
+.app-notification-button:hover{background:#ccfbf1;transform:translateY(-1px)}
+.app-notification-badge{position:absolute;top:-4px;left:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.app-notification-popover{position:absolute;top:calc(100% + 8px);right:0;width:300px;max-width:calc(100vw - 24px);padding:12px;border-radius:16px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 16px 40px rgba(15,23,42,.14);z-index:80}
+.app-data-refresh-card{background:linear-gradient(135deg,#f0fdfa,#eff6ff);border:1px solid #ccfbf1}
+@media(max-width:767px){.app-notification-popover{right:-4px;width:280px}.app-notification-button{width:34px;height:34px;flex-basis:34px}}
+</style>
+
+<style id="nav-bars-slightly-larger">\n/* تكبير بسيط للشريط العلوي والسفلي والأيقونات والخطوط */\n.global-clock-panel{min-height:78px!important;padding:10px 12px!important;gap:11px!important;}\n.global-clock-panel .global-clock-face{width:58px!important;height:58px!important;flex-basis:58px!important;}\n.global-clock-time{font-size:18px!important;}\n.global-clock-day{font-size:12px!important;}\n.global-clock-date{font-size:10px!important;}\n.bottom-app-nav{padding-top:10px!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;}\n.bottom-nav-item{min-width:82px!important;padding:6px 11px 5px!important;}\n.bottom-nav-icon{width:46px!important;height:37px!important;font-size:20px!important;}\n.bottom-nav-label{font-size:12px!important;}\n@media (max-width:767px){\n  .global-clock-panel{min-height:56px!important;height:56px!important;padding:7px 11px!important;}\n  .global-clock-panel .global-clock-face{width:46px!important;height:46px!important;flex-basis:46px!important;}\n  .global-clock-time{font-size:15px!important;}\n  .global-clock-day{font-size:10px!important;}\n  .global-clock-date{font-size:9px!important;}\n  .bottom-app-nav{padding-top:9px!important;padding-bottom:calc(9px + env(safe-area-inset-bottom))!important;}\n  .bottom-nav-item{min-width:76px!important;padding:6px 9px 5px!important;}\n  .bottom-nav-icon{width:44px!important;height:36px!important;font-size:19px!important;}\n  .bottom-nav-label{font-size:11.5px!important;}\n}\n</style>\n\n<style id="students-lesson-archive-only-page">\n/* أرشيف الحصص: مدخل داخل صفحة الطلاب فقط */\n.students-lesson-archive-entry{display:block;}\n.students-lesson-archive-card{\n  width:100%; display:flex; align-items:center; gap:13px; text-align:right;\n  padding:15px 16px; border:1px solid #e2e8f0; border-radius:20px;\n  background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.05);\n  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:pointer;\n}\n.students-lesson-archive-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.08);border-color:#bbf7d0;}\n.students-lesson-archive-icon{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dcfce7,#ccfbf1);color:#15803d;font-size:20px;}\n.students-lesson-archive-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;}\n.students-lesson-archive-text strong{font-size:16px;font-weight:900;color:#0f172a;}\n.students-lesson-archive-text small{font-size:11px;color:#64748b;font-weight:600;}\n.students-lesson-archive-count{padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;white-space:nowrap;}\n.students-lesson-archive-arrow{color:#94a3b8;font-size:13px;}\n\n/* نافذة الأرشيف */\n.lesson-archive-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;}\n.lesson-archive-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}\n.lesson-archive-dialog{position:relative;width:min(760px,96vw);max-height:min(86vh,760px);overflow:hidden;background:#f8fafc;border-radius:26px;box-shadow:0 25px 70px rgba(15,23,42,.28);border:1px solid rgba(255,255,255,.7);}\n.lesson-archive-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#fff;border-bottom:1px solid #e2e8f0;}\n.lesson-archive-dialog-icon{width:45px;height:45px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#047857;font-size:19px;flex:0 0 45px;}\n.lesson-archive-dialog-head h3{margin:0;font-size:18px;font-weight:900;color:#0f172a;}\n.lesson-archive-dialog-head p{margin:3px 0 0;font-size:11px;color:#64748b;font-weight:700;}\n.lesson-archive-close{width:40px;height:40px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex:0 0 40px;}\n.lesson-archive-close:hover{background:#e2e8f0;color:#0f172a;}\n.lesson-archive-list{padding:12px;overflow-y:auto;max-height:calc(min(86vh,760px) - 78px);display:flex;flex-direction:column;gap:8px;}\n.lesson-archive-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 13px;}\n.lesson-archive-main{min-width:0;flex:1;}\n.lesson-archive-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}\n.lesson-archive-title-row strong{font-size:14px;font-weight:900;color:#0f172a;}\n.lesson-archive-title-row span{font-size:9px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:4px 7px;}\n.lesson-archive-title-row span i{margin-left:3px;}\n.lesson-archive-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#64748b;font-size:10px;}\n.lesson-archive-meta span{display:inline-flex;align-items:center;gap:4px;}\n.lesson-archive-meta i{color:#94a3b8;}\n.lesson-archive-meta b{font-weight:700;}\n.lesson-archive-actions{display:flex;gap:5px;flex:0 0 auto;}\n.lesson-archive-actions button{width:35px;height:35px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.lesson-archive-actions button:hover{color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}\n.lesson-archive-actions button.danger:hover{color:#e11d48;background:#fff1f2;border-color:#fecdd3;}\n.lesson-archive-empty{padding:45px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;}\n.lesson-archive-empty i{font-size:34px;color:#cbd5e1;margin-bottom:3px;}\n.lesson-archive-empty strong{font-size:14px;color:#64748b;}\n.lesson-archive-empty span{font-size:11px;}\n@media (max-width:600px){\n  .students-lesson-archive-card{padding:13px 12px;gap:10px;}\n  .students-lesson-archive-icon{width:42px;height:42px;flex-basis:42px;border-radius:13px;font-size:18px;}\n  .students-lesson-archive-text strong{font-size:14px;}\n  .students-lesson-archive-text small{font-size:9px;}\n  .students-lesson-archive-count{font-size:9px;padding:6px 8px;}\n  .lesson-archive-modal{padding:8px;}\n  .lesson-archive-dialog{width:100%;max-height:92vh;border-radius:22px;}\n  .lesson-archive-list{max-height:calc(92vh - 78px);padding:8px;}\n  .lesson-archive-row{align-items:flex-start;padding:11px;}\n  .lesson-archive-meta{gap:7px;}\n}\n</style>\n</body>
 </html>
