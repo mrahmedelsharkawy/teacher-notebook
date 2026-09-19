@@ -358,6 +358,39 @@
 .weekly-lesson-time { font-size:11px; font-weight:800; color:#2563eb; }
 .weekly-lesson-name { font-size:12px; font-weight:800; color:#0f172a; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .weekly-lesson-meta { font-size:9px; color:#94a3b8; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* =========================
+   SMOOTH PAGE + INTERACTION MOTION
+   ========================= */
+.page-transition-enter{transition:opacity .28s ease,transform .34s cubic-bezier(.22,1,.36,1),filter .28s ease;will-change:opacity,transform,filter;}
+.page-transition-enter-start{opacity:0;transform:translateY(12px) scale(.985);filter:blur(2px);}
+.page-transition-enter-end{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+.page-transition-leave{transition:opacity .18s ease,transform .20s ease;will-change:opacity,transform;}
+.page-transition-leave-start{opacity:1;transform:translateY(0) scale(1);}
+.page-transition-leave-end{opacity:0;transform:translateY(-6px) scale(.995);}
+
+/* Month swipe animation */
+.month-calendar.month-swipe-next{animation:monthSwipeNext .36s cubic-bezier(.22,1,.36,1);}
+.month-calendar.month-swipe-prev{animation:monthSwipePrev .36s cubic-bezier(.22,1,.36,1);}
+@keyframes monthSwipeNext{0%{opacity:.25;transform:translateX(24px) scale(.985);filter:blur(1.5px)}55%{opacity:1;transform:translateX(-2px) scale(1)}100%{opacity:1;transform:translateX(0) scale(1);filter:blur(0)}}
+@keyframes monthSwipePrev{0%{opacity:.25;transform:translateX(-24px) scale(.985);filter:blur(1.5px)}55%{opacity:1;transform:translateX(2px) scale(1)}100%{opacity:1;transform:translateX(0) scale(1);filter:blur(0)}}
+
+/* Beautiful press feedback */
+button,a,.month-calendar-cell,.bottom-nav-item{ -webkit-tap-highlight-color:transparent; }
+button:active,.bottom-nav-item:active{transform:scale(.965);transition:transform .12s ease;}
+.month-calendar-cell:active{transform:scale(.975);transition:transform .12s ease;}
+
+/* Delete motion: item gently shrinks, slides and fades before disappearing */
+.item-delete-out{animation:itemDeleteOut .34s cubic-bezier(.4,0,.2,1) forwards!important;pointer-events:none!important;overflow:hidden!important;}
+@keyframes itemDeleteOut{0%{opacity:1;transform:translateX(0) scale(1);max-height:500px}45%{opacity:.55;transform:translateX(-10px) scale(.985)}100%{opacity:0;transform:translateX(-28px) scale(.94);max-height:0;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;border-width:0!important}}
+.delete-action{transition:transform .18s ease,background .18s ease,color .18s ease,box-shadow .18s ease;}
+.delete-action:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 6px 14px rgba(225,29,72,.12);}
+.delete-action:active{transform:scale(.9)!important;}
+
+@media (prefers-reduced-motion: reduce){
+  .page-transition-enter,.page-transition-leave,.month-calendar.month-swipe-next,.month-calendar.month-swipe-prev,.item-delete-out{animation:none!important;transition:none!important;}
+  button:active,.bottom-nav-item:active,.month-calendar-cell:active{transform:none!important;}
+}
+
 .month-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;background:transparent}
 .month-calendar-head{padding:8px 3px;text-align:center;font-size:10px;font-weight:900;color:#0f766e;background:#ecfeff;border:1px solid #ccfbf1;border-radius:11px}
 .month-calendar{touch-action:pan-y;user-select:none;}
@@ -3244,7 +3277,7 @@ main textarea::placeholder{
      PAGE 01 — الرئيسية / DASHBOARD
      هذا القسم مسؤول عن واجهة البداية والملخص والحصص القادمة واليوم والتقويم.
 ========================================================= -->
-            <section x-show="activeTab === 'dashboard'" x-cloak class="space-y-5">
+            <section x-show="activeTab === 'dashboard'" x-cloak x-transition:enter="page-transition-enter" x-transition:enter-start="page-transition-enter-start" x-transition:enter-end="page-transition-enter-end" x-transition:leave="page-transition-leave" x-transition:leave-start="page-transition-leave-start" x-transition:leave-end="page-transition-leave-end" class="space-y-5">
 
                 <!-- Welcome -->
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -3373,7 +3406,7 @@ main textarea::placeholder{
                             </button>
                         </div>
 
-                        <div class="month-calendar" @touchstart.passive="calendarSwipeStart($event)" @touchend="calendarSwipeEnd($event)">
+                        <div class="month-calendar" :class="calendarMotionClass" @touchstart.passive="calendarSwipeStart($event)" @touchend="calendarSwipeEnd($event)">
                             <template x-for="name in monthWeekNames" :key="'month-head-' + name">
                                 <div class="month-calendar-head" x-text="name"></div>
                             </template>
@@ -3541,7 +3574,7 @@ main textarea::placeholder{
     </div>
                 
 
-                <div class="app-data-refresh-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div x-show="activeTab === 'dashboard'" x-cloak class="app-data-refresh-card rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0"><div class="w-11 h-11 rounded-xl bg-white text-brand-600 border border-brand-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-arrows-rotate"></i></div><div class="min-w-0"><h3 class="font-extrabold text-slate-800 text-sm">تحديث بيانات التطبيق</h3><p class="text-[11px] text-slate-500 mt-1">إعادة قراءة البيانات المحفوظة وتحديث الواجهة دون حذف أي سجل.</p></div></div>
                     <button type="button" @click="refreshApplicationNow()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brand-600 text-white text-xs font-extrabold hover:bg-brand-700 transition"><i class="fa-solid fa-rotate ml-1"></i> تحديث الآن</button>
                 </div>
@@ -3554,7 +3587,7 @@ main textarea::placeholder{
             <!-- =====================================================
                  STUDENTS
             ====================================================== -->
-            <section x-show="activeTab === 'students'" x-cloak class="space-y-6">
+            <section x-show="activeTab === 'students'" x-cloak x-transition:enter="page-transition-enter" x-transition:enter-start="page-transition-enter-start" x-transition:enter-end="page-transition-enter-end" x-transition:leave="page-transition-leave" x-transition:leave-start="page-transition-leave-start" x-transition:leave-end="page-transition-leave-end" class="space-y-6">
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 
@@ -3714,7 +3747,7 @@ main textarea::placeholder{
                     </button>
                     <div x-show="lessonsLedgerOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100">
                         <template x-for="item in allLessons()" :key="item.studentId + '-' + item.lesson.id">
-                            <div class="p-4 rounded-xl border flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-colors" :class="lessonLedgerClass(item.lesson)">
+                            <div data-deletable-item class="p-4 rounded-xl border flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-colors" :class="lessonLedgerClass(item.lesson)">
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="font-bold text-slate-800" x-text="item.studentName"></span>
@@ -3729,7 +3762,7 @@ main textarea::placeholder{
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2 shrink-0"><div class="flex items-center gap-1" aria-label="حالة الحصة"><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'تم')" :class="['status-action done', item.lesson.status === 'تم' ? 'is-active' : '']" title="تمت الحصة" aria-label="تمت الحصة"><i class="fa-solid fa-check"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'انتظار')" :class="['status-action wait', item.lesson.status === 'انتظار' ? 'is-active' : '']" title="بانتظار الحصة" aria-label="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'لم تتم')" :class="['status-action missed', item.lesson.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button></div><button @click="openEditLessonModal(item.studentId, item.lesson.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="تعديل الحصة"><i class="fa-solid fa-pen-to-square"></i></button><button type="button" @click.stop="deleteLesson(item.studentId, item.lesson.id, item.lesson)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 cursor-pointer" title="حذف الحصة"><i class="fa-regular fa-trash-can"></i></button><button @click="openStudentDetails(students.find(s => s.id === item.studentId))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button></div>
+                                <div class="flex items-center gap-2 shrink-0"><div class="flex items-center gap-1" aria-label="حالة الحصة"><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'تم')" :class="['status-action done', item.lesson.status === 'تم' ? 'is-active' : '']" title="تمت الحصة" aria-label="تمت الحصة"><i class="fa-solid fa-check"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'انتظار')" :class="['status-action wait', item.lesson.status === 'انتظار' ? 'is-active' : '']" title="بانتظار الحصة" aria-label="بانتظار الحصة"><i class="fa-solid fa-hourglass-half"></i></button><button @click="updateLessonStatus(item.studentId, item.lesson.id, 'لم تتم')" :class="['status-action missed', item.lesson.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button></div><button @click="openEditLessonModal(item.studentId, item.lesson.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="تعديل الحصة"><i class="fa-solid fa-pen-to-square"></i></button><button type="button" @click.stop="deleteLesson(item.studentId, item.lesson.id, item.lesson, $event)" class="delete-action w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 cursor-pointer" title="حذف الحصة"><i class="fa-regular fa-trash-can"></i></button><button @click="openStudentDetails(students.find(s => s.id === item.studentId))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button></div>
                         </template>
 
                         <div x-show="allLessons().length === 0" class="py-10 text-center text-slate-400">
@@ -3755,7 +3788,7 @@ main textarea::placeholder{
     </button>
     <div x-show="lessonArchiveOpen" x-cloak class="p-4 space-y-3 border-t border-slate-100">
       <template x-for="record in [...(lessonArchive || [])].sort((a,b) => new Date((b.lesson?.date || '') + 'T' + (b.lesson?.time || '00:00')) - new Date((a.lesson?.date || '') + 'T' + (a.lesson?.time || '00:00')))" :key="record.id">
-        <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div data-deletable-item class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-bold text-slate-800" x-text="record.studentName || 'بدون اسم'"></span>
@@ -3776,7 +3809,7 @@ main textarea::placeholder{
               <button @click="updateLessonStatus(record.studentId, record.lesson.id, 'لم تتم')" :class="['status-action missed', record.lesson?.status === 'لم تتم' ? 'is-active' : '']" title="لم تتم الحصة" aria-label="لم تتم الحصة"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <button @click="openEditLessonModal(record.studentId, record.lesson.id)" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="تعديل الحصة"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button type="button" @click.stop="deleteLesson(record.studentId, record.lesson.id, students.find(s => String(s.id) === String(record.studentId))?.lessons?.find(l => String(l.id) === String(record.lesson.id)))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 cursor-pointer" title="حذف الحصة"><i class="fa-regular fa-trash-can"></i></button>
+            <button type="button" @click.stop="deleteLesson(record.studentId, record.lesson.id, students.find(s => String(s.id) === String(record.studentId))?.lessons?.find(l => String(l.id) === String(record.lesson.id)), $event)" class="delete-action w-9 h-9 rounded-lg bg-white border border-slate-200 text-rose-500 hover:bg-rose-50 cursor-pointer" title="حذف الحصة"><i class="fa-regular fa-trash-can"></i></button>
             <button @click="openStudentDetails(students.find(s => String(s.id) === String(record.studentId)))" class="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-brand-600" title="عرض ملف الطالب"><i class="fa-solid fa-eye"></i></button>
           </div>
         </div>
@@ -4057,7 +4090,7 @@ main textarea::placeholder{
                                             x-for="lesson in monthGroup.lessons"
                                             :key="lesson.id"
                                         >
-                                            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl"
+                                            <div data-deletable-item class="p-3 bg-slate-50 border border-slate-200 rounded-xl"
                                                  :data-notification-lesson-id="lesson.id"
                                                  :class="String(notificationLessonFocusId) === String(lesson.id) ? 'notification-lesson-focus' : ''">
 
@@ -4088,8 +4121,8 @@ main textarea::placeholder{
                                             </button>
                                             <button
                                                 type="button"
-                                                @click.stop="deleteLesson(selectedStudent.id, lesson.id, lesson)"
-                                                class="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
+                                                @click.stop="deleteLesson(selectedStudent.id, lesson.id, lesson, $event)"
+                                                class="delete-action "text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
                                                 title="حذف الحصة"
                                                 aria-label="حذف الحصة"
                                             >
@@ -4372,7 +4405,7 @@ main textarea::placeholder{
             <!-- =====================================================
                  FINANCE
             ====================================================== -->
-            <section x-show="activeTab === 'finance'" x-cloak class="space-y-6">
+            <section x-show="activeTab === 'finance'" x-cloak x-transition:enter="page-transition-enter" x-transition:enter-start="page-transition-enter-start" x-transition:enter-end="page-transition-enter-end" x-transition:leave="page-transition-leave" x-transition:leave-start="page-transition-leave-start" x-transition:leave-end="page-transition-leave-end" class="space-y-6">
 
                 <div>
                     <h2 class="text-2xl font-bold text-slate-800">
@@ -4611,7 +4644,7 @@ main textarea::placeholder{
      PAGE 04 — تواصل / CONTACT
      هذا القسم مسؤول عن البحث والتواصل مع الطلاب.
 ========================================================= -->
-<section x-show="activeTab === 'contact'" x-cloak class="space-y-6">
+<section x-show="activeTab === 'contact'" x-cloak x-transition:enter="page-transition-enter" x-transition:enter-start="page-transition-enter-start" x-transition:enter-end="page-transition-enter-end" x-transition:leave="page-transition-leave" x-transition:leave-start="page-transition-leave-start" x-transition:leave-end="page-transition-leave-end" class="space-y-6">
 <div class="contact-search-wrap mb-4">
     <div class="relative">
         <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -4751,7 +4784,7 @@ main textarea::placeholder{
             <!-- =====================================================
                  TEACHER PROFILE
             ====================================================== -->
-            <section x-show="activeTab === 'profile'" x-cloak class="space-y-6">
+            <section x-show="activeTab === 'profile'" x-cloak x-transition:enter="page-transition-enter" x-transition:enter-start="page-transition-enter-start" x-transition:enter-end="page-transition-enter-end" x-transition:leave="page-transition-leave" x-transition:leave-start="page-transition-leave-start" x-transition:leave-end="page-transition-leave-end" class="space-y-6">
 
                 <div>
                     <h2 class="text-2xl font-bold text-slate-800">
@@ -5206,6 +5239,7 @@ function teacherApp() {
         // تنقل جدول الأسبوع والشهر
         weekOffset: 0,
         monthOffset: 0,
+        calendarMotionClass: '',
 
         // يتغير كل ثانية لإعادة تقييم الحصص القادمة تلقائياً
         timeTick: 0,
@@ -5532,7 +5566,17 @@ function teacherApp() {
         },
 
         changeMonth(direction) {
-            this.monthOffset += Number(direction) || 0;
+            const step = Number(direction) || 0;
+            if (!step) return;
+
+            // اتجاه الحركة يطابق اتجاه الانتقال بين الشهور.
+            this.calendarMotionClass = step > 0 ? 'month-swipe-next' : 'month-swipe-prev';
+            this.monthOffset += step;
+
+            clearTimeout(this._calendarMotionTimer);
+            this._calendarMotionTimer = setTimeout(() => {
+                this.calendarMotionClass = '';
+            }, 380);
         },
 
         goToCurrentMonth() {
@@ -6698,7 +6742,7 @@ function teacherApp() {
             }
         },
 
-        deleteLesson(studentId, lessonId, lessonRef = null) {
+        deleteLesson(studentId, lessonId, lessonRef = null, event = null) {
             const student = this.students.find(
                 s => String(s.id) === String(studentId)
             );
@@ -6727,29 +6771,31 @@ function teacherApp() {
                 'سيتم تحديث سجل الطالب والماليات تلقائياً.'
             )) return;
 
-            // IMPORTANT: splice the real reactive array.
-            // This makes Alpine remove the row immediately.
-            student.lessons.splice(index, 1);
-            this.lessonArchive = (this.lessonArchive || []).filter(r => !(String(r.studentId) === String(studentId) && String(r.lesson?.id) === String(lesson.id)));
+            // Animate the visible lesson card first, then mutate the real array.
+            const target = event?.currentTarget?.closest('[data-deletable-item]');
+            const removeLesson = () => {
+                // IMPORTANT: splice the real reactive array.
+                student.lessons.splice(index, 1);
+                this.lessonArchive = (this.lessonArchive || []).filter(r => !(String(r.studentId) === String(studentId) && String(r.lesson?.id) === String(lesson.id)));
 
-            // selectedStudent is normally the same object, but explicitly
-            // refresh it from students to guarantee the modal updates.
-            if (
-                this.selectedStudent &&
-                String(this.selectedStudent.id) === String(student.id)
-            ) {
-                this.selectedStudent = student;
-            }
-
-            // Persist after the actual mutation.
-            this.persistAppData();
-
-            // Refresh financial calculations/chart.
-            this.$nextTick(() => {
-                if (typeof this.refreshIncomeChart === 'function') {
-                    this.refreshIncomeChart();
+                if (this.selectedStudent && String(this.selectedStudent.id) === String(student.id)) {
+                    this.selectedStudent = student;
                 }
-            });
+
+                this.persistAppData();
+                this.$nextTick(() => {
+                    if (typeof this.refreshIncomeChart === 'function') {
+                        this.refreshIncomeChart();
+                    }
+                });
+            };
+
+            if (target) {
+                target.classList.add('item-delete-out');
+                setTimeout(removeLesson, 340);
+            } else {
+                removeLesson();
+            }
         },
 
         /* =========================
@@ -7853,7 +7899,7 @@ window.addEventListener('orientationchange', () => {
       <footer class="a4-report-footer"><span>${esc(teacher.name||'المعلم')} · التقرير الشامل للطالب</span><span>وثيقة A4 واحدة</span><span>${esc(today)}</span></footer>
     </div></div>`;
   }
-  function openDetail(s){if(!s)return;selected=s;const body=document.getElementById('srBody');document.getElementById('srDetailName').textContent='التقرير الشامل: '+nameOf(s);body.innerHTML=reportHTML(s);document.getElementById('studentsReportDetailClean')?.classList.add('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','false');}
+  function openDetail(s){if(!s)return;selected=s;const body=document.getElementById('srBody');document.getElementById('srDetailName').textContent='التقرير الشامل: '+nameOf(s);body.innerHTML='<div id="reportSheet">'+reportHTML(s)+'</div>';document.getElementById('studentsReportDetailClean')?.classList.add('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','false');}
   function closeDetail(){document.getElementById('studentsReportDetailClean')?.classList.remove('open');document.getElementById('studentsReportDetailClean')?.setAttribute('aria-hidden','true');selected=null;}
   async function share(studentArg=null){
     if(studentArg)selected=studentArg;if(!selected){alert('اختر الطالب أولاً.');return;}
