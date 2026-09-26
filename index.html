@@ -398,6 +398,8 @@ button:active,.bottom-nav-item:active{transform:scale(.965);transition:transform
 .month-calendar-cell{min-height:96px;padding:7px;border:1px solid #e2e8f0;border-radius:15px;background:#fff;box-shadow:0 3px 10px rgba(15,23,42,.035);transition:.15s}
 .month-calendar-cell:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(15,23,42,.07);border-color:#99f6e4}
 .month-calendar-cell.outside{background:#f8fafc;opacity:.55}
+.month-calendar-cell.outside{visibility:hidden;pointer-events:none;box-shadow:none;border-color:transparent;background:transparent!important;}
+.month-calendar-cell.outside:after{content:"";display:block;}
 .month-calendar-cell.today{box-shadow:inset 0 0 0 2px #0f766e,0 5px 16px rgba(15,118,110,.10);border-color:#5eead4;position:relative;z-index:1}
 .month-day-number{width:27px;height:27px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#334155;margin-bottom:5px;background:#f1f5f9}
 .month-calendar-cell.has-lessons .month-day-number{background:#ccfbf1;color:#0f766e}
@@ -3419,22 +3421,24 @@ main textarea::placeholder{
                                         'has-lessons': cell.lessons.length > 0,
                                         'today': cell.isToday
                                     }"
-                                    @click="cell.outside ? openAdjacentCalendarDay(cell) : openCalendarDay(cell)"
+                                    @click="!cell.outside && openCalendarDay(cell)"
                                     role="button"
                                     :tabindex="cell.outside ? -1 : 0"
                                 >
-                                    <div>
-                                        <div class="month-day-number" x-text="cell.dayNumber"></div>
+                                    <template x-if="!cell.outside">
+                                        <div>
+                                            <div class="month-day-number" x-text="cell.dayNumber"></div>
 
-                                        <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
-                                            <span
-                                                class="month-student"
-                                                :style="getStudentCalendarStyle(item.studentId)"
-                                                :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
-                                                x-text="item.studentName"
-                                            ></span>
-                                        </template>
-                                    </div>
+                                            <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
+                                                <span
+                                                    class="month-student"
+                                                    :style="getStudentCalendarStyle(item.studentId)"
+                                                    :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
+                                                    x-text="item.studentName"
+                                                ></span>
+                                            </template>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -5694,10 +5698,21 @@ function teacherApp() {
             }, {});
 
             return Array.from({ length: totalCells }, (_, index) => {
-                const dayOffset = index - leading;
-                const cellDate = new Date(year, month, dayOffset + 1);
-                const outside = cellDate.getMonth() !== month;
+                const dayNumber = index - leading + 1;
+                const outside = dayNumber < 1 || dayNumber > last.getDate();
 
+                if (outside) {
+                    return {
+                        key: `blank-${year}-${month}-${index}`,
+                        date: '',
+                        dayNumber: '',
+                        outside: true,
+                        isToday: false,
+                        lessons: []
+                    };
+                }
+
+                const cellDate = new Date(year, month, dayNumber);
                 const iso = cellDate.getFullYear() + '-' +
                     String(cellDate.getMonth() + 1).padStart(2, '0') + '-' +
                     String(cellDate.getDate()).padStart(2, '0');
@@ -5711,9 +5726,9 @@ function teacherApp() {
                 return {
                     key: iso + '-' + index,
                     date: iso,
-                    dayNumber: cellDate.getDate(),
-                    outside,
-                    isToday: !outside && iso === this.getTodayISO(),
+                    dayNumber,
+                    outside: false,
+                    isToday: iso === this.getTodayISO(),
                     lessons
                 };
             });
@@ -7054,7 +7069,7 @@ function teacherApp() {
             this.calendarSwipeStartY = 0;
             if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy)) return;
             // سحب لليمين = الشهر السابق، سحب لليسار = الشهر التالي.
-            this.changeMonth(dx > 0 ? -1 : 1);
+            this.changeMonth(dx > 0 ? 1 : -1);
         },
 
         openNotificationLesson(notice) {
@@ -7814,9 +7829,22 @@ window.addEventListener('orientationchange', () => {
 #studentsReportDetailClean{display:none;position:fixed;inset:0;z-index:9999;background:rgba(8,25,61,.72);align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(7px)}#studentsReportDetailClean.open{display:flex}.sr2-detail{width:min(1060px,98vw);height:min(96vh,920px);overflow:auto;background:#edf3f9;border-radius:18px;box-shadow:0 30px 100px rgba(8,25,61,.35)}.sr2-detail-head{position:sticky;top:0;z-index:30;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #d6e3f1;background:rgba(255,255,255,.96);backdrop-filter:blur(12px)}.sr2-detail-head h2{margin:0;flex:1;font-size:18px;color:var(--rp-navy);font-weight:950}.sr2-close{width:36px;height:36px;border:0;border-radius:10px;background:#f1f5f9;color:#475569;cursor:pointer}.sr2-body{padding:14px}
 
 /* SINGLE A4 STUDENT REPORT */
-.report-single-a4{width:210mm!important;margin:0 auto;background:#fff;color:var(--rp-ink);font-family:'Tajawal','Cairo',Arial,sans-serif}.report-one-page{width:210mm;min-height:0;height:auto;background:#fff;position:relative;padding:8mm 9mm 6mm;box-sizing:border-box;overflow:visible}.report-one-page *{box-sizing:border-box}.a4-report-header{display:flex;align-items:center;justify-content:space-between;gap:8mm;border-bottom:2px solid var(--rp-navy);padding-bottom:4mm}.a4-brand{display:flex;align-items:center;gap:4mm;direction:ltr}.a4-brand img{width:20mm;height:20mm;object-fit:contain}.a4-brand>div{direction:rtl}.a4-kicker{font-size:6px;font-weight:900;letter-spacing:.8px;color:var(--rp-cyan)}.a4-report-header h1{margin:1mm 0;font-size:17px;line-height:1.1;color:var(--rp-navy);font-weight:950}.a4-report-header p{margin:0;font-size:7px;color:var(--rp-muted);font-weight:700}.a4-report-date{text-align:left;font-size:6.5px;color:var(--rp-muted);font-weight:800;line-height:1.5}.a4-report-date strong{font-size:8px;color:var(--rp-navy)}
+.report-single-a4{width:210mm!important;margin:0 auto;background:#fff;color:var(--rp-ink);font-family:'Tajawal','Cairo',Arial,sans-serif}.report-one-page{width:210mm;min-height:0;height:auto;background:#fff;position:relative;padding:8mm 9mm 6mm;box-sizing:border-box;overflow:visible}.report-one-page *{box-sizing:border-box}.a4-report-header{display:flex;align-items:center;justify-content:space-between;gap:8mm;border-bottom:2px solid var(--rp-navy);padding-bottom:4mm}.a4-brand{display:flex;align-items:center;gap:4mm;direction:ltr}.a4-brand img{display:none!important}.a4-brand>div{direction:rtl}.a4-kicker{font-size:6px;font-weight:900;letter-spacing:.8px;color:var(--rp-cyan)}.a4-report-header h1{margin:1mm 0;font-size:17px;line-height:1.1;color:var(--rp-navy);font-weight:950}.a4-report-header p{margin:0;font-size:7px;color:var(--rp-muted);font-weight:700}.a4-report-date{text-align:left;font-size:6.5px;color:var(--rp-muted);font-weight:800;line-height:1.5}.a4-report-date strong{font-size:8px;color:var(--rp-navy)}
 .student-banner{display:flex;align-items:center;gap:4mm;margin:4mm 0;padding:3mm 4mm;border-radius:4mm;background:linear-gradient(135deg,#eef7ff,#f7fcfb);border:1px solid #d8e8f2}.student-avatar{width:15mm;height:15mm;border-radius:4mm;background:#dcecff;color:var(--rp-navy);display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 15mm}.student-main{min-width:0;flex:1}.student-label{font-size:6px;color:var(--rp-cyan);font-weight:900}.student-main h2{margin:.5mm 0 1.5mm;font-size:16px;color:#102f5e;font-weight:950}.student-tags{display:flex;flex-wrap:wrap;gap:1.5mm}.student-tags span{font-size:6.2px;font-weight:800;color:#3d5c7c;background:#fff;border:1px solid #dbe5ef;border-radius:999px;padding:1.2mm 2mm}.teacher-mini{min-width:32mm;text-align:center;padding-right:4mm;border-right:1px solid #dbe4ee}.teacher-mini span{display:block;font-size:6px;color:var(--rp-muted);font-weight:800}.teacher-mini strong{display:block;font-size:8px;color:var(--rp-navy);margin-top:1mm}
-.compact-grid{display:grid;gap:2mm}.compact-grid.four{grid-template-columns:repeat(4,1fr);margin-bottom:3mm}.metric{padding:2.5mm;border:1px solid var(--rp-line);background:var(--rp-soft);border-radius:3mm;text-align:center}.metric b{display:block;font-size:14px;color:var(--rp-navy);line-height:1}.metric span{display:block;font-size:5.8px;color:var(--rp-muted);font-weight:800;margin-top:1.5mm}.report-block{border:1px solid var(--rp-line);border-radius:3mm;overflow:hidden;background:#fff;margin-bottom:2.5mm}.block-title{display:flex;align-items:center;gap:2mm;padding:2mm 3mm;background:#f2f6fb;border-bottom:1px solid var(--rp-line);font-size:7.5px;color:var(--rp-navy);font-weight:950}.block-title i{color:var(--rp-cyan)}.block-title span{margin-right:auto;font-size:5.8px;color:var(--rp-muted);font-weight:800}.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;padding:2.5mm}.detail-grid>div{padding:1.8mm;border:1px solid #e4ebf2;border-radius:2mm;background:#fbfdff;min-width:0}.detail-grid small,.timeline-card small,.finance-mini small{display:block;font-size:5.5px;color:var(--rp-muted);font-weight:800}.detail-grid strong{display:block;font-size:6.8px;color:#17243b;margin-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.timeline-grid{grid-template-columns:repeat(4,1fr);margin-bottom:2.5mm}.timeline-card{border:1px solid var(--rp-line);border-radius:3mm;padding:2.2mm;background:#fff}.timeline-card strong{display:block;font-size:6.8px;color:#17243b;margin-top:1mm;line-height:1.35}.table-wrap{padding:0 2mm 2mm}.report-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:5.4px}.report-table th{background:#123b72;color:#fff;padding:1.3mm .8mm;font-weight:900;white-space:nowrap}.report-table td{padding:1.05mm .8mm;border-bottom:1px solid #e5ebf1;vertical-align:middle;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.report-table tbody tr:nth-child(even){background:#f8fbfd}.report-table .num{text-align:center;font-weight:900;color:var(--rp-navy)}.report-table th:nth-child(1),.report-table td:nth-child(1){width:5%}.lessons-block .report-table th:nth-child(2){width:12%}.lessons-block .report-table th:nth-child(3),.lessons-block .report-table th:nth-child(4){width:10%}.lessons-block .report-table th:nth-child(5){width:9%}.lessons-block .report-table th:nth-child(6){width:7%}.lessons-block .report-table th:nth-child(7){width:12%}.lessons-block .report-table th:nth-child(8){width:35%}.status{display:inline-flex;align-items:center;justify-content:center;width:4mm;height:4mm;border-radius:50%;font-size:5px}.status.done{background:#dcf7e8;color:#16804a}.status.wait{background:#fff4cf;color:#a36c00}.status.missed{background:#ffe2e2;color:#c23b3b}.empty-row{text-align:center;color:#94a3b8;padding:3mm!important}.bottom-two{display:grid;grid-template-columns:1.35fr .65fr;gap:2.5mm}.payments-block{margin-bottom:0}.payments-block .report-table th:nth-child(1){width:8%}.payments-block .report-table th:nth-child(2){width:28%}.payments-block .report-table th:nth-child(3){width:25%}.payments-block .report-table th:nth-child(4){width:39%}.finance-block{margin-bottom:0}.finance-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5mm;padding:2.5mm}.finance-mini>div{padding:1.8mm;text-align:center;background:#f8fafc;border:1px solid var(--rp-line);border-radius:2mm}.finance-mini small{font-size:5px}.finance-mini b{display:block;font-size:7.5px;color:var(--rp-navy);margin-top:1mm}.report-note{border-top:1px dashed #dce5ee;margin:0 2.5mm 2.5mm;padding-top:2mm;font-size:5.8px;color:#52657d;line-height:1.45}.a4-report-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #dbe4ee;margin-top:2.5mm;padding-top:2mm;font-size:5.5px;color:#7a899c;font-weight:700}
+.compact-grid{display:grid;gap:2mm}.compact-grid.four{grid-template-columns:repeat(4,1fr);margin-bottom:3mm}.metric{padding:2.5mm;border:1px solid var(--rp-line);background:var(--rp-soft);border-radius:3mm;text-align:center}.metric b{display:block;font-size:14px;color:var(--rp-navy);line-height:1}.metric span{display:block;font-size:5.8px;color:var(--rp-muted);font-weight:800;margin-top:1.5mm}.report-block{border:1px solid var(--rp-line);border-radius:3mm;overflow:hidden;background:#fff;margin-bottom:2.5mm}.block-title{display:flex;align-items:center;gap:2mm;padding:2mm 3mm;background:#f2f6fb;border-bottom:1px solid var(--rp-line);font-size:7.5px;color:var(--rp-navy);font-weight:950}.block-title i{color:var(--rp-cyan)}.block-title span{margin-right:auto;font-size:5.8px;color:var(--rp-muted);font-weight:800}.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2mm;padding:2.5mm}.detail-grid>div{padding:1.8mm;border:1px solid #e4ebf2;border-radius:2mm;background:#fbfdff;min-width:0}.detail-grid small,.timeline-card small,.finance-mini small{display:block;font-size:5.5px;color:var(--rp-muted);font-weight:800}.detail-grid strong{display:block;font-size:6.8px;color:#17243b;margin-top:1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.timeline-grid{grid-template-columns:repeat(4,1fr);margin-bottom:2.5mm}.timeline-card{border:1px solid var(--rp-line);border-radius:3mm;padding:2.2mm;background:#fff}.timeline-card strong{display:block;font-size:6.8px;color:#17243b;margin-top:1mm;line-height:1.35}.table-wrap{padding:0 2mm 2mm}.report-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:5.4px}.report-table th{background:#123b72;color:#fff;padding:1.3mm .8mm;font-weight:900;white-space:nowrap}.report-table td{padding:1.05mm .8mm;border-bottom:1px solid #e5ebf1;vertical-align:middle;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.report-table tbody tr:nth-child(even){background:#f8fbfd}.report-table .num{text-align:center;font-weight:900;color:var(--rp-navy)}.report-table th:nth-child(1),.report-table td:nth-child(1){width:5%}.lessons-block .report-table th:nth-child(2){width:12%}.lessons-block .report-table th:nth-child(3),.lessons-block .report-table th:nth-child(4){width:10%}.lessons-block .report-table th:nth-child(5){width:9%}.lessons-block .report-table th:nth-child(6){width:7%}.lessons-block .report-table th:nth-child(7){width:12%}.lessons-block .report-table th:nth-child(8){width:35%}.status{display:inline-flex;align-items:center;justify-content:center;width:4mm;height:4mm;border-radius:50%;font-size:5px}.status.done{background:#dcf7e8;color:#16804a}.status.wait{background:#fff4cf;color:#a36c00}.status.missed{background:#ffe2e2;color:#c23b3b}.empty-row{text-align:center;color:#94a3b8;padding:3mm!important}.bottom-two{display:grid;grid-template-columns:1.35fr .65fr;gap:2.5mm}.payments-block{margin-bottom:0}.payments-block .report-table th:nth-child(1){width:8%}.payments-block .report-table th:nth-child(2){width:28%}.payments-block .report-table th:nth-child(3){width:25%}.payments-block .report-table th:nth-child(4){width:39%}.finance-block{margin-bottom:0}.finance-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5mm;padding:2.5mm}.finance-mini>div{padding:1.8mm;text-align:center;background:#f8fafc;border:1px solid var(--rp-line);border-radius:2mm}.finance-mini small{font-size:5px}.finance-mini b{display:block;font-size:7.5px;color:var(--rp-navy);margin-top:1mm}
+/* PDF readability: keep every value centered inside its own box and allow Arabic wrapping */
+.report-one-page{display:flex;flex-direction:column;justify-content:center;}
+.a4-report-header{align-items:center;}
+.a4-brand{justify-content:center;flex:1;text-align:center;}
+.a4-brand>div{width:100%;}
+.student-main,.teacher-mini{display:flex;flex-direction:column;justify-content:center;}
+.detail-grid>div,.timeline-card,.metric,.finance-mini>div{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
+.detail-grid strong,.timeline-card strong{white-space:normal;overflow:visible;text-overflow:clip;word-break:normal;overflow-wrap:anywhere;line-height:1.35;text-align:center;}
+.report-table th,.report-table td{vertical-align:middle;text-align:center;}
+.report-table td:last-child{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.3;}
+.report-table th{line-height:1.25;}
+.report-note{white-space:normal;overflow-wrap:anywhere;}
+.report-note{border-top:1px dashed #dce5ee;margin:0 2.5mm 2.5mm;padding-top:2mm;font-size:5.8px;color:#52657d;line-height:1.45}.a4-report-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #dbe4ee;margin-top:2.5mm;padding-top:2mm;font-size:5.5px;color:#7a899c;font-weight:700}
 @media print{#studentsReportsPage,.sr2-detail{background:#fff!important}.report-one-page{page-break-after:auto!important;break-after:auto!important}.report-single-a4{width:210mm!important}.a4-report-header,.student-banner,.report-block,.metric,.timeline-card{break-inside:avoid}}
 </style>
 
@@ -7889,7 +7917,7 @@ window.addEventListener('orientationchange', () => {
     const lessonRows=lessons.length?lessons.map((x,i)=>{const l=x.lesson||{},d=statusData(l.status);return `<tr><td class="num">${i+1}</td><td>${esc(formatDate(l.date))}</td><td>${esc(formatTime(l.time))}</td><td>${esc(endTimeText(l.date,l.time,l.duration))}</td><td class="num">${esc(duration(l.duration))}</td><td><span class="status ${d.cls}"><i class="fa-solid ${d.icon}"></i></span></td><td>${esc(d.label)}</td><td>${esc(l.notes||'—')}</td></tr>`;}).join(''):'<tr><td colspan="8" class="empty-row">لا توجد حصص مسجلة.</td></tr>';
     const paymentRows=payments.length?payments.map((p,i)=>`<tr><td class="num">${i+1}</td><td>${esc(formatDate(p.date))}</td><td class="num">${money(p.amount)}</td><td>${esc(p.notes||'تسديد دفعة')}</td></tr>`).join(''):'<tr><td colspan="4" class="empty-row">لا توجد دفعات مسجلة.</td></tr>';
     return `<div class="report-sheet report-single-a4"><div class="report-page report-one-page">
-      <header class="a4-report-header"><div class="a4-brand"><img src="${LOGO_SRC}" alt="الشعار"><div><div class="a4-kicker">STUDENT • LESSONS • PAYMENTS</div><h1>التقرير الشامل للطالب</h1><p>ملخص كامل للملف الدراسي والحصص والدورة والمدفوعات</p></div></div><div class="a4-report-date">تاريخ التقرير<br><strong>${esc(today)}</strong></div></header>
+      <header class="a4-report-header"><div class="a4-brand"><div><div class="a4-kicker">STUDENT • LESSONS • PAYMENTS</div><h1>التقرير الشامل للطالب</h1><p>ملخص كامل للملف الدراسي والحصص والدورة والمدفوعات</p></div></div><div class="a4-report-date">تاريخ التقرير<br><strong>${esc(today)}</strong></div></header>
       <section class="student-banner"><div class="student-avatar"><i class="fa-solid fa-user-graduate"></i></div><div class="student-main"><div class="student-label">بيانات الطالب</div><h2>${esc(nameOf(s))}</h2><div class="student-tags"><span>${esc(s.stage||'—')}</span><span>${esc(s.grade||'—')}</span><span>${esc(subject)}</span><span>${esc(s.courseType||'—')}</span></div></div><div class="teacher-mini"><span>المعلم</span><strong>${esc(teacher.name||'—')}</strong></div></section>
       <section class="compact-grid four"><div class="metric"><b>${r.lessons.length}</b><span>إجمالي الحصص</span></div><div class="metric"><b>${r.completed}</b><span>مكتملة</span></div><div class="metric"><b>${r.payments.length}</b><span>عدد الدفعات</span></div><div class="metric"><b>${r.rate}%</b><span>نسبة الإنجاز</span></div></section>
       <section class="report-block"><div class="block-title"><i class="fa-solid fa-address-card"></i> بيانات الاتصال والملف</div><div class="detail-grid"><div><small>رقم الجوال</small><strong>${esc(s.phone||s.mobile||'—')}</strong></div><div><small>هاتف ولي الأمر</small><strong>${esc(s.guardianPhone||'—')}</strong></div><div><small>العنوان</small><strong>${esc(s.location||'—')}</strong></div><div><small>المادة</small><strong>${esc(subject)}</strong></div></div></section>
