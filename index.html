@@ -7936,11 +7936,23 @@ window.addEventListener('orientationchange', () => {
     try{
       if(!window.html2canvas||!window.jspdf?.jsPDF)throw new Error('PDF_LIBS_UNAVAILABLE');
       const page=sheet.querySelector('.report-one-page');if(!page)throw new Error('REPORT_PAGE_UNAVAILABLE');
-      const clone=page.cloneNode(true);clone.style.cssText+=';position:fixed;left:-10000px;top:0;width:210mm;min-height:0;height:auto;margin:0;box-shadow:none;overflow:visible;';document.body.appendChild(clone);
-      const naturalH=clone.scrollHeight;const targetPx=1122.52;const scale=Math.min(1,targetPx/Math.max(naturalH,1));
-      const canvas=await html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,windowWidth:794});clone.remove();
-      const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-      const imgW=210*scale,imgH=(canvas.height/canvas.width)*imgW;const x=(210-imgW)/2,y=0;pdf.addImage(canvas.toDataURL('image/jpeg',.94),'JPEG',x,y,imgW,Math.min(297,imgH),undefined,'FAST');
+      const clone=page.cloneNode(true);
+      clone.style.cssText+=';position:fixed;left:-10000px;top:0;width:794px;min-height:1123px;height:auto;margin:0;box-sizing:border-box;box-shadow:none;overflow:visible;transform:none!important;';
+      document.body.appendChild(clone);
+      if(document.fonts?.ready) await document.fonts.ready;
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const naturalH=clone.scrollHeight;
+      const renderScale=4;
+      const canvas=await html2canvas(clone,{scale:renderScale,backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,windowWidth:794,windowHeight:Math.max(1123,naturalH),imageTimeout:15000});
+      clone.remove();
+      const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true,putOnlyUsedFonts:true});
+      const pageW=210,pageH=297;
+      const imgRatio=canvas.height/canvas.width;
+      const fitW=pageW,fitH=fitW*imgRatio;
+      const physicalScale=Math.min(1,pageH/fitH);
+      const imgW=fitW*physicalScale,imgH=fitH*physicalScale;
+      const x=(pageW-imgW)/2,y=(pageH-imgH)/2;
+      pdf.addImage(canvas.toDataURL('image/png'),'PNG',x,y,imgW,imgH,undefined,'NONE');
       const safe=nameOf(selected).replace(/[\\/:*?"<>|]/g,'_').trim()||'طالب';const blob=pdf.output('blob');const file=new File([blob],`تقرير-${safe}.pdf`,{type:'application/pdf'});
       if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:`تقرير ${nameOf(selected)}`,files:[file]});return;}
       const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1500);alert('تم إنشاء التقرير بصيغة PDF في صفحة A4 واحدة.');
