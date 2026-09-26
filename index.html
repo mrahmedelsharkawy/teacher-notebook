@@ -7942,21 +7942,45 @@ window.addEventListener('orientationchange', () => {
       if(document.fonts?.ready) await document.fonts.ready;
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       const naturalH=clone.scrollHeight;
-      const renderScale=4;
+      // دقة متوازنة: جودة جيدة مع حجم ملف صغير ومناسب للمشاركة.
+      const renderScale=2.2;
       const canvas=await html2canvas(clone,{scale:renderScale,backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,windowWidth:794,windowHeight:Math.max(1123,naturalH),imageTimeout:15000});
       clone.remove();
-      const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true,putOnlyUsedFonts:true});
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true,putOnlyUsedFonts:true});
       const pageW=210,pageH=297;
       const imgRatio=canvas.height/canvas.width;
       const fitW=pageW,fitH=fitW*imgRatio;
       const physicalScale=Math.min(1,pageH/fitH);
       const imgW=fitW*physicalScale,imgH=fitH*physicalScale;
       const x=(pageW-imgW)/2,y=(pageH-imgH)/2;
-      pdf.addImage(canvas.toDataURL('image/png'),'PNG',x,y,imgW,imgH,undefined,'NONE');
-      const safe=nameOf(selected).replace(/[\\/:*?"<>|]/g,'_').trim()||'طالب';const blob=pdf.output('blob');const file=new File([blob],`تقرير-${safe}.pdf`,{type:'application/pdf'});
-      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:`تقرير ${nameOf(selected)}`,files:[file]});return;}
-      const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1500);alert('تم إنشاء التقرير بصيغة PDF في صفحة A4 واحدة.');
-    }catch(e){if(e?.name==='AbortError')return;console.error('PDF share error',e);alert('تعذر إنشاء ملف PDF للمشاركة. سيتم فتح الطباعة لحفظ التقرير كملف PDF.');printReport();}
+      // JPEG مضغوط بدل PNG لتقليل حجم PDF مع الحفاظ على الألوان والتنسيق.
+      const imageData=canvas.toDataURL('image/jpeg',0.82);
+      pdf.addImage(imageData,'JPEG',x,y,imgW,imgH,undefined,'FAST');
+      const safe=nameOf(selected).replace(/[\/:*?"<>|]/g,'_').trim()||'طالب';
+      const blob=pdf.output('blob');
+      const file=new File([blob],`تقرير-${safe}.pdf`,{type:'application/pdf'});
+      // المشاركة المباشرة إن كانت مدعومة، وإلا تنزيل الملف دون نافذة منبثقة.
+      if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
+        await navigator.share({title:`تقرير ${nameOf(selected)}`,files:[file]});
+        return;
+      }
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a');
+      link.href=url;
+      link.download=file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      const sizeMB=(blob.size/1024/1024).toFixed(2);
+      alert(`تم إنشاء التقرير بصيغة PDF.
+حجم الملف: ${sizeMB} MB`);
+    }catch(e){
+      if(e?.name==='AbortError')return;
+      console.error('PDF share error',e);
+      alert('تعذر إنشاء ملف PDF. حاول مرة أخرى.');
+    }
   }
   function printReport(){
     if(!selected)return;const sheet=document.getElementById('reportSheet');if(!sheet)return;const content=sheet.outerHTML;const win=window.open('','_blank');if(!win){alert('تعذر فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.');return;}
