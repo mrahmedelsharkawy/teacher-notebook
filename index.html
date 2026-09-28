@@ -3119,6 +3119,42 @@ main textarea::placeholder{
 .bottom-nav-label{font-size:12px!important}
 @media(max-width:767px){.global-clock-panel{min-height:58px!important;height:58px!important;padding:7px 12px!important;gap:10px!important}.global-clock-time{font-size:18px!important}.global-clock-day{font-size:10px!important}.global-clock-date{font-size:9px!important}.global-clock-live{font-size:8px!important}.main-with-nav{padding-top:70px!important}.bottom-app-nav{padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important}.bottom-nav-item{min-width:70px!important;padding:5px 7px 4px!important}.bottom-nav-icon{width:42px!important;height:34px!important;font-size:18px!important}.bottom-nav-label{font-size:11px!important}}
 </style>
+
+<style id="weekly-calendar-professional-layout">
+/* Weekly calendar: vertical days, horizontal lesson cards, mobile-readable */
+.weekly-days{display:flex!important;flex-direction:column!important;gap:9px!important;overflow:visible!important;}
+.weekly-day{display:flex!important;flex-direction:row!important;align-items:stretch!important;width:100%!important;min-width:0!important;border:1px solid #e2e8f0!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(15,23,42,.045)!important;background:#fff!important;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;}
+.weekly-day:hover{border-color:#93c5fd!important;box-shadow:0 7px 18px rgba(37,99,235,.08)!important;transform:translateY(-1px)}
+.weekly-day-header{width:100px!important;min-width:100px!important;flex:0 0 100px!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;gap:5px!important;padding:10px 7px!important;border-bottom:0!important;border-left:1px solid #e2e8f0!important;text-align:center!important;}
+.weekly-day-name{font-size:12px!important;line-height:1.4!important;white-space:nowrap!important}
+.weekly-day-date{font-size:10px!important;line-height:1.4!important;white-space:nowrap!important}
+.weekly-day-count{font-size:9px!important;padding:3px 7px!important}
+.weekly-day-lessons{display:flex!important;flex:1 1 auto!important;flex-direction:row!important;align-items:stretch!important;gap:8px!important;padding:8px!important;min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent;}
+.weekly-lesson{flex:0 0 150px!important;min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:9px 10px!important;border-radius:11px!important;background:linear-gradient(145deg,#f8fbff,#eff6ff)!important;border:1px solid #dbeafe!important;}
+.weekly-lesson-time{font-size:11px!important;line-height:1.45!important;white-space:normal!important}
+.weekly-lesson-name{font-size:12px!important;line-height:1.5!important;margin-top:4px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important;color:#0f172a!important}
+.weekly-lesson-meta{font-size:10px!important;line-height:1.4!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
+.weekly-day-lessons>.text-center{display:flex!important;align-items:center!important;justify-content:center!important;min-width:110px!important;padding:8px!important;border:1px dashed #cbd5e1!important;border-radius:10px!important;background:#f8fafc!important;white-space:nowrap!important}
+.weekly-day-today{border-color:#60a5fa!important;box-shadow:0 0 0 2px rgba(59,130,246,.10),0 5px 15px rgba(37,99,235,.06)!important}
+.weekly-day-today .weekly-day-header{background:linear-gradient(145deg,#2563eb,#1d4ed8)!important;color:#fff!important;border-left-color:#93c5fd!important}
+.weekly-day-active:not(.weekly-day-today) .weekly-day-header{background:linear-gradient(145deg,#eff6ff,#dbeafe)!important;color:#1d4ed8!important;border-left-color:#bfdbfe!important}
+.weekly-day-empty .weekly-day-header{background:#f8fafc!important;color:#64748b!important}
+@media(max-width:640px){
+ .weekly-days{gap:7px!important}
+ .weekly-day{border-radius:12px!important}
+ .weekly-day-header{width:78px!important;min-width:78px!important;flex-basis:78px!important;padding:7px 4px!important;gap:4px!important}
+ .weekly-day-number{width:25px!important;height:25px!important;font-size:10px!important;border-radius:8px!important}
+ .weekly-day-name{font-size:10px!important;white-space:normal!important}
+ .weekly-day-date{font-size:9px!important}
+ .weekly-day-count{font-size:8px!important;padding:2px 5px!important}
+ .weekly-day-lessons{gap:6px!important;padding:6px!important;scroll-snap-type:x proximity}
+ .weekly-lesson{flex-basis:clamp(118px,42vw,150px)!important;padding:8px!important;scroll-snap-align:start}
+ .weekly-lesson-time{font-size:10px!important}
+ .weekly-lesson-name{font-size:11px!important;line-height:1.45!important}
+ .weekly-lesson-meta{font-size:9px!important}
+}
+@media(prefers-reduced-motion:reduce){.weekly-day{transition:none!important}.weekly-day:hover{transform:none!important}}
+</style>
 </head>
 
 <body
