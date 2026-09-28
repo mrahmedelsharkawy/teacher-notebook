@@ -371,6 +371,8 @@
 /* Month swipe animation */
 .month-calendar.month-swipe-next{animation:monthSwipeNext .36s cubic-bezier(.22,1,.36,1);}
 .month-calendar.month-swipe-prev{animation:monthSwipePrev .36s cubic-bezier(.22,1,.36,1);}
+.weekly-days.week-swipe-next{animation:monthSwipeNext .36s cubic-bezier(.22,1,.36,1);}
+.weekly-days.week-swipe-prev{animation:monthSwipePrev .36s cubic-bezier(.22,1,.36,1);}
 @keyframes monthSwipeNext{0%{opacity:.25;transform:translateX(24px) scale(.985);filter:blur(1.5px)}55%{opacity:1;transform:translateX(-2px) scale(1)}100%{opacity:1;transform:translateX(0) scale(1);filter:blur(0)}}
 @keyframes monthSwipePrev{0%{opacity:.25;transform:translateX(-24px) scale(.985);filter:blur(1.5px)}55%{opacity:1;transform:translateX(2px) scale(1)}100%{opacity:1;transform:translateX(0) scale(1);filter:blur(0)}}
 
@@ -3380,6 +3382,53 @@ main textarea::placeholder{
                 </div>
 
                 <!-- =================================================
+                     WEEKLY CALENDAR — السبت إلى الجمعة
+                ================================================== -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><i class="fa-solid fa-calendar-week text-sm"></i></div>
+                            <div class="min-w-0">
+                                <h3 class="font-extrabold text-slate-800 text-sm">تقويم الأسبوع</h3>
+                                <p class="text-[10px] text-slate-400 mt-0.5" x-text="getCurrentWeekLabel()"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button type="button" @click="changeWeek(-1)" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition" aria-label="الأسبوع السابق" title="الأسبوع السابق"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                            <button type="button" @click="weekOffset = 0" class="px-2.5 h-8 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-600 text-[10px] font-bold transition">هذا الأسبوع</button>
+                            <button type="button" @click="changeWeek(1)" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-500 hover:text-blue-600 transition" aria-label="الأسبوع التالي" title="الأسبوع التالي"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div class="p-3 md:p-4" @touchstart.passive="weekSwipeStart($event)" @touchend="weekSwipeEnd($event)">
+                        <div class="weekly-days" :class="weekMotionClass">
+                            <template x-for="day in getWeekDays()" :key="'week-' + day.date">
+                                <div class="weekly-day" role="button" tabindex="0" @click="openCalendarDay(day)" @keydown.enter="openCalendarDay(day)" :class="{'weekly-day-today': day.isToday, 'weekly-day-active': day.lessons.length > 0, 'weekly-day-empty': day.lessons.length === 0}">
+                                    <div class="weekly-day-header">
+                                        <div class="min-w-0">
+                                            <div class="weekly-day-name" x-text="day.name"></div>
+                                            <div class="weekly-day-date" x-text="day.dateLabel"></div>
+                                        </div>
+                                        <span class="weekly-day-count" x-text="day.lessons.length + ' حصة'"></span>
+                                    </div>
+                                    <div class="weekly-day-lessons">
+                                        <template x-for="item in day.lessons" :key="'week-lesson-' + item.studentId + '-' + item.lesson.id">
+                                            <div class="weekly-lesson">
+                                                <div class="weekly-lesson-time" x-text="formatTime(item.lesson.time)"></div>
+                                                <div class="weekly-lesson-name" x-text="item.studentName"></div>
+                                                <div class="weekly-lesson-meta" x-text="item.subjectType || ''"></div>
+                                            </div>
+                                        </template>
+                                        <template x-if="day.lessons.length === 0">
+                                            <div class="text-center text-[10px] text-slate-400 py-2">لا توجد حصص</div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =================================================
                      MONTH CALENDAR
                 ================================================== -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -3991,6 +4040,10 @@ main textarea::placeholder{
                             <i class="fa-solid fa-map-location-dot"></i>
                         </a>
                     </div>
+                    <div class="mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-xs text-slate-400 block">رقم المبنى والدور والشقة</span>
+                        <span class="font-bold text-sm text-slate-700 block break-words" x-text="selectedStudent.buildingDetails || 'غير مسجل'"></span>
+                    </div>
 
 
                     <!-- Tabs -->
@@ -4374,6 +4427,14 @@ main textarea::placeholder{
                     type="text"
                     x-model="studentForm.location"
                     placeholder="العنوان / الموقع"
+                    class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"
+                >
+
+                <input
+                    type="text"
+                    x-model="studentForm.buildingDetails"
+                    placeholder="رقم المبنى والدور والشقة"
+                    aria-label="رقم المبنى والدور والشقة"
                     class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"
                 >
 
@@ -5244,6 +5305,9 @@ function teacherApp() {
         weekOffset: 0,
         monthOffset: 0,
         calendarMotionClass: '',
+        weekMotionClass: '',
+        weekSwipeStartX: 0,
+        weekSwipeStartY: 0,
 
         // يتغير كل ثانية لإعادة تقييم الحصص القادمة تلقائياً
         timeTick: 0,
@@ -5306,7 +5370,7 @@ function teacherApp() {
            FORMS
         ========================== */
 
-        studentForm: { id: null, name: '', stage: '', grade: '', courseType: '', subjectType: '', price: '', phone: '', guardianPhone: '', guardianRelation: '', location: '' },
+        studentForm: { id: null, name: '', stage: '', grade: '', courseType: '', subjectType: '', price: '', phone: '', guardianPhone: '', guardianRelation: '', location: '', buildingDetails: '' },
 
         isEditingLesson: false,
 
@@ -5555,7 +5619,31 @@ function teacherApp() {
         },
 
         changeWeek(direction) {
-            this.weekOffset += Number(direction) || 0;
+            const step = Number(direction) || 0;
+            if (!step) return;
+            this.weekMotionClass = step > 0 ? 'week-swipe-next' : 'week-swipe-prev';
+            this.weekOffset += step;
+            clearTimeout(this._weekMotionTimer);
+            this._weekMotionTimer = setTimeout(() => { this.weekMotionClass = ''; }, 380);
+        },
+
+        weekSwipeStart(event) {
+            const touch = event?.changedTouches?.[0];
+            if (!touch) return;
+            this.weekSwipeStartX = touch.clientX;
+            this.weekSwipeStartY = touch.clientY;
+        },
+
+        weekSwipeEnd(event) {
+            const touch = event?.changedTouches?.[0];
+            if (!touch || !this.weekSwipeStartX) return;
+            const dx = touch.clientX - this.weekSwipeStartX;
+            const dy = touch.clientY - this.weekSwipeStartY;
+            this.weekSwipeStartX = 0;
+            this.weekSwipeStartY = 0;
+            if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy)) return;
+            // مثل تقويم الشهر: السحب لليمين يعرض الأسبوع التالي، ولليسار السابق.
+            this.changeWeek(dx > 0 ? 1 : -1);
         },
 
         getCurrentMonthLabel() {
@@ -7920,7 +8008,7 @@ window.addEventListener('orientationchange', () => {
       <header class="a4-report-header"><div class="a4-brand"><div><div class="a4-kicker">STUDENT • LESSONS • PAYMENTS</div><h1>التقرير الشامل للطالب</h1><p>ملخص كامل للملف الدراسي والحصص والدورة والمدفوعات</p></div></div><div class="a4-report-date">تاريخ التقرير<br><strong>${esc(today)}</strong></div></header>
       <section class="student-banner"><div class="student-avatar"><i class="fa-solid fa-user-graduate"></i></div><div class="student-main"><div class="student-label">بيانات الطالب</div><h2>${esc(nameOf(s))}</h2><div class="student-tags"><span>${esc(s.stage||'—')}</span><span>${esc(s.grade||'—')}</span><span>${esc(subject)}</span><span>${esc(s.courseType||'—')}</span></div></div><div class="teacher-mini"><span>المعلم</span><strong>${esc(teacher.name||'—')}</strong></div></section>
       <section class="compact-grid four"><div class="metric"><b>${r.lessons.length}</b><span>إجمالي الحصص</span></div><div class="metric"><b>${r.completed}</b><span>مكتملة</span></div><div class="metric"><b>${r.payments.length}</b><span>عدد الدفعات</span></div><div class="metric"><b>${r.rate}%</b><span>نسبة الإنجاز</span></div></section>
-      <section class="report-block"><div class="block-title"><i class="fa-solid fa-address-card"></i> بيانات الاتصال والملف</div><div class="detail-grid"><div><small>رقم الجوال</small><strong>${esc(s.phone||s.mobile||'—')}</strong></div><div><small>هاتف ولي الأمر</small><strong>${esc(s.guardianPhone||'—')}</strong></div><div><small>العنوان</small><strong>${esc(s.location||'—')}</strong></div><div><small>المادة</small><strong>${esc(subject)}</strong></div></div></section>
+      <section class="report-block"><div class="block-title"><i class="fa-solid fa-address-card"></i> بيانات الاتصال والملف</div><div class="detail-grid"><div><small>رقم الجوال</small><strong>${esc(s.phone||s.mobile||'—')}</strong></div><div><small>هاتف ولي الأمر</small><strong>${esc(s.guardianPhone||'—')}</strong></div><div><small>العنوان</small><strong>${esc(s.location||'—')}</strong></div><div><small>رقم المبنى والدور والشقة</small><strong>${esc(s.buildingDetails||'—')}</strong></div><div><small>المادة</small><strong>${esc(subject)}</strong></div></div></section>
       <section class="compact-grid timeline-grid"><div class="timeline-card"><small>بداية أول حصة</small><strong>${first?esc(formatDate(first.date)+' · '+formatTime(first.time)):'—'}</strong></div><div class="timeline-card"><small>نهاية آخر حصة</small><strong>${last?esc(formatDate(last.date)+' · '+endTimeText(last.date,last.time,last.duration)):'—'}</strong></div><div class="timeline-card"><small>مدة الدورة</small><strong>${esc(courseDuration)}</strong></div><div class="timeline-card"><small>إجمالي زمن التدريس</small><strong>${stats.totalHours?esc(duration(stats.totalHours)):'—'}</strong></div></section>
       <section class="report-block lessons-block"><div class="block-title"><i class="fa-solid fa-list-check"></i> سجل جميع الحصص <span>${lessons.length} حصة</span></div><div class="table-wrap"><table class="report-table compact-table"><thead><tr><th>#</th><th>التاريخ</th><th>البداية</th><th>النهاية</th><th>المدة</th><th>الحالة</th><th>البيان</th><th>ملاحظات</th></tr></thead><tbody>${lessonRows}</tbody></table></div></section>
       <section class="bottom-two"><section class="report-block payments-block"><div class="block-title"><i class="fa-solid fa-money-check-dollar"></i> سجل المدفوعات <span>${payments.length} دفعة</span></div><div class="table-wrap"><table class="report-table compact-table"><thead><tr><th>#</th><th>التاريخ</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>${paymentRows}</tbody></table></div></section><section class="report-block finance-block"><div class="block-title"><i class="fa-solid fa-wallet"></i> الخلاصة المالية</div><div class="finance-mini"><div><small>المستحق</small><b>${money(r.expected)}</b></div><div><small>المدفوع</small><b>${money(r.paid)}</b></div><div><small>المتبقي</small><b>${money(r.debt)}</b></div></div><div class="report-note"><b>ملاحظات:</b> ${esc(notes||'لا توجد ملاحظات مسجلة.')}</div></section></section>
