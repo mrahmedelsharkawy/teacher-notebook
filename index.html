@@ -3155,6 +3155,48 @@ main textarea::placeholder{
 }
 @media(prefers-reduced-motion:reduce){.weekly-day{transition:none!important}.weekly-day:hover{transform:none!important}}
 </style>
+
+
+<style id="weekly-calendar-mobile-fit-v18">
+/* Restore horizontal week swipes while leaving vertical page scrolling natural. */
+.weekly-swipe-surface{touch-action:pan-y;overscroll-behavior-x:contain;}
+.weekly-days{width:100%;min-width:0;}
+.weekly-day{width:100%;min-width:0;max-width:100%;height:auto!important;min-height:76px!important;}
+.weekly-day-header{flex:0 0 88px!important;width:88px!important;min-width:88px!important;max-width:88px!important;padding:7px 4px!important;}
+.weekly-day-lessons,
+.weekly-day-active .weekly-day-lessons,
+.weekly-day-today .weekly-day-lessons{
+  display:flex!important;flex:1 1 0!important;min-width:0!important;width:0!important;
+  flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;
+  align-content:center!important;justify-content:flex-start!important;gap:6px!important;
+  padding:7px!important;overflow:visible!important;max-height:none!important;
+}
+.weekly-lesson{
+  display:inline-flex!important;flex:0 1 auto!important;width:auto!important;
+  min-width:0!important;max-width:100%!important;flex-direction:row!important;
+  align-items:center!important;justify-content:flex-start!important;gap:5px!important;
+  padding:6px 8px!important;white-space:normal!important;overflow:visible!important;
+}
+.weekly-lesson-time{flex:0 0 auto!important;font-size:9px!important;white-space:nowrap!important;}
+.weekly-lesson-name{flex:0 1 auto!important;width:auto!important;min-width:0!important;
+  max-width:none!important;font-size:10px!important;line-height:1.35!important;
+  margin:0!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  word-break:normal!important;text-overflow:clip!important;}
+.weekly-lesson-meta{display:none!important;}
+.weekly-day-empty{min-height:58px!important;height:auto!important;}
+.weekly-day-empty .weekly-day-lessons{display:flex!important;min-height:54px!important;}
+@media(max-width:380px){
+ .weekly-day-header{flex-basis:72px!important;width:72px!important;min-width:72px!important;max-width:72px!important;}
+ .weekly-day-name{font-size:9px!important}
+ .weekly-day-date{font-size:8px!important}
+ .weekly-day-count{font-size:8px!important;padding:2px 4px!important}
+ .weekly-day-lessons,.weekly-day-active .weekly-day-lessons,.weekly-day-today .weekly-day-lessons{gap:4px!important;padding:5px!important}
+ .weekly-lesson{gap:4px!important;padding:5px 6px!important}
+ .weekly-lesson-time{font-size:8px!important}
+ .weekly-lesson-name{font-size:9px!important}
+}
+@media(prefers-reduced-motion:reduce){.weekly-days{animation:none!important;}}
+</style>
 </head>
 
 <body
@@ -3431,7 +3473,7 @@ main textarea::placeholder{
                         </div>
 
                     </div>
-                    <div class="p-3 md:p-4 weekly-swipe-surface" @touchstart.passive="weekSwipeStart($event)" @touchend="weekSwipeEnd($event)" @wheel.prevent="weekWheelNavigate($event)">
+                    <div class="p-3 md:p-4 weekly-swipe-surface" @touchstart.passive="weekSwipeStart($event)" @touchend="weekSwipeEnd($event)">
                         <div class="weekly-days" :class="weekMotionClass">
                             <template x-for="day in getWeekDays()" :key="'week-' + day.date">
                                 <div class="weekly-day" role="button" tabindex="0" @click="openCalendarDay(day)" @keydown.enter="openCalendarDay(day)" :class="{'weekly-day-today': day.isToday, 'weekly-day-active': day.lessons.length > 0, 'weekly-day-empty': day.lessons.length === 0}">
@@ -5675,9 +5717,9 @@ function teacherApp() {
             const dx = touch.clientX - this.weekSwipeStartX;
             this.weekSwipeStartX = 0;
             this.weekSwipeStartY = null;
-            // السحب الرأسي للأعلى يعرض الأسبوع التالي، وللأسفل الأسبوع السابق.
-            if (Math.abs(dy) < 55 || Math.abs(dy) < Math.abs(dx) * 1.15) return;
-            this.changeWeek(dy < 0 ? 1 : -1);
+            // السحب الأفقي يميناً يعرض الأسبوع التالي، ويساراً الأسبوع السابق.
+            if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+            this.changeWeek(dx > 0 ? 1 : -1);
         },
 
         weekWheelNavigate(event) {
@@ -8292,7 +8334,7 @@ window.addEventListener('orientationchange', () => {
 .weekly-days.week-swipe-prev{animation:weekSwipeDown .36s cubic-bezier(.22,1,.36,1)!important;}
 @keyframes weekSwipeUp{0%{opacity:.25;transform:translateY(22px) scale(.99);filter:blur(1px)}55%{opacity:1;transform:translateY(-2px) scale(1)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
 @keyframes weekSwipeDown{0%{opacity:.25;transform:translateY(-22px) scale(.99);filter:blur(1px)}55%{opacity:1;transform:translateY(2px) scale(1)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
-.weekly-swipe-surface{touch-action:pan-x;overscroll-behavior:contain;}
+.weekly-swipe-surface{touch-action:pan-y;overscroll-behavior-y:auto;overscroll-behavior-x:contain;}
 .weekly-days{display:flex!important;flex-direction:column!important;gap:7px!important;}
 .weekly-day{min-height:68px!important;height:auto!important;display:flex!important;flex-direction:row!important;align-items:stretch!important;overflow:hidden!important;border-radius:13px!important;border:1px solid #dbeafe!important;background:linear-gradient(105deg,#f8fbff 0%,#eef6ff 100%)!important;box-shadow:0 3px 10px rgba(30,64,175,.07)!important;}
 .weekly-day:nth-child(7n+1){background:linear-gradient(105deg,#fff7ed,#ffedd5)!important;border-color:#fed7aa!important}
