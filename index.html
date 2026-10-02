@@ -3197,6 +3197,55 @@ main textarea::placeholder{
 }
 @media(prefers-reduced-motion:reduce){.weekly-days{animation:none!important;}}
 </style>
+
+<style id="v26-calendar-compact-vertical-redesign">
+/* Week lesson chips size to their content while remaining responsive. */
+.weekly-day-lessons{flex-wrap:wrap!important;align-content:center!important;justify-content:flex-start!important;overflow:visible!important;min-width:0!important;}
+.weekly-lesson{display:inline-flex!important;flex:0 1 auto!important;width:max-content!important;max-width:100%!important;min-width:0!important;align-self:center!important;padding:6px 8px!important;gap:5px!important;border-radius:9px!important;}
+.weekly-lesson-time{flex:0 0 auto!important;white-space:nowrap!important;font-size:10px!important;}
+.weekly-lesson-name{flex:0 1 auto!important;width:auto!important;min-width:0!important;max-width:100%!important;margin:0!important;font-size:11px!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+@media(max-width:640px){.weekly-lesson{padding:5px 7px!important;gap:4px!important}.weekly-lesson-time{font-size:9px!important}.weekly-lesson-name{font-size:10px!important}}
+
+/* Monthly calendar redesigned as a vertical agenda: one date per row. */
+.month-calendar{display:flex!important;flex-direction:column!important;gap:7px!important;width:100%!important;min-width:0!important;}
+.month-calendar-head{display:none!important;}
+.month-calendar-cell{display:block!important;visibility:visible!important;width:100%!important;min-width:0!important;min-height:66px!important;height:auto!important;padding:0!important;border:1px solid #dbeafe!important;border-radius:13px!important;background:linear-gradient(100deg,#fff 0%,#f8fbff 100%)!important;box-shadow:0 2px 8px rgba(15,23,42,.035)!important;overflow:hidden!important;}
+.month-calendar-cell.outside{display:none!important;visibility:hidden!important;}
+.month-cell-content{display:grid!important;grid-template-columns:76px minmax(0,1fr)!important;align-items:stretch!important;gap:8px!important;width:100%!important;height:auto!important;min-height:66px!important;padding:6px 8px!important;box-sizing:border-box!important;}
+.month-cell-date{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:5px 3px!important;border-radius:9px!important;background:#f1f5f9!important;min-width:0!important;}
+.month-day-name{font-size:10px!important;line-height:1.25!important;font-weight:800!important;color:#475569!important;white-space:nowrap!important;}
+.month-day-number{width:27px!important;height:27px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:8px!important;font-size:12px!important;font-weight:900!important;margin:0!important;background:#e2e8f0!important;color:#334155!important;}
+.month-cell-lessons{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-content:center!important;align-items:center!important;gap:5px!important;min-width:0!important;padding:2px 0!important;}
+.month-student{display:inline-flex!important;align-items:center!important;width:max-content!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:5px 7px!important;border-radius:8px!important;font-size:10px!important;line-height:1.3!important;white-space:normal!important;overflow-wrap:anywhere!important;text-overflow:clip!important;box-sizing:border-box!important;}
+.month-no-lessons{display:inline-flex!important;align-items:center!important;min-height:26px!important;padding:4px 7px!important;font-size:9px!important;color:#94a3b8!important;background:#f8fafc!important;border:1px dashed #e2e8f0!important;border-radius:7px!important;}
+.month-calendar-cell.has-lessons{border-color:#99f6e4!important;background:linear-gradient(100deg,#f0fdfa 0%,#fff 75%)!important;}
+.month-calendar-cell.has-lessons .month-cell-date{background:#ccfbf1!important;}
+.month-calendar-cell.today{border:2px solid #0d9488!important;box-shadow:0 0 0 2px rgba(13,148,136,.09)!important;}
+.month-calendar-cell.today .month-cell-date{background:#ccfbf1!important;}
+.month-calendar-cell.today .month-day-number{background:#0f766e!important;color:#fff!important;}
+@media(max-width:640px){
+ .month-calendar{gap:6px!important}
+ .month-calendar-cell,.month-cell-content{min-height:59px!important}
+ .month-cell-content{grid-template-columns:62px minmax(0,1fr)!important;gap:6px!important;padding:5px 6px!important}
+ .month-day-name{font-size:9px!important}.month-day-number{width:24px!important;height:24px!important;font-size:11px!important}
+ .month-cell-lessons{gap:4px!important}.month-student{font-size:9px!important;padding:4px 6px!important}.month-no-lessons{font-size:8px!important}
+}
+@media(max-width:360px){.month-cell-content{grid-template-columns:55px minmax(0,1fr)!important;gap:5px!important}.month-day-name{font-size:8px!important}.month-student{font-size:8px!important;padding:3px 5px!important}}
+
+/* Selected-day popup: increase readability and touch targets moderately. */
+.calendar-day-popup{padding:14px!important;width:min(500px,calc(100vw - 20px))!important;max-width:500px!important;}
+.calendar-day-popup>div:first-child h3{font-size:17px!important;}
+.calendar-day-popup>div:first-child .text-xs{font-size:11px!important;}
+.calendar-day-lesson-compact{min-height:40px!important;height:auto!important;padding:6px 7px!important;gap:6px!important;border-radius:10px!important;}
+.popup-edit,.calendar-day-lesson-compact .popup-delete{width:23px!important;height:23px!important;min-width:23px!important;flex:0 0 23px!important;border-radius:7px!important;}
+.popup-edit i,.calendar-day-lesson-compact .popup-delete i{font-size:10px!important;}
+.popup-status{width:19px!important;height:19px!important;min-width:19px!important;flex:0 0 19px!important;font-size:8px!important;}
+.popup-status-actions{gap:3px!important;}
+.calendar-day-lesson-compact .popup-student-name{font-size:11px!important;line-height:1.35!important;}
+.calendar-day-lesson-compact .popup-lesson-time{font-size:10px!important;}
+.popup-lesson-date{font-size:8px!important;}
+@media(max-width:420px){.calendar-day-popup{padding:11px!important;width:calc(100vw - 18px)!important}.calendar-day-lesson-compact{min-height:38px!important;padding:5px!important}.popup-edit,.calendar-day-lesson-compact .popup-delete{width:21px!important;height:21px!important;min-width:21px!important;flex-basis:21px!important}.popup-status{width:18px!important;height:18px!important;min-width:18px!important;flex-basis:18px!important}.calendar-day-lesson-compact .popup-student-name{font-size:10px!important}.calendar-day-lesson-compact .popup-lesson-time{font-size:9px!important}}
+</style>
 </head>
 
 <body
