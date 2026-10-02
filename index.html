@@ -3207,112 +3207,7 @@ main textarea::placeholder{
 
 <div class="flex min-h-screen">
 
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-    <aside
-        class="app-sidebar bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col justify-between p-4 sticky top-0 h-screen z-30"
-        :class="{ 'collapsed': !sidebarOpen }"
-    >
-
-        <div>
-            <!-- Logo -->
-            <div class="flex items-center gap-3 px-3 py-4 border-b border-slate-800 mb-6">
-                <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-xl font-bold shadow-lg shadow-brand-500/30">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                </div>
-
-                <div>
-                    <h1 class="font-bold text-lg leading-tight">دفتر المعلم</h1>
-                    <span class="text-xs text-slate-400">إدارة الحصص والطلاب</span>
-                </div>
-            </div>
-
-            <!-- Navigation -->
-            <nav class="space-y-1">
-
-                <button
-                    @click="activeTab = 'dashboard'"
-                    :class="navClass('dashboard')"
-                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition"
-                >
-                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
-                    <span>الرئيسية</span>
-                </button>
-
-                <button
-                    @click="activeTab = 'students'"
-                    :class="navClass('students')"
-                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition"
-                >
-                    <i class="fa-solid fa-user-graduate w-5 text-center"></i>
-                    <span>سجل الطلاب</span>
-                </button>
-
-                <button
-                    @click="activeTab = 'finance'"
-                    :class="navClass('finance')"
-                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition"
-                >
-                    <i class="fa-solid fa-wallet w-5 text-center"></i>
-                    <span>السجل المالي</span>
-                </button>
-
-                <button
-                    @click="activeTab = 'contact'"
-                    :class="navClass('contact')"
-                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition"
-                >
-                    <i class="fa-solid fa-address-book w-5 text-center"></i>
-                    <span>تواصل</span>
-                </button>
-
-                <button
-                    @click="activeTab = 'profile'"
-                    :class="navClass('profile')"
-                    class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition"
-                >
-                    <i class="fa-solid fa-id-card w-5 text-center"></i>
-                    <span>حسابي</span>
-                </button>
-
-            </nav>
-        </div>
-
-        <!-- Teacher Mini Profile -->
-        <button
-            @click="activeTab = 'profile'"
-            class="w-full p-3 bg-slate-800/60 rounded-xl border border-slate-800 flex items-center gap-3 text-right hover:bg-slate-800 transition"
-        >
-            <div class="w-10 h-10 rounded-full overflow-hidden bg-brand-500/20 flex items-center justify-center font-bold flex-shrink-0">
-                <template x-if="teacher.photo">
-                    <img :src="teacher.photo" class="w-full h-full object-cover">
-                </template>
-
-                <template x-if="!teacher.photo">
-                    <span x-text="teacher.name.charAt(0)"></span>
-                </template>
-            </div>
-
-            <div class="min-w-0">
-                <p class="text-sm font-semibold truncate" x-text="activeProfileName()"></p>
-                <p class="text-xs text-slate-400 truncate" x-text="teacher.specialty"></p>
-            </div>
-        </button>
-
-    </aside>
-
-    <!-- Sidebar Toggle -->
-    <button
-        @click="sidebarOpen = !sidebarOpen"
-        :class="{ 'collapsed': !sidebarOpen }"
-        class="sidebar-toggle w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-lg text-slate-600 hover:text-brand-600 hover:border-brand-300 flex items-center justify-center transition"
-        :title="sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'"
-        aria-label="إظهار أو إخفاء القائمة الجانبية"
-    >
-        <i class="fa-solid" :class="sidebarOpen ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
-    </button>
-
+    <!-- القائمة الجانبية أزيلت؛ التنقل يتم من الشريط السفلي -->
 
     <!-- =====================================================
          GLOBAL FIXED CLOCK / DATE
@@ -3549,17 +3444,22 @@ main textarea::placeholder{
                                     :tabindex="cell.outside ? -1 : 0"
                                 >
                                     <template x-if="!cell.outside">
-                                        <div>
-                                            <div class="month-day-number" x-text="cell.dayNumber"></div>
-
-                                            <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
-                                                <span
-                                                    class="month-student"
-                                                    :style="getStudentCalendarStyle(item.studentId)"
-                                                    :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
-                                                    x-text="item.studentName"
-                                                ></span>
-                                            </template>
+                                        <div class="month-cell-content">
+                                            <div class="month-cell-date">
+                                                <span class="month-day-name" x-text="cell.dayName"></span>
+                                                <div class="month-day-number" x-text="cell.dayNumber"></div>
+                                            </div>
+                                            <div class="month-cell-lessons">
+                                                <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
+                                                    <span
+                                                        class="month-student"
+                                                        :style="getStudentCalendarStyle(item.studentId)"
+                                                        :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
+                                                        x-text="item.studentName + ' · ' + formatTime(item.lesson.time)"
+                                                    ></span>
+                                                </template>
+                                                <span x-show="cell.lessons.length===0" class="month-no-lessons">لا توجد حصص</span>
+                                            </div>
                                         </div>
                                     </template>
                                 </div>
@@ -5900,6 +5800,7 @@ function teacherApp() {
                     key: iso + '-' + index,
                     date: iso,
                     dayNumber,
+                    dayName: ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][cellDate.getDay()],
                     outside: false,
                     isToday: iso === this.getTodayISO(),
                     lessons
@@ -8263,6 +8164,50 @@ window.addEventListener('orientationchange', () => {
 }
 </style>
 
+
+<style id="v25-mobile-month-agenda-and-popup-sizing">
+/* Selected-day popup: restore comfortable, readable controls without wasting space. */
+.calendar-day-popup{padding:14px!important;width:min(500px,calc(100vw - 24px))!important;max-width:500px!important;}
+.calendar-day-popup .mt-4.space-y-2{gap:7px!important;}
+.calendar-day-lesson-compact{min-height:38px!important;padding:5px 7px!important;gap:6px!important;border-radius:10px!important;}
+.popup-edit,.calendar-day-lesson-compact .popup-delete{width:22px!important;height:22px!important;min-width:22px!important;flex-basis:22px!important;}
+.popup-edit i,.calendar-day-lesson-compact .popup-delete i{font-size:10px!important;}
+.popup-status{width:19px!important;height:19px!important;flex-basis:19px!important;font-size:8px!important;}
+.calendar-day-lesson-compact .popup-student-name{font-size:10px!important;}
+.calendar-day-lesson-compact .popup-lesson-time{font-size:9px!important;}
+.popup-lesson-date{font-size:8px!important;}
+.month-cell-content{min-width:0;height:100%;}
+.month-cell-date{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.month-day-name{display:none;}
+.month-cell-lessons{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.month-student{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:6px;padding:2px 4px;font-size:8px;line-height:1.25;}
+.month-no-lessons{display:none;}
+@media(max-width:640px){
+ .month-calendar{display:flex!important;flex-direction:column!important;gap:5px!important;}
+ .month-calendar-head{display:none!important;}
+ .month-calendar-cell,.month-calendar-cell.outside{display:block!important;visibility:visible!important;pointer-events:auto!important;min-height:0!important;height:auto!important;padding:0!important;border-radius:10px!important;}
+ .month-calendar-cell.outside{display:none!important;}
+ .month-cell-content{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:stretch;gap:7px;padding:6px 8px;}
+ .month-cell-date{flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:4px 3px;border-radius:8px;background:#f1f5f9;}
+ .month-day-name{display:block;font-size:9px;font-weight:800;color:#64748b;line-height:1.2;}
+ .month-day-number{width:25px!important;height:25px!important;margin:0!important;border-radius:8px!important;font-size:11px!important;}
+ .month-calendar-cell.today .month-cell-date{background:#ccfbf1;}
+ .month-calendar-cell.today .month-day-name{color:#0f766e;}
+ .month-cell-lessons{flex-direction:row;flex-wrap:wrap;align-content:center;gap:4px;min-height:34px;}
+ .month-student{width:auto;max-width:100%;padding:4px 6px!important;font-size:9px!important;line-height:1.2!important;border-radius:7px!important;white-space:normal!important;overflow-wrap:anywhere;}
+ .month-no-lessons{display:block;color:#94a3b8;font-size:9px;align-self:center;}
+ .calendar-day-popup{padding:12px!important;width:calc(100vw - 20px)!important;}
+ .calendar-day-lesson-compact{min-height:35px!important;padding:5px!important;gap:5px!important;}
+ .popup-edit,.calendar-day-lesson-compact .popup-delete{width:20px!important;height:20px!important;min-width:20px!important;flex-basis:20px!important;}
+ .popup-status{width:17px!important;height:17px!important;flex-basis:17px!important;}
+}
+@media(max-width:360px){
+ .month-cell-content{grid-template-columns:65px minmax(0,1fr);gap:5px;padding:5px 6px;}
+ .month-day-name{font-size:8px;}
+ .month-student{font-size:8px!important;padding:3px 5px!important;}
+}
+</style>
+
 </body></html>`);win.document.close();
   }
   window.openStudentReport=openDetail;window.openStudentsReportsPage=openPage;window.closeStudentsReportsPage=closePage;window.closeStudentsReportDetail=closeDetail;window.shareStudentsReportNative=share;window.printStudentsReport=printReport;
@@ -8633,5 +8578,37 @@ window.addEventListener('orientationchange', () => {
 }
 </style>
 
+
+<style id="v24-extra-compact-day-lesson-popup">
+/* Smaller selected-day lesson cards to better match the weekly calendar density */
+.calendar-day-popup{padding:11px!important;max-width:440px!important;width:min(440px,calc(100vw - 18px))!important;border-radius:18px!important;}
+.calendar-day-popup>div:first-child{gap:7px!important;padding-bottom:9px!important;}
+.calendar-day-popup>div:first-child h3{font-size:15px!important;margin-top:2px!important;}
+.calendar-day-popup>div:first-child .text-xs{font-size:10px!important;}
+.calendar-day-popup>div:first-child button{padding:7px 9px!important;font-size:10px!important;border-radius:9px!important;}
+.calendar-day-popup>div:first-child button:last-child{width:29px!important;height:29px!important;flex:0 0 29px!important;padding:0!important;}
+.calendar-day-popup .mt-4.space-y-2{margin-top:9px!important;display:flex!important;flex-direction:column!important;gap:5px!important;}
+.calendar-day-lesson-compact{min-height:30px!important;height:auto!important;padding:3px 4px!important;gap:4px!important;border-radius:9px!important;}
+.popup-lesson-actions{gap:2px!important;}
+.popup-edit,.calendar-day-lesson-compact .popup-delete{width:18px!important;height:18px!important;min-width:18px!important;flex:0 0 18px!important;border-radius:5px!important;}
+.popup-edit i,.calendar-day-lesson-compact .popup-delete i{font-size:8px!important;}
+.popup-status-actions{gap:1px!important;}
+.popup-status{width:15px!important;height:15px!important;flex:0 0 15px!important;border-radius:4px!important;font-size:6px!important;}
+.popup-lesson-inline{gap:4px!important;}
+.calendar-day-lesson-compact .popup-student-name{font-size:9px!important;line-height:1.2!important;min-width:0!important;}
+.popup-lesson-date{font-size:7px!important;}
+.calendar-day-lesson-compact .popup-lesson-time{font-size:8px!important;}
+@media(max-width:420px){
+ .calendar-day-popup{padding:8px!important;width:calc(100vw - 14px)!important;border-radius:16px!important;}
+ .calendar-day-lesson-compact{gap:3px!important;padding:3px!important;min-height:27px!important;}
+ .popup-edit,.calendar-day-lesson-compact .popup-delete{width:16px!important;height:16px!important;min-width:16px!important;flex-basis:16px!important;}
+ .popup-edit i,.calendar-day-lesson-compact .popup-delete i{font-size:7px!important;}
+ .popup-status{width:14px!important;height:14px!important;flex-basis:14px!important;font-size:6px!important;}
+ .popup-lesson-inline{gap:2px!important;}
+ .calendar-day-lesson-compact .popup-student-name{font-size:8px!important;}
+ .popup-lesson-date{font-size:6px!important;}
+ .calendar-day-lesson-compact .popup-lesson-time{font-size:7px!important;}
+}
+</style>
 </body>
 </html>
