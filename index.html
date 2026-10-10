@@ -3197,142 +3197,6 @@ main textarea::placeholder{
 }
 @media(prefers-reduced-motion:reduce){.weekly-days{animation:none!important;}}
 </style>
-
-<style id="v22-month-grid-redesign">
-/* Monthly calendar redesign for v22: compact seven-column month grid */
-.month-calendar{
-  display:grid!important;
-  grid-template-columns:repeat(7,minmax(0,1fr))!important;
-  gap:5px!important;
-  width:100%!important;
-  min-width:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  overflow:visible!important;
-  touch-action:pan-y!important;
-}
-.month-calendar-head{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  min-width:0!important;
-  padding:7px 1px!important;
-  border:0!important;
-  border-radius:8px!important;
-  background:#eaf7f6!important;
-  color:#17645f!important;
-  font-size:10px!important;
-  font-weight:900!important;
-  text-align:center!important;
-}
-.month-calendar-cell{
-  display:block!important;
-  width:auto!important;
-  min-width:0!important;
-  min-height:84px!important;
-  height:auto!important;
-  padding:0!important;
-  overflow:hidden!important;
-  border:1px solid #e2e8f0!important;
-  border-radius:10px!important;
-  background:#fff!important;
-  box-shadow:0 2px 7px rgba(15,23,42,.045)!important;
-  transition:border-color .15s ease,box-shadow .15s ease!important;
-  cursor:pointer!important;
-}
-.month-calendar-cell.outside{
-  visibility:hidden!important;
-  pointer-events:none!important;
-  border-color:transparent!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-.month-calendar-cell > div{
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  justify-content:flex-start!important;
-  gap:4px!important;
-  width:100%!important;
-  min-width:0!important;
-  min-height:0!important;
-  height:100%!important;
-  padding:5px 4px!important;
-  box-sizing:border-box!important;
-}
-.month-day-number{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  flex:0 0 23px!important;
-  width:23px!important;
-  height:23px!important;
-  margin:0!important;
-  border-radius:7px!important;
-  background:#f1f5f9!important;
-  color:#334155!important;
-  font-size:11px!important;
-  line-height:1!important;
-  font-weight:900!important;
-}
-.month-student{
-  display:block!important;
-  width:100%!important;
-  max-width:100%!important;
-  min-width:0!important;
-  margin:0!important;
-  padding:3px 4px!important;
-  border-radius:5px!important;
-  font-size:8px!important;
-  line-height:1.25!important;
-  font-weight:800!important;
-  text-align:center!important;
-  white-space:nowrap!important;
-  overflow:hidden!important;
-  text-overflow:ellipsis!important;
-  box-sizing:border-box!important;
-  box-shadow:none!important;
-}
-.month-calendar-cell.has-lessons{
-  border-color:#a7e3dc!important;
-  background:#f7fdfc!important;
-}
-.month-calendar-cell.has-lessons .month-day-number{
-  background:#d9f5ef!important;
-  color:#0f766e!important;
-}
-.month-calendar-cell.today{
-  position:relative!important;
-  z-index:1!important;
-  border:2px solid #0f9488!important;
-  background:#f0fdfa!important;
-  box-shadow:0 0 0 2px rgba(13,148,136,.08)!important;
-}
-.month-calendar-cell.today .month-day-number{
-  background:#0f766e!important;
-  color:#fff!important;
-}
-@media(max-width:640px){
-  .month-calendar{gap:4px!important}
-  .month-calendar-head{padding:6px 0!important;font-size:9px!important;border-radius:7px!important}
-  .month-calendar-cell{min-height:70px!important;border-radius:8px!important}
-  .month-calendar-cell > div{gap:3px!important;padding:4px 2px!important}
-  .month-day-number{flex-basis:20px!important;width:20px!important;height:20px!important;font-size:10px!important;border-radius:6px!important}
-  .month-student{padding:3px 2px!important;font-size:7px!important;line-height:1.15!important;border-radius:4px!important}
-}
-@media(max-width:380px){
-  .month-calendar{gap:3px!important}
-  .month-calendar-head{font-size:8px!important}
-  .month-calendar-cell{min-height:62px!important}
-  .month-calendar-cell > div{padding:3px 1px!important}
-  .month-day-number{flex-basis:18px!important;width:18px!important;height:18px!important;font-size:9px!important}
-  .month-student{font-size:6px!important;padding:2px 1px!important}
-}
-@media(prefers-reduced-motion:reduce){.month-calendar-cell{transition:none!important}}
-</style>
-
 </head>
 
 <body
@@ -3641,8 +3505,8 @@ main textarea::placeholder{
                 <!-- =================================================
                      MONTH CALENDAR
                 ================================================== -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="p-5 border-b border-slate-100">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden month-calendar-card">
+                    <div class="p-5 border-b border-slate-100 month-calendar-titlebar">
                         <div class="flex items-center justify-between gap-3">
                             <div class="min-w-0">
                                 <h3 class="font-bold text-slate-800 flex items-center gap-2">
@@ -3684,20 +3548,22 @@ main textarea::placeholder{
                                     role="button"
                                     :tabindex="cell.outside ? -1 : 0"
                                 >
-                                    <template x-if="!cell.outside">
-                                        <div>
-                                            <div class="month-day-number" x-text="cell.dayNumber"></div>
+                                    <div class="month-day-content">
+                                        <div class="month-day-number" x-text="cell.dayNumber"></div>
 
-                                            <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
-                                                <span
-                                                    class="month-student"
-                                                    :style="getStudentCalendarStyle(item.studentId)"
-                                                    :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
-                                                    x-text="item.studentName"
-                                                ></span>
-                                            </template>
-                                        </div>
-                                    </template>
+                                        <template x-if="!cell.outside">
+                                            <div class="month-cell-events">
+                                                <template x-for="item in cell.lessons" :key="item.studentId + '-' + item.lesson.id">
+                                                    <span
+                                                        class="month-student"
+                                                        :style="getStudentCalendarStyle(item.studentId)"
+                                                        :title="item.studentName + ' - ' + formatTime(item.lesson.time)"
+                                                        x-text="item.studentName"
+                                                    ></span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -6011,10 +5877,13 @@ function teacherApp() {
                 const outside = dayNumber < 1 || dayNumber > last.getDate();
 
                 if (outside) {
+                    const adjacentDayNumber = dayNumber < 1
+                        ? new Date(year, month, 0).getDate() + dayNumber
+                        : dayNumber - last.getDate();
                     return {
                         key: `blank-${year}-${month}-${index}`,
                         date: '',
-                        dayNumber: '',
+                        dayNumber: adjacentDayNumber,
                         outside: true,
                         isToday: false,
                         lessons: []
@@ -8766,6 +8635,210 @@ window.addEventListener('orientationchange', () => {
  .popup-status-actions{gap:1px!important;}
  .popup-status{width:17px;height:17px;flex-basis:17px;font-size:7px;}
  .student-compact-card{padding:8px!important;}
+}
+</style>
+
+
+<style id="calendar-reference-iphone-redesign-v2">
+/* Visual redesign of month calendar only — original Alpine data/actions retained. */
+.month-calendar-card{
+  border:1px solid #e6e7eb!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  overflow:hidden!important;
+  box-shadow:0 8px 28px rgba(18,24,40,.055)!important;
+}
+.month-calendar-titlebar{
+  padding:17px 20px 12px!important;
+  background:#fff!important;
+  border-bottom:0!important;
+}
+.month-calendar-titlebar h3{
+  color:#ff3b30!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  gap:7px!important;
+  letter-spacing:.01em;
+}
+.month-calendar-titlebar h3 i{
+  font-size:15px!important;
+  color:#ff3b30!important;
+}
+.month-calendar-titlebar p{
+  display:block!important;
+  margin-top:5px!important;
+  color:#15161a!important;
+  font-size:27px!important;
+  line-height:1.18!important;
+  font-weight:850!important;
+  letter-spacing:-.045em;
+}
+.month-calendar-card > .p-4.md\:p-5{
+  padding:0 12px 14px!important;
+}
+.month-calendar-card > .p-4.md\:p-5 > .mb-4{
+  margin:0!important;
+  padding:2px 0 12px!important;
+  justify-content:flex-start!important;
+}
+.month-calendar-card > .p-4.md\:p-5 > .mb-4 button{
+  width:auto!important;
+  min-height:32px!important;
+  padding:7px 11px!important;
+  border:1px solid #ffd8d5!important;
+  border-radius:999px!important;
+  background:#fff5f4!important;
+  color:#e83229!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+}
+.month-calendar{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  user-select:none;
+  touch-action:pan-y;
+}
+.month-calendar-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  padding:8px 0 9px!important;
+  color:#777b83!important;
+  background:#fff!important;
+  border:0!important;
+  border-bottom:1px solid #e9eaee!important;
+  border-radius:0!important;
+  font-size:10px!important;
+  font-weight:750!important;
+}
+.month-calendar-cell{
+  position:relative!important;
+  display:block!important;
+  min-width:0!important;
+  min-height:102px!important;
+  height:auto!important;
+  padding:5px 3px 7px!important;
+  border:0!important;
+  border-right:0!important;
+  border-bottom:1px solid #e9eaee!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  transition:background .16s ease!important;
+}
+.month-calendar-cell:hover{
+  transform:none!important;
+  box-shadow:none!important;
+  border-color:#e9eaee!important;
+  background:#fffaf9!important;
+}
+.month-calendar-cell.outside{
+  visibility:visible!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  border-color:#e9eaee!important;
+}
+.month-day-content{
+  width:100%!important;
+  min-width:0!important;
+  height:100%!important;
+}
+.month-day-number{
+  width:28px!important;
+  height:28px!important;
+  margin:0 auto 5px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  color:#27292f!important;
+  font-size:12px!important;
+  line-height:1!important;
+  font-weight:650!important;
+}
+.month-calendar-cell.outside .month-day-number{
+  color:#a6abb4!important;
+  background:transparent!important;
+}
+.month-calendar-cell.has-lessons .month-day-number{
+  color:#25262a!important;
+  background:transparent!important;
+}
+.month-calendar-cell.today .month-day-number{
+  color:#fff!important;
+  background:#ff3b30!important;
+  box-shadow:0 2px 5px rgba(255,59,48,.20)!important;
+  font-weight:850!important;
+}
+.month-calendar-cell.today{
+  z-index:1!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  border-color:#e9eaee!important;
+}
+.month-cell-events{
+  width:100%!important;
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:2px!important;
+}
+.month-student{
+  box-sizing:border-box!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:3px 4px!important;
+  border:0!important;
+  border-radius:5px!important;
+  font-size:8px!important;
+  line-height:1.25!important;
+  font-weight:750!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.month-calendar-card > .p-4.md\:p-5 > p{
+  padding:12px 4px 0!important;
+  margin:0!important;
+  color:#8b909a!important;
+  line-height:1.5!important;
+  font-size:9px!important;
+}
+@media(max-width:640px){
+  .month-calendar-card{border-radius:17px!important;}
+  .month-calendar-titlebar{padding:14px 14px 10px!important;}
+  .month-calendar-titlebar p{font-size:25px!important;}
+  .month-calendar-card > .p-4.md\:p-5{padding:0 7px 11px!important;}
+  .month-calendar-head{padding:7px 0 8px!important;font-size:9px!important;}
+  .month-calendar-cell{min-height:88px!important;padding:4px 2px 6px!important;}
+  .month-day-number{width:24px!important;height:24px!important;font-size:11px!important;margin-bottom:4px!important;}
+  .month-student{font-size:7px!important;line-height:1.25!important;padding:3px 3px!important;border-radius:4px!important;}
+  .month-cell-events{gap:2px!important;}
+}
+@media(max-width:390px){
+  .month-calendar-titlebar p{font-size:23px!important;}
+  .month-calendar-cell{min-height:76px!important;padding:3px 1px 5px!important;}
+  .month-day-number{width:22px!important;height:22px!important;font-size:10px!important;}
+  .month-student{font-size:6.5px!important;padding:2px!important;}
+}
+@media(prefers-reduced-motion:reduce){
+  .month-calendar-cell{transition:none!important;}
 }
 </style>
 
