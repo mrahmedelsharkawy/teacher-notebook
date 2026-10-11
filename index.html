@@ -4613,7 +4613,13 @@ main textarea::placeholder{
                             <div class="p-4 md:p-5 hover:bg-slate-50/70 transition">
                                 <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                                     <div class="min-w-0 lg:w-1/4">
-                                        <div class="font-bold text-slate-800" x-text="student.name"></div>
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <div class="font-bold text-slate-800" x-text="student.name"></div>
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-extrabold whitespace-nowrap">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                                <span x-text="'الحصص الفعلية: ' + calculateCompletedLessonsCount(student)"></span>
+                                            </span>
+                                        </div>
                                         <div class="text-xs text-slate-400 mt-1" x-text="student.stage + ' - ' + student.grade"></div>
                                     </div>
                                     <div class="grid grid-cols-3 gap-2 flex-1">
@@ -5145,36 +5151,49 @@ main textarea::placeholder{
                     
                 </div>
 
-                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 md:p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg text-slate-800">سجل النسخ الاحتياطي</h3>
-                            <p class="text-sm text-slate-500 mt-1">تفاصيل جميع عمليات تحميل واسترداد النسخ.</p>
-                        </div>
-                    </div>
-
-                    <div x-show="backupLogs.length" class="space-y-2">
-                        <template x-for="log in backupLogs.slice().reverse()" :key="log.id">
-                            <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-                                         :class="log.type === 'download' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'">
-                                        <i :class="log.type === 'download' ? 'fa-solid fa-download' : 'fa-solid fa-upload'"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="font-bold text-sm text-slate-700" x-text="log.type === 'download' ? 'تحميل Backup' : 'استرداد Backup'"></div>
-                                        <div class="text-[11px] text-slate-400 truncate" x-text="log.fileName || ''"></div>
-                                    </div>
-                                </div>
-                                <div class="text-[11px] text-slate-400 whitespace-nowrap" x-text="formatBackupLogDate(log.date)"></div>
+                <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                    <button type="button"
+                            class="w-full p-5 md:p-6 flex items-center justify-between gap-3 text-right hover:bg-slate-50/70 transition"
+                            @click="backupLogOpen = !backupLogOpen"
+                            :aria-expanded="backupLogOpen.toString()">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
                             </div>
-                        </template>
-                    </div>
-                    <div x-show="!backupLogs.length" class="text-center text-sm text-slate-400 py-5">
-                        لا توجد عمليات Backup حتى الآن
+                            <div class="min-w-0">
+                                <h3 class="font-bold text-lg text-slate-800">سجل النسخ الاحتياطي</h3>
+                                <p class="text-sm text-slate-500 mt-1">تفاصيل عمليات تحميل واسترداد النسخ.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold"
+                                  x-text="backupLogs.length + ' عملية'"></span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform"
+                               :class="backupLogOpen ? 'rotate-180' : ''"></i>
+                        </div>
+                    </button>
+
+                    <div x-show="backupLogOpen" x-cloak class="p-4 md:p-5 space-y-2 border-t border-slate-100">
+                        <div x-show="backupLogs.length" class="space-y-2">
+                            <template x-for="log in backupLogs.slice().reverse()" :key="log.id">
+                                <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-9 h-9 rounded-xl flex items-center justify-center"
+                                             :class="log.type === 'download' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'">
+                                            <i :class="log.type === 'download' ? 'fa-solid fa-download' : 'fa-solid fa-upload'"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="font-bold text-sm text-slate-700" x-text="log.type === 'download' ? 'تحميل Backup' : 'استرداد Backup'"></div>
+                                            <div class="text-[11px] text-slate-400 truncate" x-text="log.fileName || ''"></div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 whitespace-nowrap" x-text="formatBackupLogDate(log.date)"></div>
+                                </div>
+                            </template>
+                        </div>
+                        <div x-show="!backupLogs.length" class="text-center text-sm text-slate-400 py-5">
+                            لا توجد عمليات Backup حتى الآن
+                        </div>
                     </div>
                 </div>
 
@@ -5415,6 +5434,7 @@ function teacherApp() {
         teacherForm: {},
 
         backupLogs: [],
+        backupLogOpen: false,
 
         notifications: [],
         notifiedLessonIds: [],
