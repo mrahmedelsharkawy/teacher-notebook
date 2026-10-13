@@ -6852,6 +6852,9 @@ function teacherApp() {
 
             lesson.status = 'تم';
             lesson.archived = true;
+            if (typeof this.clearResolvedLessonNotifications === 'function') {
+                this.clearResolvedLessonNotifications(studentId, lessonId);
+            }
 
             if (!Array.isArray(this.lessonArchive)) this.lessonArchive = [];
 
@@ -6945,6 +6948,9 @@ function teacherApp() {
 
             const lesson = (student.lessons || []).find(l => String(l.id) === String(lessonId));
             if (lesson) {
+                if (typeof this.clearResolvedLessonNotifications === 'function') {
+                    this.clearResolvedLessonNotifications(studentId, lessonId);
+                }
                 lesson.status = newStatus;
                 if (newStatus !== 'تم') {
                     lesson.archived = false;
@@ -7308,6 +7314,18 @@ function teacherApp() {
 
         deleteNotification(id) {
             this.notifications = (this.notifications || []).filter(n => String(n.id) !== String(id));
+            this.persistNotificationState();
+        },
+
+        clearResolvedLessonNotifications(studentId, lessonId) {
+            const sid = String(studentId);
+            const lid = String(lessonId);
+            this.notifications = (this.notifications || []).filter(notice => {
+                const sameLesson = String(notice.studentId) === sid && String(notice.lessonId) === lid;
+                return !sameLesson;
+            });
+            const key = sid + '-' + lid;
+            this.notifiedLessonIds = (this.notifiedLessonIds || []).filter(item => String(item) !== key);
             this.persistNotificationState();
         },
 
@@ -8935,6 +8953,107 @@ window.addEventListener('orientationchange', () => {
   .month-calendar-cell{padding-top:3px!important;padding-bottom:4px!important;}
   .month-day-number{margin-left:auto!important;margin-right:auto!important;}
   .month-student{padding-left:1px!important;padding-right:1px!important;}
+}
+</style>
+
+
+<style id="oct13-calendar-notifications-facebook-ui">
+/* 1) Month calendar: remove gutters and let each student's full name wrap within its day. */
+.month-calendar-card > .p-4.md\:p-5{
+  padding-left:0!important;padding-right:0!important;
+}
+.month-calendar-card .month-calendar{
+  display:grid!important;
+  width:100%!important;max-width:100%!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:0!important;column-gap:0!important;row-gap:0!important;
+  margin:0!important;padding:0!important;
+}
+.month-calendar-card .month-calendar-head,
+.month-calendar-card .month-calendar-cell{
+  min-width:0!important;box-sizing:border-box!important;
+  margin:0!important;padding-left:1px!important;padding-right:1px!important;
+  border-left:0!important;border-right:0!important;border-radius:0!important;
+}
+.month-calendar-card .month-calendar-cell{
+  overflow:hidden!important;box-shadow:none!important;
+  border-bottom:1px solid #e5e7eb!important;
+}
+.month-calendar-card .month-day-content,
+.month-calendar-card .month-cell-events{
+  width:100%!important;min-width:0!important;margin:0!important;padding:0!important;
+}
+.month-calendar-card .month-cell-events{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:2px!important;
+}
+.month-calendar-card .month-student{
+  display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  box-sizing:border-box!important;margin:0!important;padding:2px 2px!important;
+  font-size:8px!important;line-height:1.2!important;text-align:center!important;
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;border-radius:4px!important;
+}
+.month-calendar-card .month-day-number{margin-left:auto!important;margin-right:auto!important;}
+@media(max-width:640px){
+  .month-calendar-card .month-calendar-head{padding:6px 0!important;font-size:8px!important;}
+  .month-calendar-card .month-calendar-cell{min-height:78px!important;padding:3px 1px 4px!important;}
+  .month-calendar-card .month-student{font-size:7px!important;line-height:1.15!important;padding:2px 1px!important;}
+  .month-calendar-card .month-cell-events{gap:2px!important;}
+}
+@media(max-width:380px){
+  .month-calendar-card .month-calendar-cell{min-height:70px!important;}
+  .month-calendar-card .month-student{font-size:6.5px!important;}
+}
+
+/* 2) Facebook-inspired compact floating bottom navigation for narrow iPhone screens. */
+.bottom-app-nav{
+  position:fixed!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;
+  width:calc(100vw - 28px)!important;max-width:690px!important;
+  display:flex!important;align-items:center!important;justify-content:space-around!important;
+  gap:2px!important;padding:7px 8px calc(7px + env(safe-area-inset-bottom))!important;
+  border:1px solid rgba(255,255,255,.18)!important;border-radius:36px!important;
+  background:#242629!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.12)!important;
+  backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
+}
+.bottom-nav-item{
+  min-width:0!important;max-width:none!important;flex:1 1 0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  gap:4px!important;padding:4px 1px!important;border-radius:28px!important;
+  color:#d1d5db!important;background:transparent!important;
+}
+.bottom-nav-icon{
+  width:36px!important;height:34px!important;margin:0!important;border-radius:50%!important;
+  font-size:19px!important;color:inherit!important;background:transparent!important;box-shadow:none!important;
+}
+.bottom-nav-label{font-size:9px!important;line-height:1.1!important;font-weight:750!important;color:inherit!important;}
+.bottom-nav-item.is-active{
+  color:#fff!important;background:#3a3b3c!important;
+}
+.bottom-nav-item.is-active .bottom-nav-icon{
+  color:#fff!important;background:#4b4d50!important;box-shadow:none!important;transform:none!important;
+}
+.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;transform:none!important;}
+.bottom-nav-item.is-active::after{display:none!important;}
+.bottom-nav-item:hover{transform:none!important;color:#fff!important;}
+.main-with-nav{padding-bottom:96px!important;}
+@media(max-width:767px){
+  .bottom-app-nav{
+    bottom:calc(7px + env(safe-area-inset-bottom))!important;
+    width:calc(100vw - 26px)!important;max-width:none!important;
+    padding:6px 5px calc(6px + env(safe-area-inset-bottom))!important;
+    border-radius:32px!important;gap:1px!important;
+  }
+  .bottom-nav-item{padding:3px 0!important;gap:3px!important;}
+  .bottom-nav-icon{width:33px!important;height:31px!important;font-size:18px!important;}
+  .bottom-nav-label{font-size:8.5px!important;}
+  .main-with-nav{padding-bottom:88px!important;}
+}
+@media(max-width:360px){
+  .bottom-app-nav{width:calc(100vw - 18px)!important;padding-left:3px!important;padding-right:3px!important;}
+  .bottom-nav-icon{width:29px!important;height:29px!important;font-size:17px!important;}
+  .bottom-nav-label{font-size:8px!important;}
 }
 </style>
 
