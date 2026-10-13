@@ -4615,10 +4615,16 @@ main textarea::placeholder{
                                     <div class="min-w-0 lg:w-1/4">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <div class="font-bold text-slate-800" x-text="student.name"></div>
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-extrabold whitespace-nowrap">
-                                                <i class="fa-solid fa-circle-check"></i>
-                                                <span x-text="'الحصص الفعلية: ' + calculateCompletedLessonsCount(student)"></span>
-                                            </span>
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-extrabold whitespace-nowrap">
+                                                    <i class="fa-solid fa-circle-check"></i>
+                                                    <span x-text="'الحصص الفعلية: ' + calculateCompletedLessonsCount(student)"></span>
+                                                </span>
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-extrabold whitespace-nowrap">
+                                                    <i class="fa-solid fa-hourglass-half"></i>
+                                                    <span x-text="'لم تُفعّل: ' + calculatePendingLessonsCount(student)"></span>
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="text-xs text-slate-400 mt-1" x-text="student.stage + ' - ' + student.grade"></div>
                                     </div>
@@ -4709,6 +4715,96 @@ main textarea::placeholder{
                             <i class="fa-solid fa-receipt text-3xl text-slate-300 mb-3"></i>
                             <p class="text-sm">لا توجد عمليات دفع مسجلة حتى الآن.</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- تقرير مالي حسب الشهر أو السنة + نسخة PDF -->
+                <div class="finance-report-card bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="finance-report-heading p-4 md:p-5 flex items-start gap-3">
+                        <div class="finance-report-icon shrink-0">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-extrabold text-slate-800 text-base md:text-lg">التقرير المالي</h3>
+                            <p class="text-xs md:text-sm text-slate-500 mt-1">اختر شهرًا أو سنة، ثم صدّر تقريرًا PDF يتضمن الملخص المالي والرسم البياني.</p>
+                        </div>
+                    </div>
+
+                    <div class="finance-report-controls p-4 md:p-5 grid grid-cols-1 sm:grid-cols-3 gap-3 border-b border-slate-100">
+                        <label class="block">
+                            <span class="block text-xs font-bold text-slate-600 mb-1.5">نوع التقرير</span>
+                            <select x-model="financeReportMode" @change="$nextTick(() => renderFinanceReportChart())" class="finance-report-input w-full">
+                                <option value="month">تقرير شهر محدد</option>
+                                <option value="year">تقرير سنة كاملة</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="block text-xs font-bold text-slate-600 mb-1.5">الشهر</span>
+                            <select x-model.number="financeReportMonth" @change="$nextTick(() => renderFinanceReportChart())" :disabled="financeReportMode === 'year'" class="finance-report-input w-full">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="block text-xs font-bold text-slate-600 mb-1.5">السنة</span>
+                            <input type="number" min="2000" max="2100" inputmode="numeric" x-model.number="financeReportYear" @change="$nextTick(() => renderFinanceReportChart())" class="finance-report-input w-full" />
+                        </label>
+                    </div>
+
+                    <div id="financeReportSheet" class="finance-report-sheet p-4 md:p-6">
+                        <div class="finance-report-sheet-title text-center">
+                            <div class="finance-report-kicker">دفتر المعلم · التقرير المالي</div>
+                            <h4 class="font-extrabold text-slate-900 text-xl mt-1" x-text="financeReportTitle()"></h4>
+                            <p class="text-xs text-slate-500 mt-1" x-text="'تاريخ إعداد التقرير: ' + todayDate"></p>
+                        </div>
+                        <div class="finance-report-metrics grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-5">
+                            <div class="finance-report-metric">
+                                <span>الدفعات المحصّلة خلال الفترة</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().paid)"></strong>
+                            </div>
+                            <div class="finance-report-metric">
+                                <span>عدد الدفعات</span>
+                                <strong x-text="getFinanceReportTotals().paymentCount.toLocaleString('ar-SA')"></strong>
+                            </div>
+                            <div class="finance-report-metric">
+                                <span>قيمة الحصص المكتملة خلال الفترة</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().earned)"></strong>
+                            </div>
+                            <div class="finance-report-metric">
+                                <span>الديون الحالية</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().debts)"></strong>
+                            </div>
+                        </div>
+                        <div class="finance-report-chart-area mt-5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+                                <h5 class="font-extrabold text-slate-800 text-sm" x-text="financeReportMode === 'month' ? 'الدفعات المحصّلة يوميًا' : 'الدفعات المحصّلة شهريًا'"></h5>
+                                <span class="text-xs text-slate-500">القيم بالريال السعودي</span>
+                            </div>
+                            <div class="finance-report-canvas-wrap">
+                                <canvas id="financeReportChart" aria-label="الرسم البياني للتقرير المالي"></canvas>
+                            </div>
+                        </div>
+                        <div class="finance-report-footnote mt-4 text-xs text-slate-500">
+                            يعتمد الرسم على الدفعات المسجّلة في النظام. وتعكس الديون الحالية إجمالي المبالغ المستحقة وقت إنشاء التقرير.
+                        </div>
+                    </div>
+
+                    <div class="finance-report-actions p-4 md:p-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <p class="text-xs text-slate-500">سيُحفظ التقرير كملف PDF واحد يشمل الملخص والرسم البياني.</p>
+                        <button type="button" @click="downloadFinanceReportPdf()" :disabled="financeReportExporting" class="finance-report-download inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-extrabold text-sm disabled:opacity-60">
+                            <i class="fa-solid" :class="financeReportExporting ? 'fa-spinner fa-spin' : 'fa-file-pdf'"></i>
+                            <span x-text="financeReportExporting ? 'جارٍ إعداد التقرير...' : 'تصدير التقرير PDF'"></span>
+                        </button>
                     </div>
                 </div>
 
@@ -5334,6 +5430,12 @@ function teacherApp() {
         financeLedgerOpen: false,
         studentArchiveOpen: false,
 
+        financeReportMode: 'month',
+        financeReportMonth: new Date().getMonth() + 1,
+        financeReportYear: new Date().getFullYear(),
+        financeReportExporting: false,
+        financeReportChart: null,
+
         googleClientId: '97654130737-rnhb42jubfoodeakgmep49c1cjrlimq2.apps.googleusercontent.com',
         googleAccessToken: null,
         googleTokenClient: null,
@@ -5522,7 +5624,10 @@ function teacherApp() {
 
             this.$watch('activeTab', (tab) => {
                 if (tab === 'finance') {
-                    setTimeout(() => this.initChart(), 120);
+                    setTimeout(() => {
+                        this.initChart();
+                        this.renderFinanceReportChart();
+                    }, 180);
                 }
             });
         },
@@ -6172,6 +6277,12 @@ function teacherApp() {
         calculateCompletedLessonsCount(student) {
             /* الحصة المكتملة موجودة أصلًا داخل سجل الطالب؛ الأرشيف مجرد فهرس لها. */
             return (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
+        },
+
+        calculatePendingLessonsCount(student) {
+            /* الحصص التي لم تُنجز ولم تُعلّم كحصة فائتة/ملغاة بعد. */
+            const closedStatuses = new Set(['تم', 'لم تتم', 'ملغاة', 'ملغي', 'ملغى', 'ألغيت', 'canceled', 'cancelled']);
+            return (student?.lessons || []).filter(lesson => !closedStatuses.has(String(lesson?.status || '').trim())).length;
         },
 
         calculateStudentExpected(student) {
@@ -7978,6 +8089,7 @@ function teacherApp() {
         refreshIncomeChart() {
             if (!this.incomeChart || !this.incomeBarChart) {
                 this.initChart();
+                this.$nextTick(() => this.renderFinanceReportChart());
                 return;
             }
 
@@ -7996,6 +8108,205 @@ function teacherApp() {
                 try { this.incomeChart.resize(); } catch(e) {}
                 try { this.incomeBarChart.resize(); } catch(e) {}
             });
+            this.$nextTick(() => this.renderFinanceReportChart());
+        },
+
+        financeReportMonthName(monthNumber) {
+            const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+            return months[Math.max(0, Math.min(11, Number(monthNumber || 1) - 1))];
+        },
+
+        financeReportTitle() {
+            const year = Number(this.financeReportYear || new Date().getFullYear());
+            return this.financeReportMode === 'year'
+                ? 'التقرير المالي السنوي ' + year
+                : 'التقرير المالي لشهر ' + this.financeReportMonthName(this.financeReportMonth) + ' ' + year;
+        },
+
+        formatFinanceReportMoney(value) {
+            return Number(value || 0).toLocaleString('ar-SA', { maximumFractionDigits: 2 }) + ' ر.س';
+        },
+
+        getFinanceReportPeriodTransactions() {
+            const year = Number(this.financeReportYear || new Date().getFullYear());
+            const month = Number(this.financeReportMonth || 1);
+            return this.allFinancialTransactions().filter(transaction => {
+                const parts = String(transaction.date || '').slice(0, 10).split('-').map(Number);
+                if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return false;
+                if (parts[0] !== year) return false;
+                return this.financeReportMode === 'year' || parts[1] === month;
+            });
+        },
+
+        getFinanceReportSeries() {
+            const transactions = this.getFinanceReportPeriodTransactions();
+            const year = Number(this.financeReportYear || new Date().getFullYear());
+            if (this.financeReportMode === 'year') {
+                const labels = this.getCalendarYearMonthLabels();
+                const values = Array(12).fill(0);
+                transactions.forEach(transaction => {
+                    const month = Number(String(transaction.date || '').slice(5, 7));
+                    if (month >= 1 && month <= 12) values[month - 1] += Number(transaction.amount || 0);
+                });
+                return { labels, values, year };
+            }
+
+            const month = Number(this.financeReportMonth || 1);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const labels = Array.from({ length: daysInMonth }, (_, index) => String(index + 1));
+            const values = Array(daysInMonth).fill(0);
+            transactions.forEach(transaction => {
+                const day = Number(String(transaction.date || '').slice(8, 10));
+                if (day >= 1 && day <= daysInMonth) values[day - 1] += Number(transaction.amount || 0);
+            });
+            return { labels, values, year, month };
+        },
+
+        getFinanceReportCompletedLessonIncome() {
+            const year = Number(this.financeReportYear || new Date().getFullYear());
+            const month = Number(this.financeReportMonth || 1);
+            const records = [
+                ...(this.students || []),
+                ...((this.archivedStudents || []).map(record => record?.student).filter(Boolean))
+            ];
+            const uniqueStudents = [];
+            const seenIds = new Set();
+            records.forEach(student => {
+                const key = String(student?.id ?? student?.name ?? uniqueStudents.length);
+                if (!seenIds.has(key)) { seenIds.add(key); uniqueStudents.push(student); }
+            });
+
+            return Number(uniqueStudents.reduce((sum, student) => {
+                return sum + (student.lessons || []).reduce((lessonSum, lesson) => {
+                    const date = String(lesson?.date || '').slice(0, 10);
+                    const parts = date.split('-').map(Number);
+                    if (lesson?.status !== 'تم' || parts.length < 3 || parts[0] !== year) return lessonSum;
+                    if (this.financeReportMode === 'month' && parts[1] !== month) return lessonSum;
+                    return lessonSum + this.calculateLessonCharge(student, lesson);
+                }, 0);
+            }, 0).toFixed(2));
+        },
+
+        getFinanceReportTotals() {
+            const transactions = this.getFinanceReportPeriodTransactions();
+            return {
+                paid: Number(transactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0).toFixed(2)),
+                paymentCount: transactions.length,
+                earned: this.getFinanceReportCompletedLessonIncome(),
+                debts: this.getTotalDebts()
+            };
+        },
+
+        renderFinanceReportChart() {
+            const canvas = document.getElementById('financeReportChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const series = this.getFinanceReportSeries();
+            if (this.financeReportChart) {
+                try { this.financeReportChart.destroy(); } catch (error) {}
+                this.financeReportChart = null;
+            }
+
+            const color = this.financeReportMode === 'year' ? '#1877f2' : '#42b72a';
+            this.financeReportChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: series.labels,
+                    datasets: [{
+                        label: 'الدفعات المحصّلة',
+                        data: series.values,
+                        backgroundColor: color,
+                        hoverBackgroundColor: this.financeReportMode === 'year' ? '#0866ff' : '#2e9d22',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                        maxBarThickness: this.financeReportMode === 'year' ? 24 : 13
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: items => this.financeReportMode === 'year'
+                                    ? items[0]?.label || ''
+                                    : 'اليوم ' + (items[0]?.label || ''),
+                                label: item => Number(item.raw || 0).toLocaleString('ar-SA') + ' ر.س'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                autoSkip: this.financeReportMode === 'month',
+                                maxTicksLimit: this.financeReportMode === 'month' ? 16 : 12,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                font: { size: this.financeReportMode === 'month' ? 8 : 10 }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { size: 9 },
+                                callback: value => Number(value).toLocaleString('ar-SA')
+                            },
+                            grid: { color: 'rgba(100,116,139,.15)' }
+                        }
+                    }
+                }
+            });
+        },
+
+        async downloadFinanceReportPdf() {
+            if (this.financeReportExporting) return;
+            if (!window.html2canvas || !window.jspdf?.jsPDF) {
+                alert('تعذر تحميل مكتبات تصدير PDF. تحقق من اتصال الإنترنت ثم أعد المحاولة.');
+                return;
+            }
+
+            this.financeReportExporting = true;
+            try {
+                await this.$nextTick();
+                this.renderFinanceReportChart();
+                await new Promise(resolve => setTimeout(resolve, 250));
+
+                const sheet = document.getElementById('financeReportSheet');
+                if (!sheet) throw new Error('FINANCE_REPORT_SHEET_MISSING');
+                const canvas = await window.html2canvas(sheet, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0
+                });
+
+                const image = canvas.toDataURL('image/png', 1.0);
+                const orientation = this.financeReportMode === 'year' ? 'landscape' : 'portrait';
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true });
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 8;
+                const availableWidth = pageWidth - margin * 2;
+                const availableHeight = pageHeight - margin * 2;
+                const ratio = Math.min(availableWidth / canvas.width, availableHeight / canvas.height);
+                const imageWidth = canvas.width * ratio;
+                const imageHeight = canvas.height * ratio;
+                pdf.addImage(image, 'PNG', (pageWidth - imageWidth) / 2, margin, imageWidth, imageHeight, undefined, 'FAST');
+                const suffix = this.financeReportMode === 'year'
+                    ? 'year-' + Number(this.financeReportYear)
+                    : 'month-' + String(Number(this.financeReportMonth)).padStart(2, '0') + '-' + Number(this.financeReportYear);
+                pdf.save('teacher-finance-report-' + suffix + '.pdf');
+            } catch (error) {
+                console.error('Finance PDF export failed:', error);
+                alert('تعذر إنشاء التقرير المالي PDF. أعد المحاولة بعد فتح صفحة المالية والانتظار حتى يظهر الرسم البياني.');
+            } finally {
+                this.financeReportExporting = false;
+            }
         }
 
     };
@@ -9054,6 +9365,144 @@ window.addEventListener('orientationchange', () => {
   .bottom-app-nav{width:calc(100vw - 18px)!important;padding-left:3px!important;padding-right:3px!important;}
   .bottom-nav-icon{width:29px!important;height:29px!important;font-size:17px!important;}
   .bottom-nav-label{font-size:8px!important;}
+}
+</style>
+
+
+<style id="facebook-identity-theme-oct-2026">
+:root{
+  --fb-blue:#1877f2;--fb-blue-dark:#0866ff;--fb-green:#42b72a;
+  --fb-canvas:#f0f2f5;--fb-text:#1c1e21;--fb-muted:#65676b;--fb-line:#dadde1;
+}
+html,body{background:var(--fb-canvas)!important;color:var(--fb-text)!important;}
+body{font-family:'Tajawal','Cairo',sans-serif!important;}
+body .app-sidebar{background:#242526!important;border-color:#3e4042!important;}
+body .app-sidebar .border-slate-800{border-color:#3e4042!important;}
+body .text-brand-600{color:var(--fb-blue)!important;}
+body .text-brand-700{color:#0866ff!important;}
+body .bg-brand-50{background:#e7f3ff!important;}
+body .bg-brand-100{background:#dbeafe!important;}
+body .bg-brand-500,body .bg-brand-600{background:var(--fb-blue)!important;}
+body .bg-brand-700{background:#0866ff!important;}
+body .border-brand-100,body .border-brand-200{border-color:#cfe2ff!important;}
+body .shadow-brand-500\/30{--tw-shadow-color:rgba(24,119,242,.24)!important;}
+body main{background:transparent!important;}
+body .main-with-nav > .p-4.md\:p-8{
+  max-width:1200px!important;
+  padding-top:18px!important;
+}
+body main h1,body main h2,body main h3,body main h4{color:var(--fb-text);}
+body main .text-slate-800{color:#1c1e21!important;}
+body main .text-slate-700{color:#303236!important;}
+body main .text-slate-600{color:#4b4f56!important;}
+body main .text-slate-500,body main .text-slate-400{color:var(--fb-muted)!important;}
+body main .border-slate-100,body main .border-slate-200{border-color:#e4e6eb!important;}
+body main .shadow-sm{box-shadow:0 1px 2px rgba(0,0,0,.07)!important;}
+body main .bg-slate-50{background:#f7f8fa!important;}
+body main .bg-white{background:#fff!important;}
+body main .rounded-2xl{border-radius:14px!important;}
+body main .rounded-3xl{border-radius:16px!important;}
+body main button.bg-brand-600,body main a.bg-brand-600{background:var(--fb-blue)!important;}
+body main button.bg-brand-600:hover,body main a.bg-brand-600:hover{background:var(--fb-blue-dark)!important;}
+body main input:focus,body main select:focus,body main textarea:focus{
+  outline:none!important;border-color:var(--fb-blue)!important;
+  box-shadow:0 0 0 2px rgba(24,119,242,.12)!important;
+}
+
+/* Colored Facebook-blue top clock/notification bar. */
+.global-clock-panel{
+  background:linear-gradient(115deg,#1877f2 0%,#0866ff 58%,#1769d2 100%)!important;
+  border:1px solid rgba(255,255,255,.27)!important;
+  box-shadow:0 10px 30px rgba(24,119,242,.28),inset 0 1px 0 rgba(255,255,255,.24)!important;
+  color:#fff!important;
+}
+.global-clock-panel .global-clock-info,
+.global-clock-panel .global-clock-time,
+.global-clock-panel .global-clock-day,
+.global-clock-panel .global-clock-date,
+.global-clock-panel .global-clock-live{color:#fff!important;}
+.global-clock-panel .global-clock-live span{background:#42b72a!important;box-shadow:0 0 0 3px rgba(66,183,42,.22)!important;}
+.global-clock-panel .app-notification-button{
+  background:rgba(255,255,255,.16)!important;border:1px solid rgba(255,255,255,.35)!important;
+  color:#fff!important;box-shadow:0 3px 12px rgba(0,0,0,.08)!important;
+}
+.global-clock-panel .app-notification-button:hover{background:rgba(255,255,255,.26)!important;}
+.global-clock-panel .app-notification-badge{background:#e41e3f!important;color:#fff!important;border-color:#1877f2!important;}
+
+/* Bottom dock behavior/layout preserved; palette now matches Facebook's charcoal and blue. */
+.bottom-app-nav{
+  background:rgba(36,37,38,.96)!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.07)!important;
+}
+.bottom-nav-item{color:#c9ccd1!important;}
+.bottom-nav-item:hover{color:#fff!important;}
+.bottom-nav-item.is-active{color:#fff!important;background:rgba(255,255,255,.10)!important;}
+.bottom-nav-item.is-active .bottom-nav-icon{
+  color:#fff!important;background:var(--fb-blue)!important;
+  box-shadow:0 5px 12px rgba(24,119,242,.30)!important;
+}
+.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;}
+.bottom-nav-item.is-active::after{background:#1877f2!important;box-shadow:0 0 0 3px rgba(24,119,242,.18)!important;}
+
+/* Compact consistent cards, inputs and tags. */
+body main section .bg-white.border,
+body main section .bg-white.rounded-xl,
+body main section .bg-white.rounded-2xl,
+body main section .bg-white.rounded-3xl{
+  border-color:#e4e6eb!important;
+}
+body main .rounded-xl{border-radius:11px!important;}
+body main .rounded-lg{border-radius:9px!important;}
+body main button,body main input,body main select,body main textarea{font-family:inherit;}
+body main button{transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease;}
+body main button:active{transform:scale(.985);}
+.finance-report-heading{background:linear-gradient(110deg,#e7f3ff,#f5f9ff 65%,#e7f8e5);}
+.finance-report-icon{
+  width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  color:#fff;background:linear-gradient(145deg,#1877f2,#0866ff);font-size:20px;
+  box-shadow:0 5px 13px rgba(24,119,242,.22);
+}
+.finance-report-input{
+  border:1px solid #ccd0d5!important;border-radius:10px!important;background:#fff!important;
+  min-height:42px;padding:9px 11px!important;color:#1c1e21!important;font-size:13px!important;
+}
+.finance-report-input:disabled{background:#f0f2f5!important;color:#8a8d91!important;}
+.finance-report-sheet{background:#fff!important;}
+.finance-report-sheet-title{padding-bottom:4px;border-bottom:1px solid #e4e6eb;}
+.finance-report-kicker{font-size:10px;font-weight:900;color:#1877f2;letter-spacing:.04em;}
+.finance-report-metric{
+  display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;
+  padding:12px;border:1px solid #e4e6eb;border-radius:12px;background:#f7f8fa;
+}
+.finance-report-metric span{font-size:10px;line-height:1.5;color:#65676b;font-weight:750;}
+.finance-report-metric strong{font-size:15px;line-height:1.4;color:#1c1e21;font-weight:900;overflow-wrap:anywhere;}
+.finance-report-canvas-wrap{position:relative;width:100%;height:270px;max-width:100%;}
+.finance-report-download{background:#1877f2!important;box-shadow:0 5px 14px rgba(24,119,242,.22);}
+.finance-report-download:hover{background:#0866ff!important;}
+.finance-report-footnote{border-top:1px dashed #dadde1;padding-top:12px;line-height:1.8;}
+@media(max-width:767px){
+  body .main-with-nav > .p-4.md\:p-8{padding:12px 10px 18px!important;gap:14px!important;}
+  body main section.space-y-6{row-gap:14px!important;}
+  body main section.space-y-5{row-gap:12px!important;}
+  body main h2.text-2xl{font-size:20px!important;line-height:1.35!important;}
+  body main .text-sm{line-height:1.55;}
+  .finance-report-heading{padding:13px!important;}
+  .finance-report-controls{padding:12px!important;}
+  .finance-report-sheet{padding:12px!important;}
+  .finance-report-metrics{gap:7px!important;}
+  .finance-report-metric{padding:9px 8px!important;}
+  .finance-report-metric span{font-size:9px!important;}
+  .finance-report-metric strong{font-size:12px!important;}
+  .finance-report-canvas-wrap{height:235px!important;}
+  .finance-report-actions{padding:12px!important;}
+  .finance-report-download{width:100%;}
+}
+@media(max-width:360px){
+  .finance-report-metric{padding:7px 6px!important;}
+  .finance-report-metric span{font-size:8px!important;}
+  .finance-report-metric strong{font-size:11px!important;}
+  .finance-report-canvas-wrap{height:210px!important;}
 }
 </style>
 
