@@ -3301,12 +3301,33 @@ main textarea::placeholder{
         </button>
 
     </aside>
-<!-- =====================================================
+
+    <!-- Sidebar Toggle -->
+    <button
+        @click="sidebarOpen = !sidebarOpen"
+        :class="{ 'collapsed': !sidebarOpen }"
+        class="sidebar-toggle w-10 h-10 rounded-xl bg-white border border-slate-200 shadow-lg text-slate-600 hover:text-brand-600 hover:border-brand-300 flex items-center justify-center transition"
+        :title="sidebarOpen ? 'إخفاء القائمة' : 'إظهار القائمة'"
+        aria-label="إظهار أو إخفاء القائمة الجانبية"
+    >
+        <i class="fa-solid" :class="sidebarOpen ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+    </button>
+
+
+    <!-- =====================================================
          GLOBAL FIXED CLOCK / DATE
          يظهر ثابتًا في أعلى جميع صفحات التطبيق
     ====================================================== -->
     <div class="global-clock-panel" aria-label="الوقت والتاريخ الحالي">
-        
+        <div class="global-clock-face" role="img" aria-label="ساعة تناظرية">
+            <span class="clock-number" style="--angle:0deg">12</span><span class="clock-number" style="--angle:30deg">1</span>
+            <span class="clock-number" style="--angle:60deg">2</span><span class="clock-number" style="--angle:90deg">3</span>
+            <span class="clock-number" style="--angle:120deg">4</span><span class="clock-number" style="--angle:150deg">5</span>
+            <span class="clock-number" style="--angle:180deg">6</span><span class="clock-number" style="--angle:210deg">7</span>
+            <span class="clock-number" style="--angle:240deg">8</span><span class="clock-number" style="--angle:270deg">9</span>
+            <span class="clock-number" style="--angle:300deg">10</span><span class="clock-number" style="--angle:330deg">11</span>
+            <span class="clock-hour"></span><span class="clock-minute"></span><span class="clock-second"></span><span class="clock-center"></span>
+        </div>
         <div class="global-clock-info">
             <div class="global-clock-live"><span></span>الوقت الآن</div>
             <div class="global-clock-time" x-text="currentTime12"></div>
@@ -4609,7 +4630,7 @@ main textarea::placeholder{
                                                 </span>
                                                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-extrabold whitespace-nowrap">
                                                     <i class="fa-solid fa-hourglass-half"></i>
-                                                    <span x-text="'الحصص غير المدفوعة: ' + calculateUnpaidLessonsCount(student)"></span>
+                                                    <span x-text="'لم تُفعّل: ' + calculatePendingLessonsCount(student)"></span>
                                                 </span>
                                             </div>
                                         </div>
@@ -4748,59 +4769,42 @@ main textarea::placeholder{
                         </label>
                     </div>
 
-                    <div id="financeReportSheet" dir="rtl" lang="ar" class="finance-report-sheet">
-                        <section id="financeReportPage1" dir="rtl" lang="ar" class="finance-report-print-page finance-report-page-summary">
-                            <div class="finance-report-sheet-title">
-                                <div class="finance-report-kicker">دفتر المعلم · التقرير المالي</div>
-                                <h4 class="font-extrabold text-slate-900 text-xl mt-1" x-text="financeReportTitle()"></h4>
-                                <p class="text-xs text-slate-500 mt-1" x-text="'تاريخ إعداد التقرير: ' + todayDate"></p>
+                    <div id="financeReportSheet" class="finance-report-sheet p-4 md:p-6">
+                        <div class="finance-report-sheet-title text-center">
+                            <div class="finance-report-kicker">دفتر المعلم · التقرير المالي</div>
+                            <h4 class="font-extrabold text-slate-900 text-xl mt-1" x-text="financeReportTitle()"></h4>
+                            <p class="text-xs text-slate-500 mt-1" x-text="'تاريخ إعداد التقرير: ' + todayDate"></p>
+                        </div>
+                        <div class="finance-report-metrics grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-5">
+                            <div class="finance-report-metric">
+                                <span>الدفعات المحصّلة خلال الفترة</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().paid)"></strong>
                             </div>
-                            <div class="finance-report-metrics grid grid-cols-2 md:grid-cols-3 gap-2.5 mt-4">
-                                <div class="finance-report-metric"><span>الدفعات المحصّلة خلال الفترة</span><strong x-text="formatFinanceReportMoney(getFinanceReportTotals().paid)"></strong></div>
-                                <div class="finance-report-metric"><span>عدد الدفعات المسجّلة</span><strong x-text="getFinanceReportTotals().paymentCount.toLocaleString('ar-SA')"></strong></div>
-                                <div class="finance-report-metric"><span>قيمة الحصص المكتملة خلال الفترة</span><strong x-text="formatFinanceReportMoney(getFinanceReportTotals().earned)"></strong></div>
-                                <div class="finance-report-metric"><span>عدد الحصص المكتملة</span><strong x-text="getFinanceReportTotals().completedLessons.toLocaleString('ar-SA')"></strong></div>
-                                <div class="finance-report-metric"><span>الديون الحالية</span><strong x-text="formatFinanceReportMoney(getFinanceReportTotals().debts)"></strong></div>
-                                <div class="finance-report-metric"><span>عدد الطلاب المسجّلين</span><strong x-text="getFinanceReportTotals().studentCount.toLocaleString('ar-SA')"></strong></div>
+                            <div class="finance-report-metric">
+                                <span>عدد الدفعات</span>
+                                <strong x-text="getFinanceReportTotals().paymentCount.toLocaleString('ar-SA')"></strong>
                             </div>
-                            <div class="finance-report-charts-grid mt-4">
-                                <div class="finance-report-chart-area">
-                                    <h5 class="font-extrabold text-slate-800 text-sm mb-2" x-text="financeReportMode === 'month' ? 'الدفعات المحصّلة يوميًا' : 'الدفعات المحصّلة شهريًا'"></h5>
-                                    <div class="finance-report-canvas-wrap"><canvas id="financeReportChart" aria-label="مخطط الدفعات المحصلة"></canvas></div>
-                                </div>
-                                <div class="finance-report-chart-area">
-                                    <h5 class="font-extrabold text-slate-800 text-sm mb-2">مقارنة المحصّل بقيمة الحصص المكتملة</h5>
-                                    <div class="finance-report-canvas-wrap"><canvas id="financeReportComparisonChart" aria-label="مخطط مقارنة المحصل بقيمة الحصص المكتملة"></canvas></div>
-                                </div>
+                            <div class="finance-report-metric">
+                                <span>قيمة الحصص المكتملة خلال الفترة</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().earned)"></strong>
                             </div>
-                            <div class="finance-report-footnote mt-4">يعرض هذا الملخص المبالغ المحصّلة المسجلة خلال الفترة المختارة، وقيمة الحصص المكتملة وفق أسعار الطلاب ومدد حصصهم، إضافة إلى إجمالي الديون وقت إعداد التقرير.</div>
-                        </section>
-
-                        <section id="financeReportPage2" dir="rtl" lang="ar" class="finance-report-print-page finance-report-page-details mt-5">
-                            <div class="finance-report-detail-header">
-                                <div class="finance-report-kicker">دفتر المعلم · التفاصيل المالية</div>
-                                <h4 class="font-extrabold text-slate-900 text-lg mt-1" x-text="financeReportTitle()"></h4>
-                                <p class="text-xs text-slate-500 mt-1" x-text="financeReportMode === 'month' ? 'كشف الدفعات اليومية خلال الشهر' : 'كشف الدفعات الشهرية خلال السنة'"></p>
+                            <div class="finance-report-metric">
+                                <span>الديون الحالية</span>
+                                <strong x-text="formatFinanceReportMoney(getFinanceReportTotals().debts)"></strong>
                             </div>
-                            <div class="finance-report-detail-summary grid grid-cols-2 gap-2 mt-4">
-                                <div><span>إجمالي المبالغ المحصّلة</span><strong x-text="formatFinanceReportMoney(getFinanceReportTotals().paid)"></strong></div>
-                                <div><span>إجمالي عدد الدفعات</span><strong x-text="getFinanceReportTotals().paymentCount.toLocaleString('ar-SA')"></strong></div>
+                        </div>
+                        <div class="finance-report-chart-area mt-5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+                                <h5 class="font-extrabold text-slate-800 text-sm" x-text="financeReportMode === 'month' ? 'الدفعات المحصّلة يوميًا' : 'الدفعات المحصّلة شهريًا'"></h5>
+                                <span class="text-xs text-slate-500">القيم بالريال السعودي</span>
                             </div>
-                            <div class="finance-report-detail-section mt-4">
-                                <div class="overflow-hidden rounded-xl border border-slate-200">
-                                    <table class="finance-report-detail-table w-full text-right">
-                                        <thead><tr><th>الفترة</th><th>عدد الدفعات</th><th>إجمالي المحصّل</th></tr></thead>
-                                        <tbody>
-                                            <template x-for="row in getFinanceReportBreakdown()" :key="row.label">
-                                                <tr><td x-text="row.label"></td><td x-text="row.count.toLocaleString('ar-SA')"></td><td x-text="formatFinanceReportMoney(row.amount)"></td></tr>
-                                            </template>
-                                            <tr class="finance-report-total-row"><td>الإجمالي</td><td x-text="getFinanceReportTotals().paymentCount.toLocaleString('ar-SA')"></td><td x-text="formatFinanceReportMoney(getFinanceReportTotals().paid)"></td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="finance-report-canvas-wrap">
+                                <canvas id="financeReportChart" aria-label="الرسم البياني للتقرير المالي"></canvas>
                             </div>
-                            <div class="finance-report-footnote mt-4">ملاحظة: الأرقام مبنية على الدفعات التي سُجلت في النظام وتواريخها. لا تمثل الدفعات المسجلة بالضرورة قيمة الحصص المكتملة في اليوم نفسه إذا كانت الدفعة تسدد مستحقات سابقة.</div>
-                        </section>
+                        </div>
+                        <div class="finance-report-footnote mt-4 text-xs text-slate-500">
+                            يعتمد الرسم على الدفعات المسجّلة في النظام. وتعكس الديون الحالية إجمالي المبالغ المستحقة وقت إنشاء التقرير.
+                        </div>
                     </div>
 
                     <div class="finance-report-actions p-4 md:p-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -5439,7 +5443,6 @@ function teacherApp() {
         financeReportYear: new Date().getFullYear(),
         financeReportExporting: false,
         financeReportChart: null,
-        financeReportComparisonChart: null,
 
         googleClientId: '97654130737-rnhb42jubfoodeakgmep49c1cjrlimq2.apps.googleusercontent.com',
         googleAccessToken: null,
@@ -6284,29 +6287,10 @@ function teacherApp() {
             return (student?.lessons || []).filter(lesson => lesson.status === 'تم').length;
         },
 
-        calculateUnpaidLessonsCount(student) {
-            /* عدد الحصص المكتملة التي لم يغطِّ ثمنها مجموع الدفعات المسجلة بالكامل.
-               تُوزَّع الدفعات حسابيًا على الحصص المكتملة من الأقدم إلى الأحدث، دون عدّ الأرشيف مرة أخرى. */
-            const completed = (student?.lessons || [])
-                .filter(lesson => lesson?.status === 'تم')
-                .slice()
-                .sort((a, b) => {
-                    const da = String(a?.date || '') + ' ' + String(a?.time || '');
-                    const db = String(b?.date || '') + ' ' + String(b?.time || '');
-                    return da.localeCompare(db);
-                });
-            let remainingPaid = Math.max(0, Number(this.calculateStudentPaid(student) || 0));
-            let unpaidCount = 0;
-            completed.forEach(lesson => {
-                const charge = Math.max(0, Number(this.calculateLessonCharge(student, lesson) || 0));
-                if (remainingPaid + 0.005 >= charge) {
-                    remainingPaid = Math.max(0, remainingPaid - charge);
-                } else {
-                    unpaidCount += 1;
-                    remainingPaid = 0;
-                }
-            });
-            return unpaidCount;
+        calculatePendingLessonsCount(student) {
+            /* الحصص التي لم تُنجز ولم تُعلّم كحصة فائتة/ملغاة بعد. */
+            const closedStatuses = new Set(['تم', 'لم تتم', 'ملغاة', 'ملغي', 'ملغى', 'ألغيت', 'canceled', 'cancelled']);
+            return (student?.lessons || []).filter(lesson => !closedStatuses.has(String(lesson?.status || '').trim())).length;
         },
 
         calculateStudentExpected(student) {
@@ -8186,59 +8170,29 @@ function teacherApp() {
             return { labels, values, year, month };
         },
 
-        getFinanceReportStudents() {
+        getFinanceReportCompletedLessonIncome() {
+            const year = Number(this.financeReportYear || new Date().getFullYear());
+            const month = Number(this.financeReportMonth || 1);
             const records = [
                 ...(this.students || []),
                 ...((this.archivedStudents || []).map(record => record?.student).filter(Boolean))
             ];
-            const unique = [];
-            const seen = new Set();
+            const uniqueStudents = [];
+            const seenIds = new Set();
             records.forEach(student => {
-                const key = String(student?.id ?? student?.name ?? unique.length);
-                if (!seen.has(key)) { seen.add(key); unique.push(student); }
+                const key = String(student?.id ?? student?.name ?? uniqueStudents.length);
+                if (!seenIds.has(key)) { seenIds.add(key); uniqueStudents.push(student); }
             });
-            return unique;
-        },
 
-        getFinanceReportCompletedLessons() {
-            const year = Number(this.financeReportYear || new Date().getFullYear());
-            const month = Number(this.financeReportMonth || 1);
-            const records = [];
-            this.getFinanceReportStudents().forEach(student => {
-                (student.lessons || []).forEach(lesson => {
-                    if (lesson?.status !== 'تم') return;
-                    const parts = String(lesson?.date || '').slice(0, 10).split('-').map(Number);
-                    if (parts.length < 3 || parts[0] !== year) return;
-                    if (this.financeReportMode === 'month' && parts[1] !== month) return;
-                    records.push({ student, lesson, year: parts[0], month: parts[1], day: parts[2], amount: this.calculateLessonCharge(student, lesson) });
-                });
-            });
-            return records;
-        },
-
-        getFinanceReportCompletedLessonIncome() {
-            return Number(this.getFinanceReportCompletedLessons().reduce((sum, item) => sum + Number(item.amount || 0), 0).toFixed(2));
-        },
-
-        getFinanceReportBreakdown() {
-            const transactions = this.getFinanceReportPeriodTransactions();
-            const year = Number(this.financeReportYear || new Date().getFullYear());
-            const month = Number(this.financeReportMonth || 1);
-            const monthLabels = this.getCalendarYearMonthLabels();
-            const count = this.financeReportMode === 'year' ? 12 : new Date(year, month, 0).getDate();
-            return Array.from({ length: count }, (_, index) => {
-                const periodIndex = index + 1;
-                const matches = transactions.filter(transaction => {
-                    const parts = String(transaction.date || '').slice(0, 10).split('-').map(Number);
-                    if (parts.length < 3 || parts[0] !== year) return false;
-                    return this.financeReportMode === 'year' ? parts[1] === periodIndex : parts[1] === month && parts[2] === periodIndex;
-                });
-                return {
-                    label: this.financeReportMode === 'year' ? monthLabels[index] : 'اليوم ' + periodIndex,
-                    count: matches.length,
-                    amount: Number(matches.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0).toFixed(2))
-                };
-            });
+            return Number(uniqueStudents.reduce((sum, student) => {
+                return sum + (student.lessons || []).reduce((lessonSum, lesson) => {
+                    const date = String(lesson?.date || '').slice(0, 10);
+                    const parts = date.split('-').map(Number);
+                    if (lesson?.status !== 'تم' || parts.length < 3 || parts[0] !== year) return lessonSum;
+                    if (this.financeReportMode === 'month' && parts[1] !== month) return lessonSum;
+                    return lessonSum + this.calculateLessonCharge(student, lesson);
+                }, 0);
+            }, 0).toFixed(2));
         },
 
         getFinanceReportTotals() {
@@ -8247,83 +8201,99 @@ function teacherApp() {
                 paid: Number(transactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0).toFixed(2)),
                 paymentCount: transactions.length,
                 earned: this.getFinanceReportCompletedLessonIncome(),
-                completedLessons: this.getFinanceReportCompletedLessons().length,
-                studentCount: this.getFinanceReportStudents().length,
                 debts: this.getTotalDebts()
             };
         },
 
         renderFinanceReportChart() {
-            if (typeof Chart === 'undefined') return;
             const canvas = document.getElementById('financeReportChart');
-            if (!canvas) return;
+            if (!canvas || typeof Chart === 'undefined') return;
             const series = this.getFinanceReportSeries();
-            const rtlFont = { family: "Tajawal, Cairo, Tahoma, Arial, sans-serif", size: 9 };
-            if (this.financeReportChart) { try { this.financeReportChart.destroy(); } catch (error) {} this.financeReportChart = null; }
-            if (this.financeReportComparisonChart) { try { this.financeReportComparisonChart.destroy(); } catch (error) {} this.financeReportComparisonChart = null; }
+            if (this.financeReportChart) {
+                try { this.financeReportChart.destroy(); } catch (error) {}
+                this.financeReportChart = null;
+            }
 
-            const commonOptions = () => ({
-                responsive: true, maintainAspectRatio: false, animation: false,
-                locale: 'ar-SA',
-                plugins: {
-                    legend: { display: true, position: 'bottom', labels: { boxWidth: 9, boxHeight: 9, font: rtlFont } },
-                    tooltip: { rtl: true, textDirection: 'rtl', callbacks: { label: item => (item.dataset.label || '') + ': ' + Number(item.raw || 0).toLocaleString('ar-SA') + ' ر.س' } }
-                },
-                scales: {
-                    x: { grid: { display: false }, ticks: { autoSkip: this.financeReportMode === 'month', maxTicksLimit: this.financeReportMode === 'month' ? 14 : 12, maxRotation: 0, minRotation: 0, font: rtlFont } },
-                    y: { beginAtZero: true, ticks: { font: rtlFont, callback: value => Number(value).toLocaleString('ar-SA') }, grid: { color: 'rgba(100,116,139,.14)' } }
-                }
-            });
-
-            canvas.style.direction = 'rtl';
+            const color = this.financeReportMode === 'year' ? '#1877f2' : '#42b72a';
             this.financeReportChart = new Chart(canvas, {
                 type: 'bar',
-                data: { labels: series.labels, datasets: [{ label: 'الدفعات المحصّلة', data: series.values, backgroundColor: this.financeReportMode === 'year' ? '#0f766e' : '#1877f2', hoverBackgroundColor: '#155e75', borderRadius: 4, borderSkipped: false, maxBarThickness: this.financeReportMode === 'year' ? 23 : 12 }] },
-                options: commonOptions()
+                data: {
+                    labels: series.labels,
+                    datasets: [{
+                        label: 'الدفعات المحصّلة',
+                        data: series.values,
+                        backgroundColor: color,
+                        hoverBackgroundColor: this.financeReportMode === 'year' ? '#0866ff' : '#2e9d22',
+                        borderRadius: 4,
+                        borderSkipped: false,
+                        maxBarThickness: this.financeReportMode === 'year' ? 24 : 13
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: items => this.financeReportMode === 'year'
+                                    ? items[0]?.label || ''
+                                    : 'اليوم ' + (items[0]?.label || ''),
+                                label: item => Number(item.raw || 0).toLocaleString('ar-SA') + ' ر.س'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                autoSkip: this.financeReportMode === 'month',
+                                maxTicksLimit: this.financeReportMode === 'month' ? 16 : 12,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                font: { size: this.financeReportMode === 'month' ? 8 : 10 }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { size: 9 },
+                                callback: value => Number(value).toLocaleString('ar-SA')
+                            },
+                            grid: { color: 'rgba(100,116,139,.15)' }
+                        }
+                    }
+                }
             });
-
-            const comparisonCanvas = document.getElementById('financeReportComparisonChart');
-            if (comparisonCanvas) {
-                comparisonCanvas.style.direction = 'rtl';
-                const completed = this.getFinanceReportCompletedLessons();
-                const earnedValues = Array(series.labels.length).fill(0);
-                completed.forEach(item => {
-                    const index = this.financeReportMode === 'year' ? item.month - 1 : item.day - 1;
-                    if (index >= 0 && index < earnedValues.length) earnedValues[index] += Number(item.amount || 0);
-                });
-                this.financeReportComparisonChart = new Chart(comparisonCanvas, {
-                    type: 'line',
-                    data: { labels: series.labels, datasets: [
-                        { label: 'الدفعات المحصّلة', data: series.values, borderColor: '#1877f2', backgroundColor: 'rgba(24,119,242,.10)', fill: true, tension: .22, pointRadius: this.financeReportMode === 'year' ? 2 : 0, borderWidth: 2 },
-                        { label: 'قيمة الحصص المكتملة', data: earnedValues.map(value => Number(value.toFixed(2))), borderColor: '#0f766e', backgroundColor: 'rgba(15,118,110,.08)', fill: false, tension: .22, pointRadius: this.financeReportMode === 'year' ? 2 : 0, borderWidth: 2 }
-                    ]},
-                    options: commonOptions()
-                });
-            }
         },
+
         async downloadFinanceReportPdf() {
             if (this.financeReportExporting) return;
             if (!window.html2canvas || !window.jspdf?.jsPDF) {
-                alert('تعذر تحميل مكتبات إنشاء PDF. تحقق من اتصال الإنترنت ثم أعد المحاولة.');
+                alert('تعذر تحميل مكتبات تصدير PDF. تحقق من اتصال الإنترنت ثم أعد المحاولة.');
                 return;
             }
 
             this.financeReportExporting = true;
-            const pages = [document.getElementById('financeReportPage1'), document.getElementById('financeReportPage2')].filter(Boolean);
-            const savedStyles = pages.map(page => ({ page, width: page.style.width, maxWidth: page.style.maxWidth, minWidth: page.style.minWidth }));
             try {
                 await this.$nextTick();
-                const isYear = this.financeReportMode === 'year';
-                const orientation = isYear ? 'landscape' : 'portrait';
-                const renderWidth = isYear ? 1123 : 794; // CSS-pixel equivalent of an A4 page at 96dpi.
-                pages.forEach(page => { page.style.width = renderWidth + 'px'; page.style.maxWidth = 'none'; page.style.minWidth = renderWidth + 'px'; page.setAttribute('dir', 'rtl'); page.setAttribute('lang', 'ar'); });
-                const sheet = document.getElementById('financeReportSheet');
-                if (sheet) { sheet.setAttribute('dir', 'rtl'); sheet.setAttribute('lang', 'ar'); }
-                if (document.fonts?.ready) await document.fonts.ready;
-                await this.$nextTick();
                 this.renderFinanceReportChart();
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                await new Promise(resolve => setTimeout(resolve, 250));
 
+                const sheet = document.getElementById('financeReportSheet');
+                if (!sheet) throw new Error('FINANCE_REPORT_SHEET_MISSING');
+                const canvas = await window.html2canvas(sheet, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0
+                });
+
+                const image = canvas.toDataURL('image/png', 1.0);
+                const orientation = this.financeReportMode === 'year' ? 'landscape' : 'portrait';
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4', compress: true });
                 const pageWidth = pdf.internal.pageSize.getWidth();
@@ -8331,53 +8301,19 @@ function teacherApp() {
                 const margin = 8;
                 const availableWidth = pageWidth - margin * 2;
                 const availableHeight = pageHeight - margin * 2;
-
-                for (let index = 0; index < pages.length; index++) {
-                    const element = pages[index];
-                    const canvas = await window.html2canvas(element, {
-                        scale: 2,
-                        useCORS: true,
-                        backgroundColor: '#ffffff',
-                        logging: false,
-                        scrollX: 0,
-                        scrollY: 0,
-                        onclone: clonedDocument => {
-                            const clonedPage = clonedDocument.getElementById(element.id);
-                            if (clonedPage) {
-                                clonedPage.setAttribute('dir', 'rtl');
-                                clonedPage.setAttribute('lang', 'ar');
-                                clonedPage.style.direction = 'rtl';
-                                clonedPage.style.unicodeBidi = 'isolate';
-                                clonedPage.style.fontFamily = "Tajawal, Cairo, Tahoma, Arial, sans-serif";
-                                clonedPage.style.background = '#ffffff';
-                                clonedPage.style.color = '#172033';
-                            }
-                        }
-                    });
-                    const ratio = Math.min(availableWidth / canvas.width, availableHeight / canvas.height);
-                    const imageWidth = canvas.width * ratio;
-                    const imageHeight = canvas.height * ratio;
-                    if (index > 0) pdf.addPage('a4', orientation);
-                    const image = canvas.toDataURL('image/jpeg', 0.96);
-                    pdf.addImage(image, 'JPEG', (pageWidth - imageWidth) / 2, margin, imageWidth, imageHeight, undefined, 'FAST');
-                }
-
-                const suffix = isYear
+                const ratio = Math.min(availableWidth / canvas.width, availableHeight / canvas.height);
+                const imageWidth = canvas.width * ratio;
+                const imageHeight = canvas.height * ratio;
+                pdf.addImage(image, 'PNG', (pageWidth - imageWidth) / 2, margin, imageWidth, imageHeight, undefined, 'FAST');
+                const suffix = this.financeReportMode === 'year'
                     ? 'year-' + Number(this.financeReportYear)
                     : 'month-' + String(Number(this.financeReportMonth)).padStart(2, '0') + '-' + Number(this.financeReportYear);
                 pdf.save('teacher-finance-report-' + suffix + '.pdf');
             } catch (error) {
                 console.error('Finance PDF export failed:', error);
-                alert('تعذر إنشاء التقرير المالي PDF. تأكد من تحميل الرسم البياني ثم أعد المحاولة.');
+                alert('تعذر إنشاء التقرير المالي PDF. أعد المحاولة بعد فتح صفحة المالية والانتظار حتى يظهر الرسم البياني.');
             } finally {
-                savedStyles.forEach(item => {
-                    item.page.style.width = item.width;
-                    item.page.style.maxWidth = item.maxWidth;
-                    item.page.style.minWidth = item.minWidth;
-                });
                 this.financeReportExporting = false;
-                await this.$nextTick();
-                this.renderFinanceReportChart();
             }
         }
 
@@ -8688,407 +8624,6 @@ window.addEventListener('orientationchange', () => {
  .weekly-lesson-name{font-size:8px!important;}
 }
 </style>
-
-<style id="teacher-notebook-premium-theme-v4">
-:root{--tn-primary:#1877f2;--tn-primary-deep:#0b57d0;--tn-ink:#172033;--tn-muted:#667085;--tn-canvas:#f4f7fb;--tn-card:#ffffff;--tn-border:#e4eaf2;--tn-teal:#0f766e;}
-html,body{background:var(--tn-canvas)!important;color:var(--tn-ink)!important;font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;}
-body > .flex.min-h-screen{background:linear-gradient(180deg,#f1f5fb 0%,#f7f9fc 38%,#f4f7fb 100%)!important;}
-/* Fix the clipped header: stretch across the viewport instead of using intrinsic max-content width. */
-.global-clock-panel{
- position:fixed!important;top:max(8px,env(safe-area-inset-top))!important;left:12px!important;right:12px!important;transform:none!important;
- width:auto!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;
- display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;
- gap:12px!important;padding:9px 12px!important;min-height:66px!important;height:auto!important;
- border:1px solid rgba(255,255,255,.22)!important;border-radius:20px!important;
- background:linear-gradient(115deg,#153b70 0%,#0866ff 56%,#2584ff 100%)!important;
- box-shadow:0 10px 28px rgba(21,59,112,.22),inset 0 1px 0 rgba(255,255,255,.18)!important;
- backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;overflow:visible!important;z-index:1000!important;
-}
-.global-clock-panel .global-clock-info,.global-clock-panel .global-clock-info *{box-sizing:border-box!important;}
-.global-clock-panel .global-clock-info{display:flex!important;flex:1 1 auto!important;min-width:0!important;max-width:none!important;align-items:center!important;justify-content:space-between!important;gap:clamp(4px,1.3vw,12px)!important;padding:0!important;overflow:hidden!important;}
-.global-clock-panel .global-clock-live{display:inline-flex!important;align-items:center!important;gap:5px!important;flex:0 0 auto!important;white-space:nowrap!important;color:#fff!important;background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.20)!important;border-radius:999px!important;padding:7px 9px!important;font-size:10px!important;font-weight:800!important;line-height:1.2!important;}
-.global-clock-panel .global-clock-live span{width:7px!important;height:7px!important;flex:0 0 7px!important;background:#8ff0b0!important;box-shadow:0 0 0 3px rgba(143,240,176,.15)!important;}
-.global-clock-panel .global-clock-time{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-width:max-content!important;min-height:42px!important;padding:8px 12px!important;border-radius:14px!important;background:#fff!important;color:#172033!important;font-size:clamp(15px,2.4vw,20px)!important;font-weight:900!important;line-height:1!important;letter-spacing:0!important;text-shadow:none!important;box-shadow:0 2px 7px rgba(0,0,0,.10)!important;}
-.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;min-height:32px!important;padding:6px 8px!important;border-radius:10px!important;background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;font-size:clamp(8px,1.5vw,11px)!important;font-weight:800!important;line-height:1.25!important;text-shadow:none!important;}
-.global-clock-panel .app-notification-button{position:relative!important;z-index:2!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 44px!important;width:44px!important;height:44px!important;min-width:44px!important;margin:0!important;padding:0!important;border-radius:14px!important;background:rgba(255,255,255,.15)!important;border:1px solid rgba(255,255,255,.25)!important;color:#fff!important;font-size:19px!important;box-shadow:none!important;opacity:1!important;}
-.global-clock-panel .app-notification-button i{color:#fff!important;}
-.global-clock-panel .app-notification-button:hover{background:rgba(255,255,255,.24)!important;}
-.global-clock-panel .app-notification-badge{background:#ff365e!important;border:2px solid #174a9a!important;color:#fff!important;}
-.main-with-nav{padding-top:92px!important;padding-bottom:125px!important;}
-/* Cohesive page canvas, cards, headings and form controls. */
-main,.main-with-nav,main>div{background:transparent!important;color:var(--tn-ink)!important;}
-main .bg-white,main .bg-white\/90,main .bg-white\/80{background:var(--tn-card)!important;color:var(--tn-ink)!important;border-color:var(--tn-border)!important;box-shadow:0 5px 18px rgba(24,48,84,.055)!important;}
-main .rounded-2xl,main .rounded-3xl{border-radius:20px!important;}
-main .border-slate-100,main .border-slate-200,main .border-gray-100,main .border-gray-200{border-color:var(--tn-border)!important;}
-main h1,main h2,main h3,main h4,main h5{color:var(--tn-ink)!important;letter-spacing:-.25px;}
-main .text-slate-900,main .text-slate-800,main .text-slate-700,main .text-gray-900,main .text-gray-800{color:var(--tn-ink)!important;}
-main .text-slate-600,main .text-slate-500,main .text-slate-400,main .text-gray-600,main .text-gray-500{color:var(--tn-muted)!important;}
-main .bg-brand-500,main .bg-brand-600,main .bg-brand-700,main button.bg-blue-600,main a.bg-blue-600{background:linear-gradient(135deg,#1877f2,#0b57d0)!important;color:#fff!important;}
-main .bg-brand-500 *,main .bg-brand-600 *,main .bg-brand-700 *,main button.bg-blue-600 *,main a.bg-blue-600 *{color:#fff!important;}
-main input,main select,main textarea{background:#fff!important;color:var(--tn-ink)!important;border:1px solid #d7e0ec!important;border-radius:12px!important;}
-main input:focus,main select:focus,main textarea:focus{border-color:#1877f2!important;box-shadow:0 0 0 3px rgba(24,119,242,.12)!important;outline:none!important;}
-/* The dark upcoming-lesson card had dark text on a dark background; enforce accessible contrast. */
-main .dashboard-next-lesson{background:linear-gradient(135deg,#173b70 0%,#1d5bb9 60%,#1877f2 100%)!important;border:1px solid rgba(255,255,255,.16)!important;box-shadow:0 10px 24px rgba(24,87,170,.18)!important;}
-main .dashboard-next-lesson,main .dashboard-next-lesson *{color:#fff!important;}
-main .dashboard-next-lesson .text-slate-400,main .dashboard-next-lesson .text-slate-300{color:#dbeafe!important;}
-main .dashboard-next-lesson .text-amber-400{color:#fde68a!important;}
-main .dashboard-add-lesson{background:linear-gradient(115deg,#0f766e 0%,#0d9488 55%,#1877f2 100%)!important;color:#fff!important;border:1px solid rgba(255,255,255,.22)!important;box-shadow:0 8px 18px rgba(15,118,110,.18)!important;}
-main .dashboard-add-lesson *{color:#fff!important;}
-/* Floating navigation: keep the working five destinations, sharpen the active state. */
-.bottom-app-nav{left:12px!important;right:12px!important;transform:none!important;width:auto!important;max-width:none!important;box-sizing:border-box!important;display:flex!important;justify-content:space-around!important;gap:4px!important;padding:8px 7px calc(8px + env(safe-area-inset-bottom))!important;border-radius:25px!important;background:rgba(28,31,38,.97)!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 12px 34px rgba(12,24,42,.25)!important;backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;}
-.bottom-nav-item{flex:1 1 0!important;min-width:0!important;max-width:none!important;display:flex!important;align-items:center!important;justify-content:center!important;color:#b8c1ce!important;border-radius:17px!important;padding:5px 2px!important;gap:3px!important;}
-.bottom-nav-icon{width:42px!important;height:37px!important;font-size:21px!important;border-radius:13px!important;}
-.bottom-nav-label{font-size:10px!important;font-weight:800!important;}
-.bottom-nav-item.is-active{background:rgba(24,119,242,.17)!important;color:#fff!important;}
-.bottom-nav-item.is-active .bottom-nav-icon{background:#1877f2!important;color:#fff!important;box-shadow:0 4px 13px rgba(24,119,242,.32)!important;transform:translateY(-1px)!important;}
-.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;}
-.bottom-nav-item.is-active::after{background:#58a6ff!important;}
-/* Month calendar: compact, consistent grid with visible borders and minimal wasted gutters. */
-.month-calendar-card{background:#fff!important;border:1px solid var(--tn-border)!important;border-radius:18px!important;overflow:hidden!important;box-shadow:0 6px 20px rgba(24,48,84,.06)!important;}
-.month-calendar-card .month-calendar-head{background:#f7faff!important;color:#5d6b82!important;border-color:#e5ebf4!important;}
-.month-calendar-card .month-calendar-cell{background:#fff!important;border-color:#e7edf5!important;min-width:0!important;padding:3px!important;}
-.month-calendar-card .month-calendar-cell.today .month-day-number{background:#1877f2!important;color:#fff!important;}
-.month-calendar-card .month-calendar-cell:hover{background:#f4f8ff!important;}
-.month-calendar-card .month-student{max-width:100%!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;}
-/* Financial report uses the same blue identity. */
-.finance-report-heading{background:linear-gradient(110deg,#e7f1ff,#fff 75%)!important;}
-.finance-report-icon,.finance-report-download{background:#1877f2!important;color:#fff!important;}
-.finance-report-kicker{color:#0b57d0!important;}
-.finance-report-metric{border-color:var(--tn-border)!important;border-top-color:#1877f2!important;}
-/* Responsive iPhone sizing */
-@media(max-width:767px){
- .global-clock-panel{left:8px!important;right:8px!important;top:max(6px,env(safe-area-inset-top))!important;min-height:58px!important;padding:6px 7px!important;gap:7px!important;border-radius:17px!important;}
- .global-clock-panel .global-clock-info{gap:4px!important;}
- .global-clock-panel .global-clock-live{padding:5px 6px!important;font-size:8px!important;gap:4px!important;}
- .global-clock-panel .global-clock-time{min-height:35px!important;padding:6px 7px!important;font-size:15px!important;border-radius:11px!important;}
- .global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{min-height:27px!important;padding:4px 5px!important;font-size:8px!important;border-radius:8px!important;}
- .global-clock-panel .app-notification-button{width:38px!important;height:38px!important;min-width:38px!important;flex-basis:38px!important;font-size:16px!important;border-radius:12px!important;}
- .main-with-nav{padding-top:80px!important;padding-bottom:112px!important;}
- .bottom-app-nav{left:8px!important;right:8px!important;bottom:calc(7px + env(safe-area-inset-bottom))!important;padding:6px 5px calc(6px + env(safe-area-inset-bottom))!important;border-radius:22px!important;}
- .bottom-nav-icon{width:38px!important;height:34px!important;font-size:19px!important;}
- .bottom-nav-label{font-size:9px!important;}
-}
-@media(max-width:390px){
- .global-clock-panel .global-clock-date{display:none!important;}
- .global-clock-panel .global-clock-live{font-size:7px!important;padding:4px 5px!important;}
- .global-clock-panel .global-clock-time{font-size:14px!important;padding:5px 6px!important;}
- .bottom-nav-icon{width:34px!important;height:32px!important;font-size:18px!important;}
- .bottom-nav-label{font-size:8px!important;}
-}
-@media(prefers-reduced-motion:reduce){main button,.bottom-nav-item{transition:none!important;}}
-</style>
-
-
-<style id="teacher-notebook-premium-theme-v5">
-:root{
-  --tn-primary:#2563eb;
-  --tn-primary-dark:#1d4ed8;
-  --tn-primary-soft:#eff6ff;
-  --tn-teal:#0f766e;
-  --tn-teal-soft:#ecfdf5;
-  --tn-ink:#172033;
-  --tn-muted:#64748b;
-  --tn-canvas:#f3f6fb;
-  --tn-card:#ffffff;
-  --tn-border:#e2e8f0;
-  --tn-shadow:0 8px 24px rgba(31,55,90,.07);
-}
-html,body{background:var(--tn-canvas)!important;color:var(--tn-ink)!important;}
-body{font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;}
-body > .flex.min-h-screen{background:
-  radial-gradient(ellipse at 12% 0%,rgba(37,99,235,.07),transparent 34%),
-  radial-gradient(ellipse at 100% 18%,rgba(15,118,110,.055),transparent 30%),
-  var(--tn-canvas)!important;}
-main,.main-with-nav,main>div{background:transparent!important;color:var(--tn-ink)!important;}
-main h1,main h2,main h3,main h4,main h5,main h6{color:var(--tn-ink)!important;letter-spacing:-.2px;}
-main p,main label,main span{ text-shadow:none!important; }
-main .bg-white,main .bg-white\/90,main .bg-white\/80{
-  background:var(--tn-card)!important;color:var(--tn-ink)!important;
-  border-color:var(--tn-border)!important;box-shadow:var(--tn-shadow)!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
-}
-main .bg-slate-50,main .bg-gray-50,main .bg-zinc-50{background:#f8fafc!important;}
-main .bg-slate-100,main .bg-gray-100,main .bg-zinc-100{background:#eef2f7!important;}
-main .text-slate-900,main .text-slate-800,main .text-slate-700,main .text-gray-900,main .text-gray-800{color:var(--tn-ink)!important;}
-main .text-slate-600,main .text-slate-500,main .text-slate-400,main .text-gray-600,main .text-gray-500{color:var(--tn-muted)!important;}
-main .border-slate-100,main .border-slate-200,main .border-gray-100,main .border-gray-200{border-color:var(--tn-border)!important;}
-main .bg-brand-50{background:#eff6ff!important;}
-main .bg-brand-100{background:#dbeafe!important;}
-main .text-brand-600,main .text-brand-700{color:var(--tn-primary)!important;}
-main .border-brand-100,main .border-brand-200{border-color:#bfdbfe!important;}
-main .bg-brand-500,main .bg-brand-600,main .bg-brand-700,main button.bg-blue-600,main a.bg-blue-600{
-  background:linear-gradient(135deg,var(--tn-primary),#3b82f6)!important;color:#fff!important;
-  border-color:transparent!important;box-shadow:0 5px 14px rgba(37,99,235,.18)!important;
-}
-main .bg-brand-500 *,main .bg-brand-600 *,main .bg-brand-700 *,main button.bg-blue-600 *,main a.bg-blue-600 *{color:#fff!important;}
-main .bg-emerald-50,main .bg-green-50{background:#ecfdf5!important;}
-main .text-emerald-700,main .text-green-700{color:#047857!important;}
-main .bg-rose-50,main .bg-red-50{background:#fff1f2!important;}
-main .text-rose-700,main .text-red-700{color:#be123c!important;}
-main .rounded-2xl,main .rounded-3xl{border-radius:18px!important;}
-main .shadow-sm,main .shadow-md{box-shadow:0 5px 18px rgba(31,55,90,.06)!important;}
-main input,main select,main textarea{
-  color:var(--tn-ink)!important;background:#fff!important;border:1px solid #d5deea!important;
-  border-radius:12px!important;box-shadow:none!important;
-}
-main input::placeholder,main textarea::placeholder{color:#94a3b8!important;opacity:1!important;}
-main input:focus,main select:focus,main textarea:focus{
-  border-color:#60a5fa!important;box-shadow:0 0 0 3px rgba(37,99,235,.12)!important;outline:none!important;
-}
-main button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease!important;}
-main button:active{transform:scale(.99);}
-
-/* A single bright, readable header; no horizontal overflow on mobile. */
-.global-clock-panel{
-  box-sizing:border-box!important;width:100%!important;max-width:100vw!important;left:0!important;right:0!important;
-  overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:space-between!important;
-  gap:clamp(5px,1.5vw,14px)!important;padding:10px clamp(9px,2.8vw,22px)!important;
-  color:#fff!important;background:linear-gradient(115deg,#123b70 0%,#1d4ed8 58%,#0f766e 100%)!important;
-  border:0!important;border-bottom:3px solid #60a5fa!important;border-radius:0 0 18px 18px!important;
-  box-shadow:0 9px 26px rgba(29,78,216,.18)!important;
-}
-.global-clock-panel .global-clock-info{
-  min-width:0!important;flex:1 1 auto!important;display:flex!important;align-items:center!important;
-  justify-content:space-between!important;gap:clamp(4px,1.4vw,12px)!important;overflow:hidden!important;
-}
-.global-clock-panel .global-clock-live{
-  flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;
-  color:#fff!important;background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.22)!important;
-  border-radius:999px!important;padding:7px 10px!important;font-weight:800!important;font-size:11px!important;
-}
-.global-clock-panel .global-clock-live span{background:#86efac!important;box-shadow:0 0 0 3px rgba(134,239,172,.16)!important;}
-.global-clock-panel .global-clock-time{
-  flex:0 0 auto!important;white-space:nowrap!important;color:#123b70!important;background:#fff!important;
-  border:1px solid rgba(255,255,255,.9)!important;border-radius:13px!important;padding:8px 13px!important;
-  min-height:39px!important;font-size:clamp(15px,2.2vw,21px)!important;font-weight:900!important;line-height:1!important;
-  text-shadow:none!important;box-shadow:0 3px 10px rgba(0,0,0,.12)!important;
-}
-.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{
-  flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  color:#fff!important;background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.2)!important;
-  border-radius:10px!important;padding:7px 9px!important;font-size:clamp(9px,1.3vw,12px)!important;font-weight:800!important;
-}
-.global-clock-panel .app-notification-button{
-  flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;
-  border:1px solid rgba(255,255,255,.35)!important;border-radius:14px!important;
-  background:rgba(255,255,255,.15)!important;color:#fff!important;font-size:18px!important;box-shadow:none!important;
-}
-.global-clock-panel .app-notification-button i{color:#fff!important;}
-.global-clock-panel .app-notification-badge{border-color:#1d4ed8!important;background:#f43f5e!important;color:#fff!important;}
-.main-with-nav{padding-top:80px!important;}
-@media(max-width:767px){
- .global-clock-panel{height:66px!important;min-height:66px!important;padding:7px 9px!important;gap:6px!important;border-radius:0 0 15px 15px!important;}
- .global-clock-panel .global-clock-info{gap:5px!important;}
- .global-clock-panel .global-clock-live{font-size:8px!important;padding:5px 6px!important;}
- .global-clock-panel .global-clock-time{min-height:34px!important;font-size:15px!important;padding:6px 7px!important;border-radius:10px!important;}
- .global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{font-size:8px!important;padding:5px 5px!important;border-radius:8px!important;}
- .global-clock-panel .app-notification-button{width:35px!important;height:35px!important;min-width:35px!important;flex-basis:35px!important;font-size:15px!important;border-radius:10px!important;}
- .main-with-nav{padding-top:72px!important;}
-}
-@media(max-width:380px){
- .global-clock-panel{padding-left:6px!important;padding-right:6px!important;gap:4px!important;}
- .global-clock-panel .global-clock-info{gap:4px!important;}
- .global-clock-panel .global-clock-live{font-size:7px!important;padding:4px!important;}
- .global-clock-panel .global-clock-time{font-size:13px!important;padding:5px!important;}
- .global-clock-panel .global-clock-day{font-size:7px!important;padding:4px!important;}
- .global-clock-panel .global-clock-date{display:none!important;}
- .global-clock-panel .app-notification-button{width:32px!important;height:32px!important;min-width:32px!important;flex-basis:32px!important;}
-}
-
-/* Desktop sidebar keeps its normal navigation function, but no floating collapse arrow remains. */
-.sidebar-toggle{display:none!important;visibility:hidden!important;pointer-events:none!important;}
-.app-sidebar{
- background:linear-gradient(180deg,#132f55 0%,#172b46 58%,#12243a 100%)!important;
- border-color:rgba(255,255,255,.09)!important;box-shadow:8px 0 30px rgba(15,35,60,.12)!important;
-}
-.app-sidebar .text-slate-500,.app-sidebar .text-slate-400{color:#b8c7dc!important;}
-.app-sidebar button,.app-sidebar a{border-radius:13px!important;color:#eaf2ff!important;transition:all .18s ease!important;}
-.app-sidebar button:hover,.app-sidebar a:hover{background:rgba(255,255,255,.10)!important;color:#fff!important;}
-.app-sidebar button[class*="bg-brand"],.app-sidebar a[class*="bg-brand"],.app-sidebar button[class*="bg-blue"]{
- background:linear-gradient(100deg,rgba(59,130,246,.28),rgba(20,184,166,.16))!important;color:#fff!important;
- border:1px solid rgba(147,197,253,.16)!important;
-}
-.app-sidebar button[class*="bg-brand"] i,.app-sidebar a[class*="bg-brand"] i,.app-sidebar button[class*="bg-blue"] i{color:#93c5fd!important;}
-
-/* A new floating dock in navy with a clear blue/teal active state. */
-.bottom-app-nav{
- box-sizing:border-box!important;isolation:isolate!important;
- background:linear-gradient(115deg,rgba(18,47,85,.98),rgba(23,43,70,.98) 65%,rgba(15,118,110,.97))!important;
- border:1px solid rgba(255,255,255,.15)!important;border-radius:27px!important;
- box-shadow:0 13px 34px rgba(15,35,60,.28),inset 0 1px 0 rgba(255,255,255,.09)!important;
- backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;
-}
-.bottom-nav-item{color:#b8c7dc!important;border-radius:19px!important;transition:all .18s ease!important;}
-.bottom-nav-item:hover{color:#fff!important;background:rgba(255,255,255,.08)!important;}
-.bottom-nav-item.is-active{color:#fff!important;background:rgba(255,255,255,.10)!important;}
-.bottom-nav-item.is-active .bottom-nav-icon{
- background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important;
- box-shadow:0 5px 15px rgba(37,99,235,.34)!important;
-}
-.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;font-weight:900!important;}
-.bottom-nav-item.is-active::after{background:#5eead4!important;box-shadow:0 0 0 3px rgba(94,234,212,.15)!important;}
-@media(max-width:767px){
- .bottom-app-nav{left:8px!important;right:8px!important;width:auto!important;max-width:none!important;gap:2px!important;
-   padding:7px 5px calc(7px + env(safe-area-inset-bottom))!important;border-radius:23px!important;}
- .bottom-nav-item{min-width:0!important;flex:1 1 0!important;padding:5px 2px 4px!important;}
- .bottom-nav-icon{width:38px!important;height:34px!important;font-size:18px!important;}
- .bottom-nav-label{font-size:10px!important;white-space:nowrap!important;}
-}
-
-/* Calendars, student tags, archives, modals, and financial reports share the same tokens. */
-.month-calendar-card,.students-lesson-archive-card,.lesson-archive-dialog,.finance-report-sheet{
- background:#fff!important;border-color:var(--tn-border)!important;
-}
-.month-calendar-card .month-calendar-head{background:#f8fafc!important;color:#475569!important;border-color:var(--tn-border)!important;}
-.month-calendar-card .month-calendar-cell{background:#fff!important;border-color:#edf1f7!important;}
-.month-calendar-card .month-calendar-cell.today .month-day-number{background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important;}
-.month-calendar-card .month-calendar-cell:hover{background:#f8fbff!important;}
-.students-lesson-archive-card{border-radius:17px!important;box-shadow:var(--tn-shadow)!important;border-color:var(--tn-border)!important;}
-.students-lesson-archive-icon{background:linear-gradient(135deg,#dbeafe,#ccfbf1)!important;color:#1d4ed8!important;}
-.students-lesson-archive-count{background:#ecfdf5!important;color:#047857!important;}
-.lesson-archive-dialog{border-radius:22px!important;box-shadow:0 24px 70px rgba(20,40,70,.22)!important;}
-.lesson-archive-dialog-head{background:linear-gradient(110deg,#eff6ff,#fff)!important;border-color:var(--tn-border)!important;}
-.lesson-archive-dialog-icon{background:#dbeafe!important;color:#1d4ed8!important;}
-.finance-report-heading{background:linear-gradient(110deg,#dbeafe,#ecfdf5 70%,#fff)!important;}
-.finance-report-icon,.finance-report-download{background:linear-gradient(135deg,#2563eb,#0f766e)!important;color:#fff!important;}
-.finance-report-kicker{color:#1d4ed8!important;}
-.finance-report-metric{border-color:var(--tn-border)!important;border-top-color:#2563eb!important;background:#f8fafc!important;}
-.finance-report-detail-table th{background:#eaf2ff!important;color:#172033!important;}
-.finance-report-detail-table td{color:#334155!important;}
-body [role="dialog"],body .modal,body .modal-content{border-color:var(--tn-border)!important;box-shadow:0 22px 70px rgba(20,40,70,.20)!important;}
-body .bg-slate-900{background:#172b46!important;}
-body .text-brand-600{color:#2563eb!important;}
-body .border-brand-300{border-color:#93c5fd!important;}
-@media(prefers-reduced-motion:reduce){main button,.app-sidebar button,.bottom-nav-item{transition:none!important;}}
-</style>
-
-
-<style id="teacher-notebook-layout-calendar-fix-v6">
-/* Fix 1: remove striped backgrounds from normal empty dates; keep out-of-month dates subtle. */
-.month-calendar-cell:not(.outside):not(.has-lessons),
-.month-calendar-cell.today:not(.has-lessons) {
-  background: #ffffff !important;
-  background-image: none !important;
-}
-.month-calendar-cell.outside {
-  background: #f8fafc !important;
-  background-image: none !important;
-}
-.month-calendar-cell {
-  min-width: 0 !important;
-  overflow: hidden !important;
-  border-color: #e7edf5 !important;
-}
-.month-calendar-cell .month-day-number {
-  position: relative;
-  z-index: 1;
-}
-.month-calendar-cell.has-lessons {
-  background: #f0f7ff !important;
-  background-image: none !important;
-}
-.month-calendar-cell.today {
-  box-shadow: inset 0 0 0 2px #3b82f6 !important;
-}
-
-/* Fix 2: fixed header and bottom dock must size from viewport edges, not content width. */
-html, body {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow-x: hidden !important;
-}
-body > .flex.min-h-screen {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow-x: clip !important;
-}
-.global-clock-panel {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  transform: none !important;
-}
-.bottom-app-nav {
-  position: fixed !important;
-  left: 12px !important;
-  right: 12px !important;
-  bottom: max(8px, env(safe-area-inset-bottom)) !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  transform: none !important;
-  justify-content: space-around !important;
-  gap: 2px !important;
-  overflow: hidden !important;
-}
-.bottom-nav-item {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  padding-left: 2px !important;
-  padding-right: 2px !important;
-}
-@media (max-width: 767px) {
-  .global-clock-panel {
-    left: 0 !important;
-    right: 0 !important;
-    width: auto !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-  }
-  .bottom-app-nav {
-    left: 8px !important;
-    right: 8px !important;
-    width: auto !important;
-    bottom: max(7px, env(safe-area-inset-bottom)) !important;
-    padding: 7px 4px calc(7px + env(safe-area-inset-bottom)) !important;
-    border-radius: 24px !important;
-  }
-  .bottom-nav-icon {
-    max-width: 38px !important;
-  }
-  .bottom-nav-label {
-    max-width: 100% !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-}
-</style>
-<script id="teacher-notebook-remove-stray-escape-text">
-/* Remove only accidental visible text nodes made from literal newline escape fragments. */
-(function () {
-  function cleanStrayText() {
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    var nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(function (node) {
-      var value = (node.nodeValue || "").trim();
-      if (/^n(?:\s|\\\\n|\\n|n)*$/i.test(value) && /\\\\n|\\n/.test(value)) {
-        if (node.parentElement && !node.parentElement.closest("script,style,textarea,code,pre")) {
-          node.nodeValue = "";
-        }
-      }
-    });
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", cleanStrayText, { once: true });
-  } else {
-    cleanStrayText();
-  }
-  document.addEventListener("alpine:initialized", cleanStrayText);
-})();
-</script>
 
 </body></html>`);win.document.close();
   }
@@ -9979,624 +9514,46 @@ body main button:active{transform:scale(.985);}
 }
 </style>
 
-<style id="teacher-finance-a4-arabic-fix-2026">
-/* Top bar: polished teacher identity palette, not the harsh saturated blue. */
-.global-clock-panel{
-  background:linear-gradient(118deg,#0f766e 0%,#155e75 52%,#243b53 100%)!important;
-  border:1px solid rgba(255,255,255,.25)!important;
-  box-shadow:0 9px 25px rgba(15,76,85,.22),inset 0 1px 0 rgba(255,255,255,.20)!important;
-  color:#fff!important;
-}
-.global-clock-panel .global-clock-info,.global-clock-panel .global-clock-time,
-.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date,
-.global-clock-panel .global-clock-live{color:#fff!important;}
-.global-clock-panel .global-clock-day{color:#d1fae5!important;}
-.global-clock-panel .global-clock-live span{background:#86efac!important;box-shadow:0 0 0 3px rgba(134,239,172,.18)!important;}
-.global-clock-panel .app-notification-button{background:rgba(255,255,255,.14)!important;border-color:rgba(255,255,255,.34)!important;color:#fff!important;}
-.global-clock-panel .app-notification-badge{background:#fb7185!important;color:#fff!important;border-color:#155e75!important;}
-
-/* Student's second counter is now semantically about unpaid completed lessons. */
-.finance-report-sheet,.finance-report-print-page{
-  direction:rtl!important;unicode-bidi:plaintext!important;text-align:right!important;
-  font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;color:#172033!important;background:#fff!important;
-}
-.finance-report-sheet{display:flex;flex-direction:column;gap:16px;}
-.finance-report-print-page{box-sizing:border-box;width:100%;padding:22px;border:1px solid #e2e8f0;border-radius:14px;background:#fff!important;}
-.finance-report-sheet-title,.finance-report-detail-header{
-  direction:rtl!important;text-align:center!important;unicode-bidi:isolate!important;
-  border-bottom:2px solid #d7eeea;padding:7px 5px 14px;margin-bottom:12px;
-}
-.finance-report-kicker{font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;direction:rtl!important;unicode-bidi:isolate!important;text-align:center!important;color:#0f766e!important;font-size:12px!important;font-weight:900!important;letter-spacing:0!important;}
-.finance-report-sheet-title h4,.finance-report-sheet-title p,.finance-report-detail-header h4,.finance-report-detail-header p{direction:rtl!important;unicode-bidi:isolate!important;font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;}
-.finance-report-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin-top:12px!important;}
-.finance-report-metric{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;padding:11px 10px;border:1px solid #e2e8f0;border-top:3px solid #0f766e;border-radius:11px;background:#f8fafc;}
-.finance-report-metric:nth-child(2){border-top-color:#1877f2;}.finance-report-metric:nth-child(3){border-top-color:#f59e0b;}.finance-report-metric:nth-child(4){border-top-color:#8b5cf6;}.finance-report-metric:nth-child(5){border-top-color:#e11d48;}.finance-report-metric:nth-child(6){border-top-color:#64748b;}
-.finance-report-metric span{font-size:10px;line-height:1.6;color:#64748b;font-weight:800;}
-.finance-report-metric strong{font-size:14px;line-height:1.5;color:#172033;font-weight:900;overflow-wrap:anywhere;}
-.finance-report-charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch;}
-.finance-report-chart-area{box-sizing:border-box;min-width:0;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:linear-gradient(180deg,#fff,#fbfdff);}
-.finance-report-chart-area h5{direction:rtl;text-align:right;unicode-bidi:plaintext;line-height:1.7;}
-.finance-report-canvas-wrap{position:relative;width:100%;height:220px!important;max-width:100%;}
-.finance-report-detail-summary>div{display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:9px;background:#f1f7f6;border:1px solid #d6ebe6;padding:10px;}
-.finance-report-detail-summary span{font-size:10px;font-weight:800;color:#64748b;}
-.finance-report-detail-summary strong{font-size:12px;font-weight:900;color:#0f766e;}
-.finance-report-detail-table{border-collapse:collapse;font-size:10px;direction:rtl;width:100%;}
-.finance-report-detail-table th{background:#e8f4f1;color:#134e4a;font-weight:900;padding:8px 10px;border-bottom:1px solid #cbd5e1;white-space:nowrap;}
-.finance-report-detail-table td{padding:6px 10px;border-bottom:1px solid #edf0f3;color:#334155;line-height:1.55;}
-.finance-report-detail-table tbody tr:nth-child(even){background:#f8fafc;}
-.finance-report-detail-table tbody tr:last-child td{border-bottom:0;}
-.finance-report-detail-table .finance-report-total-row{background:#e8f4f1!important;font-weight:900;}
-.finance-report-footnote{direction:rtl!important;text-align:right!important;unicode-bidi:plaintext!important;line-height:1.9!important;border-top:1px dashed #d2ddd9;padding-top:11px;font-size:10px;color:#64748b;}
-.finance-report-download{background:#0f766e!important;box-shadow:0 5px 14px rgba(15,118,110,.2)!important;}
-.finance-report-download:hover{background:#115e59!important;}
-@media(max-width:767px){
-  .finance-report-print-page{padding:13px!important;}
-  .finance-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;}
-  .finance-report-metric{padding:9px 8px!important;}.finance-report-metric span{font-size:9px!important;}.finance-report-metric strong{font-size:12px!important;}
-  .finance-report-charts-grid{grid-template-columns:1fr;gap:10px;}.finance-report-canvas-wrap{height:210px!important;}
-  .finance-report-detail-table{font-size:9px!important;}.finance-report-detail-table th,.finance-report-detail-table td{padding:6px 7px!important;}
-}
+<style id="teacher-notebook-v7-final-ui-repair">
+:root{--tn-ink:#172033;--tn-muted:#64748b;--tn-canvas:#f3f6fb;--tn-border:#e2e8f0}
+html,body{width:100%!important;max-width:100%!important;overflow-x:hidden!important;background:var(--tn-canvas)!important;color:var(--tn-ink)!important}body{font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important}body>.flex.min-h-screen{width:100%!important;max-width:100%!important;overflow-x:clip!important;background:radial-gradient(ellipse at 12% 0%,rgba(37,99,235,.07),transparent 34%),radial-gradient(ellipse at 100% 18%,rgba(15,118,110,.055),transparent 30%),var(--tn-canvas)!important}
+main,.main-with-nav{background:transparent!important;color:var(--tn-ink)!important}main h1,main h2,main h3,main h4,main h5{color:var(--tn-ink)!important}main .bg-white,main .bg-white\/90,main .bg-white\/80{background:#fff!important;color:var(--tn-ink)!important;border-color:var(--tn-border)!important;box-shadow:0 8px 24px rgba(31,55,90,.07)!important}main .text-slate-900,main .text-slate-800,main .text-slate-700,main .text-gray-900,main .text-gray-800{color:var(--tn-ink)!important}main .text-slate-600,main .text-slate-500,main .text-slate-400,main .text-gray-600,main .text-gray-500{color:var(--tn-muted)!important}
+.global-clock-panel{position:fixed!important;top:0!important;left:0!important;right:0!important;width:auto!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;transform:none!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:clamp(4px,1.4vw,12px)!important;padding:9px clamp(7px,2vw,18px)!important;color:#fff!important;background:linear-gradient(115deg,#123b70,#1d4ed8 58%,#0f766e)!important;border:0!important;border-bottom:3px solid #60a5fa!important;border-radius:0 0 18px 18px!important;box-shadow:0 9px 26px rgba(29,78,216,.18)!important}
+.global-clock-panel .global-clock-time{background:#fff!important;color:#123b70!important;border-radius:13px!important;font-weight:900!important}.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date,.global-clock-panel .global-clock-live{color:#fff!important;background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:10px!important}.global-clock-panel .app-notification-button{color:#fff!important;background:rgba(255,255,255,.15)!important;border:1px solid rgba(255,255,255,.35)!important}.global-clock-panel .app-notification-button i{color:#fff!important}
+.dashboard-next-lesson{background:linear-gradient(135deg,#17365d,#1d4ed8)!important;color:#fff!important;border:1px solid rgba(96,165,250,.35)!important}.dashboard-next-lesson .text-slate-400,.dashboard-next-lesson .text-slate-300,.dashboard-next-lesson h3,.dashboard-next-lesson p{color:#fff!important}
+.month-calendar-cell{min-width:0!important;overflow:hidden!important;border-color:#e7edf5!important;background-image:none!important}.month-calendar-cell:not(.outside):not(.has-lessons){background:#fff!important;background-image:none!important}.month-calendar-cell.outside{background:#f8fafc!important;background-image:none!important}.month-calendar-cell.has-lessons{background:#f0f7ff!important;background-image:none!important}.month-calendar-cell.today{box-shadow:inset 0 0 0 2px #3b82f6!important}.month-calendar-cell.today .month-day-number{background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important}
+.sidebar-toggle{display:none!important;visibility:hidden!important;pointer-events:none!important}
+.bottom-app-nav{position:fixed!important;left:12px!important;right:12px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;transform:none!important;display:flex!important;justify-content:space-around!important;gap:2px!important;overflow:hidden!important;background:linear-gradient(115deg,rgba(18,47,85,.98),rgba(23,43,70,.98) 65%,rgba(15,118,110,.97))!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:25px!important;box-shadow:0 13px 34px rgba(15,35,60,.28)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important}.bottom-nav-item{flex:1 1 0!important;min-width:0!important;max-width:none!important;color:#cbd5e1!important;border-radius:19px!important;padding-left:2px!important;padding-right:2px!important}.bottom-nav-item.is-active{color:#fff!important;background:rgba(255,255,255,.1)!important}.bottom-nav-item.is-active .bottom-nav-icon{background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important;box-shadow:0 5px 15px rgba(37,99,235,.34)!important}.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;font-weight:900!important}
+@media(max-width:767px){.global-clock-panel{left:0!important;right:0!important;width:auto!important;padding:7px!important;gap:5px!important;min-height:66px!important}.global-clock-panel .global-clock-info{min-width:0!important;flex:1 1 auto!important;gap:4px!important;overflow:hidden!important}.global-clock-panel .global-clock-live{font-size:8px!important;padding:5px!important;white-space:nowrap!important}.global-clock-panel .global-clock-time{font-size:15px!important;padding:6px 7px!important;min-height:34px!important;white-space:nowrap!important}.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{font-size:8px!important;padding:5px 4px!important;white-space:nowrap!important}.bottom-app-nav{left:8px!important;right:8px!important;bottom:max(7px,env(safe-area-inset-bottom))!important;padding:7px 4px calc(7px + env(safe-area-inset-bottom))!important;border-radius:24px!important}.bottom-nav-item{padding:5px 2px 4px!important}.bottom-nav-label{font-size:10px!important;white-space:nowrap!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}}
+@media(max-width:380px){.global-clock-panel{gap:3px!important;padding-left:5px!important;padding-right:5px!important}.global-clock-panel .global-clock-info{gap:3px!important}.global-clock-panel .global-clock-live,.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{font-size:7px!important;padding:4px!important}}
 </style>
 
-<style id="facebook-unified-theme-readable-topbar-v3">
-/* ==========================================================
-   دفتر المعلم — Unified Facebook-inspired theme
-   Visual-only overrides: app data, events, and navigation stay intact.
-   ========================================================== */
-:root{
-  --fb-primary:#0866ff;
-  --fb-primary-hover:#075ce5;
-  --fb-canvas:#f0f2f5;
-  --fb-surface:#ffffff;
-  --fb-ink:#1c1e21;
-  --fb-secondary:#65676b;
-  --fb-border:#dddfe2;
-  --fb-charcoal:#242526;
-  --fb-charcoal-2:#18191a;
-  --fb-green:#42b72a;
-  --fb-red:#e41e3f;
-}
-html,body{
-  background:var(--fb-canvas)!important;
-  color:var(--fb-ink)!important;
-  font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;
-}
-body{
-  background:var(--fb-canvas)!important;
-  color:var(--fb-ink)!important;
-}
-body::before{display:none!important;}
-::selection{background:rgba(8,102,255,.18)!important;color:var(--fb-ink)!important;}
-
-/* High contrast top strip: dark Facebook-style header with a clear time pill. */
-.global-clock-panel{
-  position:fixed!important;top:0!important;left:0!important;right:0!important;
-  z-index:1000!important;box-sizing:border-box!important;
-  display:flex!important;flex-direction:row!important;align-items:center!important;
-  justify-content:space-between!important;gap:10px!important;
-  width:100%!important;height:64px!important;min-height:64px!important;
-  margin:0!important;padding:8px 18px!important;
-  overflow:hidden!important;
-  background:#242526!important;
-  border:0!important;border-bottom:2px solid #0866ff!important;
-  border-radius:0 0 15px 15px!important;
-  box-shadow:0 5px 18px rgba(24,25,26,.18)!important;
-  color:#fff!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
-}
-.global-clock-panel::before{
-  content:""!important;position:absolute!important;inset:0!important;z-index:0!important;
-  pointer-events:none!important;opacity:1!important;
-  background:linear-gradient(105deg,rgba(8,102,255,.16) 0%,transparent 42%,rgba(255,255,255,.025) 100%)!important;
-}
-.global-clock-panel .global-clock-info{
-  position:relative!important;z-index:1!important;
-  display:flex!important;flex:1 1 auto!important;align-items:center!important;
-  justify-content:flex-start!important;gap:clamp(5px,1.4vw,13px)!important;
-  width:auto!important;height:100%!important;min-width:0!important;
-  direction:rtl!important;overflow:hidden!important;
-  background:transparent!important;box-shadow:none!important;
-}
-.global-clock-panel .global-clock-info > div{
-  position:relative!important;z-index:1!important;
-  flex:0 0 auto!important;min-width:0!important;margin:0!important;
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  color:#f7f8fa!important;text-shadow:none!important;
-  white-space:nowrap!important;opacity:1!important;visibility:visible!important;
-  background:transparent!important;box-shadow:none!important;border:0!important;
-}
-.global-clock-panel .global-clock-live{
-  gap:6px!important;padding:6px 9px!important;border-radius:999px!important;
-  background:rgba(255,255,255,.11)!important;color:#fff!important;
-  border:1px solid rgba(255,255,255,.16)!important;
-  font-size:10px!important;font-weight:800!important;line-height:1.2!important;
-}
-.global-clock-panel .global-clock-live span{
-  display:inline-block!important;width:7px!important;height:7px!important;flex:0 0 7px!important;
-  border-radius:50%!important;background:#42b72a!important;
-  box-shadow:0 0 0 3px rgba(66,183,42,.18)!important;
-}
-.global-clock-panel .global-clock-time{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  min-height:38px!important;padding:7px 13px!important;border-radius:12px!important;
-  background:#fff!important;color:#1c1e21!important;
-  font-size:21px!important;line-height:1!important;font-weight:900!important;
-  letter-spacing:0!important;font-variant-numeric:tabular-nums!important;
-  text-shadow:none!important;box-shadow:0 2px 7px rgba(0,0,0,.12)!important;
-}
-.global-clock-panel .global-clock-day,
-.global-clock-panel .global-clock-date{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  min-height:31px!important;padding:6px 9px!important;border-radius:9px!important;
-  background:rgba(255,255,255,.10)!important;
-  color:#f7f8fa!important;font-size:11px!important;font-weight:800!important;
-  line-height:1.25!important;border:1px solid rgba(255,255,255,.10)!important;
-  text-shadow:none!important;
-}
-.global-clock-panel .app-notification-button{
-  position:relative!important;z-index:2!important;flex:0 0 42px!important;
-  width:42px!important;height:42px!important;min-width:42px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  margin:0!important;padding:0!important;border-radius:13px!important;
-  border:1px solid rgba(255,255,255,.18)!important;
-  background:rgba(255,255,255,.10)!important;color:#fff!important;
-  font-size:18px!important;box-shadow:none!important;opacity:1!important;
-}
-.global-clock-panel .app-notification-button:hover{background:rgba(8,102,255,.35)!important;color:#fff!important;}
-.global-clock-panel .app-notification-button i{color:#fff!important;opacity:1!important;}
-.global-clock-panel .app-notification-badge{
-  position:absolute!important;top:-4px!important;right:-4px!important;
-  min-width:18px!important;height:18px!important;padding:0 4px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  border:2px solid #242526!important;border-radius:999px!important;
-  background:#e41e3f!important;color:#fff!important;font-size:10px!important;font-weight:900!important;
-}
-.main-with-nav{padding-top:78px!important;}
-@media(max-width:767px){
-  .global-clock-panel{height:59px!important;min-height:59px!important;padding:6px 10px!important;gap:7px!important;border-radius:0 0 12px 12px!important;}
-  .global-clock-panel .global-clock-info{gap:clamp(4px,1.5vw,8px)!important;}
-  .global-clock-panel .global-clock-live{padding:5px 6px!important;gap:4px!important;font-size:8px!important;}
-  .global-clock-panel .global-clock-live span{width:6px!important;height:6px!important;flex-basis:6px!important;}
-  .global-clock-panel .global-clock-time{min-height:34px!important;padding:6px 8px!important;border-radius:10px!important;font-size:17px!important;}
-  .global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{min-height:28px!important;padding:5px 6px!important;font-size:9px!important;border-radius:8px!important;}
-  .global-clock-panel .app-notification-button{flex-basis:38px!important;width:38px!important;height:38px!important;min-width:38px!important;border-radius:11px!important;font-size:16px!important;}
-  .main-with-nav{padding-top:68px!important;}
-}
-@media(max-width:390px){
-  .global-clock-panel{padding-left:7px!important;padding-right:7px!important;gap:5px!important;}
-  .global-clock-panel .global-clock-info{gap:4px!important;}
-  .global-clock-panel .global-clock-live{font-size:7px!important;padding:4px 5px!important;}
-  .global-clock-panel .global-clock-time{font-size:15px!important;padding:5px 6px!important;}
-  .global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{font-size:8px!important;padding:4px 5px!important;}
-  .global-clock-panel .app-notification-button{flex-basis:34px!important;width:34px!important;height:34px!important;min-width:34px!important;font-size:15px!important;}
-}
-@media(max-width:350px){
-  .global-clock-panel .global-clock-date{display:none!important;}
-  .global-clock-panel .global-clock-time{font-size:14px!important;}
-}
-
-/* Uniform light Facebook canvas, white posts/cards, and readable type across every page. */
-body > .flex.min-h-screen{background:var(--fb-canvas)!important;}
-main,.main-with-nav,main > div{background:transparent!important;color:var(--fb-ink)!important;}
-main .bg-white,main .bg-white\/90,main .bg-white\/80{
-  background:#fff!important;color:var(--fb-ink)!important;
-  border-color:var(--fb-border)!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.08)!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
-}
-main .bg-slate-50,main .bg-gray-50{background:#f7f8fa!important;}
-main .bg-slate-100,main .bg-gray-100{background:#f0f2f5!important;}
-main .text-slate-900,main .text-slate-800,main .text-slate-700,main .text-gray-900,main .text-gray-800{color:#1c1e21!important;}
-main .text-slate-600,main .text-slate-500,main .text-slate-400,main .text-gray-600,main .text-gray-500{color:#65676b!important;}
-main .border-slate-100,main .border-slate-200,main .border-gray-100,main .border-gray-200{border-color:#e4e6eb!important;}
-main .bg-brand-50{background:#e7f3ff!important;}
-main .bg-brand-100{background:#dbeafe!important;}
-main .text-brand-600,main .text-brand-700{color:#0866ff!important;}
-main .border-brand-100,main .border-brand-200{border-color:#cfe2ff!important;}
-main .bg-brand-500,main .bg-brand-600,main .bg-brand-700,main button.bg-blue-600,main a.bg-blue-600{
-  background:#0866ff!important;color:#fff!important;
-}
-main .bg-brand-500 *,main .bg-brand-600 *,main .bg-brand-700 *,main button.bg-blue-600 *,main a.bg-blue-600 *{color:#fff!important;}
-main button.bg-brand-600:hover,main button.bg-blue-600:hover,main a.bg-brand-600:hover{background:#075ce5!important;}
-main .bg-emerald-50,main .bg-green-50{background:#eaf7e8!important;}
-main .text-emerald-700,main .text-green-700{color:#237a1b!important;}
-main .bg-rose-50,main .bg-red-50{background:#ffebe9!important;}
-main .text-rose-700,main .text-red-700{color:#b42318!important;}
-main .rounded-2xl,main .rounded-3xl{border-radius:14px!important;}
-main .shadow-sm,main .shadow-md{box-shadow:0 1px 2px rgba(0,0,0,.08)!important;}
-main h1,main h2,main h3,main h4,main h5{color:#1c1e21!important;font-weight:850!important;}
-main input,main select,main textarea{
-  color:#1c1e21!important;background:#fff!important;border-color:#ccd0d5!important;
-  border-radius:10px!important;box-shadow:none!important;
-}
-main input::placeholder,main textarea::placeholder{color:#8a8d91!important;opacity:1!important;}
-main input:focus,main select:focus,main textarea:focus{
-  border-color:#0866ff!important;box-shadow:0 0 0 2px rgba(8,102,255,.12)!important;outline:none!important;
-}
-main button{transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease!important;}
-main button:active{transform:scale(.99);}
-
-/* Desktop sidebar and mobile dock use one matching Facebook charcoal/blue identity. */
-.app-sidebar{
-  background:#242526!important;border-color:#3e4042!important;
-  box-shadow:8px 0 24px rgba(24,25,26,.10)!important;
-}
-.app-sidebar .text-slate-500,.app-sidebar .text-slate-400{color:#b0b3b8!important;}
-.app-sidebar button,.app-sidebar a{border-radius:10px!important;color:#e4e6eb!important;}
-.app-sidebar button:hover,.app-sidebar a:hover{background:#3a3b3c!important;color:#fff!important;}
-.app-sidebar button[class*="bg-brand"],.app-sidebar a[class*="bg-brand"],.app-sidebar button[class*="bg-blue"]{
-  background:rgba(8,102,255,.20)!important;color:#71a7ff!important;
-}
-.app-sidebar button[class*="bg-brand"] i,.app-sidebar a[class*="bg-brand"] i,.app-sidebar button[class*="bg-blue"] i{color:#71a7ff!important;}
-.bottom-app-nav{
-  background:rgba(36,37,38,.97)!important;border:1px solid rgba(255,255,255,.14)!important;
-  box-shadow:0 8px 28px rgba(0,0,0,.25)!important;
-  backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;
-}
-.bottom-nav-item{color:#b0b3b8!important;}
-.bottom-nav-item:hover{color:#fff!important;}
-.bottom-nav-item.is-active{color:#fff!important;background:#3a3b3c!important;}
-.bottom-nav-item.is-active .bottom-nav-icon{background:#0866ff!important;color:#fff!important;box-shadow:0 4px 12px rgba(8,102,255,.28)!important;}
-.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;}
-.bottom-nav-item.is-active::after{background:#0866ff!important;box-shadow:0 0 0 3px rgba(8,102,255,.16)!important;}
-
-/* Calendar and badges respect student-specific colors while the selected date follows Facebook blue. */
-.month-calendar-card{background:#fff!important;border-color:#e4e6eb!important;box-shadow:0 1px 2px rgba(0,0,0,.08)!important;}
-.month-calendar-card .month-calendar-head{color:#65676b!important;background:#fff!important;border-color:#e4e6eb!important;}
-.month-calendar-card .month-calendar-cell{background:#fff!important;border-color:#e4e6eb!important;}
-.month-calendar-card .month-calendar-cell.today .month-day-number{background:#0866ff!important;color:#fff!important;}
-.month-calendar-card .month-calendar-cell:hover{background:#f7f8fa!important;}
-
-/* Financial report controls, cards, charts and PDF preview join the same theme. */
-.finance-report-heading{background:linear-gradient(105deg,#e7f3ff,#fff 72%)!important;}
-.finance-report-icon,.finance-report-download{background:#0866ff!important;color:#fff!important;box-shadow:0 4px 12px rgba(8,102,255,.18)!important;}
-.finance-report-download:hover{background:#075ce5!important;}
-.finance-report-kicker{color:#0866ff!important;}
-.finance-report-metric{border:1px solid #e4e6eb!important;border-top:3px solid #0866ff!important;background:#f7f8fa!important;}
-.finance-report-detail-table th{background:#e7f3ff!important;color:#1c1e21!important;}
-.finance-report-detail-table td{color:#303236!important;}
-.finance-report-detail-summary>div{background:#f7f8fa!important;border-color:#e4e6eb!important;}
-.finance-report-detail-summary strong{color:#0866ff!important;}
-
-/* Modals / floating panels / dropdowns should look like the same product. */
-body [role="dialog"],body .modal,body .modal-content{
-  border-color:#e4e6eb!important;
-}
-body .bg-slate-900{background:#242526!important;}
-body .text-brand-600{color:#0866ff!important;}
-body .border-brand-300{border-color:#9fc4ff!important;}
-@media(prefers-reduced-motion:reduce){main button,.app-sidebar button,.bottom-nav-item{transition:none!important;}}
+<style id="tn-header-clock-polish-v3">
+:root{--tn-header-clearance:104px;--tn-navy:#172b46;--tn-blue:#3287f5;--tn-teal:#17b8ad}
+.global-clock-panel{position:fixed!important;top:max(9px,env(safe-area-inset-top))!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:min(540px,calc(100% - 30px))!important;min-height:78px!important;box-sizing:border-box!important;padding:10px 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;direction:rtl!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:26px!important;background:linear-gradient(125deg,#14263f 0%,#203c5d 65%,#164b60 100%)!important;color:#f8fbff!important;box-shadow:0 16px 36px rgba(15,35,60,.25),inset 0 1px 0 rgba(255,255,255,.12)!important;backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;z-index:1000!important}
+.global-clock-panel:before{content:"";position:absolute;inset:1px;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,rgba(59,130,246,.12),transparent 50%,rgba(20,184,166,.13))}
+.global-clock-panel>*{position:relative;z-index:1}
+.global-clock-panel .global-clock-face{display:block!important;position:relative!important;flex:0 0 58px!important;width:58px!important;height:58px!important;min-width:58px!important;border:2px solid #9fc7ed!important;border-radius:50%!important;background:radial-gradient(circle at 32% 25%,#fff 0,#f0f7ff 62%,#d9e9fa 100%)!important;box-shadow:inset 0 0 0 3px #fff,0 4px 13px rgba(0,0,0,.22)!important;overflow:hidden!important}
+.global-clock-panel .clock-number{position:absolute!important;left:50%!important;top:50%!important;color:#17365d!important;font-size:7px!important;font-weight:900!important;line-height:1!important;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-22px) rotate(calc(var(--angle)*-1))!important}
+.global-clock-panel .clock-hour,.global-clock-panel .clock-minute,.global-clock-panel .clock-second{position:absolute!important;left:50%!important;bottom:50%!important;transform-origin:50% 100%!important;border-radius:8px!important;z-index:3!important}
+.global-clock-panel .clock-hour{height:17px!important;width:3px!important;margin-left:-1.5px!important;background:#172b46!important}
+.global-clock-panel .clock-minute{height:22px!important;width:2px!important;margin-left:-1px!important;background:#087f8c!important}
+.global-clock-panel .clock-second{height:24px!important;width:1px!important;margin-left:-.5px!important;background:#ed5364!important}
+.global-clock-panel .clock-center{position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:6px!important;height:6px!important;border:1px solid white!important;border-radius:50%!important;background:#ed5364!important;z-index:4!important}
+.global-clock-panel .global-clock-info{display:flex!important;flex:1 1 auto!important;min-width:0!important;align-items:center!important;justify-content:center!important;gap:7px!important;flex-wrap:wrap!important;background:transparent!important;box-shadow:none!important}
+.global-clock-panel .global-clock-live{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#c7eaff!important;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.13)!important;border-radius:999px!important;padding:4px 8px!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important}
+.global-clock-panel .global-clock-live span{display:inline-block!important;width:7px!important;height:7px!important;border-radius:50%!important;background:#34d399!important;box-shadow:0 0 0 4px rgba(52,211,153,.14)!important}
+.global-clock-panel .global-clock-time{display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;min-height:36px!important;padding:6px 11px!important;border:1px solid #dbeafe!important;border-radius:13px!important;background:#f8fbff!important;color:#17304e!important;font-size:16px!important;font-weight:900!important;box-shadow:0 4px 12px rgba(0,0,0,.16)!important}
+.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{color:#e1efff!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important}
+.global-clock-panel .app-notification-button{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 40px!important;width:40px!important;height:40px!important;min-width:40px!important;border-radius:14px!important;background:linear-gradient(135deg,#3287f5,#17b8ad)!important;color:#fff!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:0 6px 16px rgba(0,0,0,.2)!important}
+.global-clock-panel .app-notification-button i,.global-clock-panel .app-notification-button *{color:#fff!important}
+.main-with-nav{padding-top:var(--tn-header-clearance)!important;padding-bottom:120px!important;box-sizing:border-box!important}
+.bottom-app-nav{z-index:999!important}
+@media(max-width:767px){:root{--tn-header-clearance:92px}.global-clock-panel{width:calc(100% - 22px)!important;min-height:66px!important;padding:7px 9px!important;gap:8px!important;border-radius:22px!important}.global-clock-panel .global-clock-face{width:47px!important;height:47px!important;min-width:47px!important;flex-basis:47px!important}.global-clock-panel .clock-number{font-size:6px!important;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-18px) rotate(calc(var(--angle)*-1))!important}.global-clock-panel .clock-hour{height:14px!important}.global-clock-panel .clock-minute{height:18px!important}.global-clock-panel .clock-second{height:20px!important}.global-clock-panel .global-clock-info{gap:4px!important}.global-clock-panel .global-clock-time{font-size:13px!important;min-height:30px!important;padding:4px 7px!important}.global-clock-panel .global-clock-live{font-size:8px!important;padding:3px 6px!important}.global-clock-panel .global-clock-day{font-size:8px!important}.global-clock-panel .global-clock-date{display:none!important}.global-clock-panel .app-notification-button{width:34px!important;height:34px!important;min-width:34px!important;flex-basis:34px!important;border-radius:12px!important}}
+@media(max-width:380px){:root{--tn-header-clearance:84px}.global-clock-panel{width:calc(100% - 16px)!important;gap:5px!important;padding-left:7px!important;padding-right:7px!important}.global-clock-panel .global-clock-face{width:41px!important;height:41px!important;min-width:41px!important;flex-basis:41px!important}.global-clock-panel .global-clock-time{font-size:12px!important;padding:4px 6px!important}}
 </style>
-<style id="facebook-header-contrast-selector-fix">
-/* More specific child rules ensure every header label keeps its intended contrast. */
-.global-clock-panel .global-clock-info > .global-clock-live{
-  color:#fff!important;background:rgba(255,255,255,.11)!important;
-  border:1px solid rgba(255,255,255,.16)!important;box-shadow:none!important;
-}
-.global-clock-panel .global-clock-info > .global-clock-time{
-  color:#1c1e21!important;background:#fff!important;
-  border:1px solid rgba(255,255,255,.9)!important;
-  box-shadow:0 2px 7px rgba(0,0,0,.12)!important;
-}
-.global-clock-panel .global-clock-info > .global-clock-day,
-.global-clock-panel .global-clock-info > .global-clock-date{
-  color:#f7f8fa!important;background:rgba(255,255,255,.10)!important;
-  border:1px solid rgba(255,255,255,.10)!important;box-shadow:none!important;
-}
-.global-clock-panel .global-clock-info > .global-clock-live span{
-  background:#42b72a!important;box-shadow:0 0 0 3px rgba(66,183,42,.18)!important;
-}
-</style>
-
-<style id="teacher-notebook-premium-theme-v5">
-:root{
-  --tn-primary:#2563eb;
-  --tn-primary-dark:#1d4ed8;
-  --tn-primary-soft:#eff6ff;
-  --tn-teal:#0f766e;
-  --tn-teal-soft:#ecfdf5;
-  --tn-ink:#172033;
-  --tn-muted:#64748b;
-  --tn-canvas:#f3f6fb;
-  --tn-card:#ffffff;
-  --tn-border:#e2e8f0;
-  --tn-shadow:0 8px 24px rgba(31,55,90,.07);
-}
-html,body{background:var(--tn-canvas)!important;color:var(--tn-ink)!important;}
-body{font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;}
-body > .flex.min-h-screen{background:
-  radial-gradient(ellipse at 12% 0%,rgba(37,99,235,.07),transparent 34%),
-  radial-gradient(ellipse at 100% 18%,rgba(15,118,110,.055),transparent 30%),
-  var(--tn-canvas)!important;}
-main,.main-with-nav,main>div{background:transparent!important;color:var(--tn-ink)!important;}
-main h1,main h2,main h3,main h4,main h5,main h6{color:var(--tn-ink)!important;letter-spacing:-.2px;}
-main p,main label,main span{ text-shadow:none!important; }
-main .bg-white,main .bg-white\/90,main .bg-white\/80{
-  background:var(--tn-card)!important;color:var(--tn-ink)!important;
-  border-color:var(--tn-border)!important;box-shadow:var(--tn-shadow)!important;
-  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
-}
-main .bg-slate-50,main .bg-gray-50,main .bg-zinc-50{background:#f8fafc!important;}
-main .bg-slate-100,main .bg-gray-100,main .bg-zinc-100{background:#eef2f7!important;}
-main .text-slate-900,main .text-slate-800,main .text-slate-700,main .text-gray-900,main .text-gray-800{color:var(--tn-ink)!important;}
-main .text-slate-600,main .text-slate-500,main .text-slate-400,main .text-gray-600,main .text-gray-500{color:var(--tn-muted)!important;}
-main .border-slate-100,main .border-slate-200,main .border-gray-100,main .border-gray-200{border-color:var(--tn-border)!important;}
-main .bg-brand-50{background:#eff6ff!important;}
-main .bg-brand-100{background:#dbeafe!important;}
-main .text-brand-600,main .text-brand-700{color:var(--tn-primary)!important;}
-main .border-brand-100,main .border-brand-200{border-color:#bfdbfe!important;}
-main .bg-brand-500,main .bg-brand-600,main .bg-brand-700,main button.bg-blue-600,main a.bg-blue-600{
-  background:linear-gradient(135deg,var(--tn-primary),#3b82f6)!important;color:#fff!important;
-  border-color:transparent!important;box-shadow:0 5px 14px rgba(37,99,235,.18)!important;
-}
-main .bg-brand-500 *,main .bg-brand-600 *,main .bg-brand-700 *,main button.bg-blue-600 *,main a.bg-blue-600 *{color:#fff!important;}
-main .bg-emerald-50,main .bg-green-50{background:#ecfdf5!important;}
-main .text-emerald-700,main .text-green-700{color:#047857!important;}
-main .bg-rose-50,main .bg-red-50{background:#fff1f2!important;}
-main .text-rose-700,main .text-red-700{color:#be123c!important;}
-main .rounded-2xl,main .rounded-3xl{border-radius:18px!important;}
-main .shadow-sm,main .shadow-md{box-shadow:0 5px 18px rgba(31,55,90,.06)!important;}
-main input,main select,main textarea{
-  color:var(--tn-ink)!important;background:#fff!important;border:1px solid #d5deea!important;
-  border-radius:12px!important;box-shadow:none!important;
-}
-main input::placeholder,main textarea::placeholder{color:#94a3b8!important;opacity:1!important;}
-main input:focus,main select:focus,main textarea:focus{
-  border-color:#60a5fa!important;box-shadow:0 0 0 3px rgba(37,99,235,.12)!important;outline:none!important;
-}
-main button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease!important;}
-main button:active{transform:scale(.99);}
-
-/* A single bright, readable header; no horizontal overflow on mobile. */
-.global-clock-panel{
-  box-sizing:border-box!important;width:100%!important;max-width:100vw!important;left:0!important;right:0!important;
-  overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:space-between!important;
-  gap:clamp(5px,1.5vw,14px)!important;padding:10px clamp(9px,2.8vw,22px)!important;
-  color:#fff!important;background:linear-gradient(115deg,#123b70 0%,#1d4ed8 58%,#0f766e 100%)!important;
-  border:0!important;border-bottom:3px solid #60a5fa!important;border-radius:0 0 18px 18px!important;
-  box-shadow:0 9px 26px rgba(29,78,216,.18)!important;
-}
-.global-clock-panel .global-clock-info{
-  min-width:0!important;flex:1 1 auto!important;display:flex!important;align-items:center!important;
-  justify-content:space-between!important;gap:clamp(4px,1.4vw,12px)!important;overflow:hidden!important;
-}
-.global-clock-panel .global-clock-live{
-  flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;
-  color:#fff!important;background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.22)!important;
-  border-radius:999px!important;padding:7px 10px!important;font-weight:800!important;font-size:11px!important;
-}
-.global-clock-panel .global-clock-live span{background:#86efac!important;box-shadow:0 0 0 3px rgba(134,239,172,.16)!important;}
-.global-clock-panel .global-clock-time{
-  flex:0 0 auto!important;white-space:nowrap!important;color:#123b70!important;background:#fff!important;
-  border:1px solid rgba(255,255,255,.9)!important;border-radius:13px!important;padding:8px 13px!important;
-  min-height:39px!important;font-size:clamp(15px,2.2vw,21px)!important;font-weight:900!important;line-height:1!important;
-  text-shadow:none!important;box-shadow:0 3px 10px rgba(0,0,0,.12)!important;
-}
-.global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{
-  flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  color:#fff!important;background:rgba(255,255,255,.13)!important;border:1px solid rgba(255,255,255,.2)!important;
-  border-radius:10px!important;padding:7px 9px!important;font-size:clamp(9px,1.3vw,12px)!important;font-weight:800!important;
-}
-.global-clock-panel .app-notification-button{
-  flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;
-  border:1px solid rgba(255,255,255,.35)!important;border-radius:14px!important;
-  background:rgba(255,255,255,.15)!important;color:#fff!important;font-size:18px!important;box-shadow:none!important;
-}
-.global-clock-panel .app-notification-button i{color:#fff!important;}
-.global-clock-panel .app-notification-badge{border-color:#1d4ed8!important;background:#f43f5e!important;color:#fff!important;}
-.main-with-nav{padding-top:80px!important;}
-@media(max-width:767px){
- .global-clock-panel{height:66px!important;min-height:66px!important;padding:7px 9px!important;gap:6px!important;border-radius:0 0 15px 15px!important;}
- .global-clock-panel .global-clock-info{gap:5px!important;}
- .global-clock-panel .global-clock-live{font-size:8px!important;padding:5px 6px!important;}
- .global-clock-panel .global-clock-time{min-height:34px!important;font-size:15px!important;padding:6px 7px!important;border-radius:10px!important;}
- .global-clock-panel .global-clock-day,.global-clock-panel .global-clock-date{font-size:8px!important;padding:5px 5px!important;border-radius:8px!important;}
- .global-clock-panel .app-notification-button{width:35px!important;height:35px!important;min-width:35px!important;flex-basis:35px!important;font-size:15px!important;border-radius:10px!important;}
- .main-with-nav{padding-top:72px!important;}
-}
-@media(max-width:380px){
- .global-clock-panel{padding-left:6px!important;padding-right:6px!important;gap:4px!important;}
- .global-clock-panel .global-clock-info{gap:4px!important;}
- .global-clock-panel .global-clock-live{font-size:7px!important;padding:4px!important;}
- .global-clock-panel .global-clock-time{font-size:13px!important;padding:5px!important;}
- .global-clock-panel .global-clock-day{font-size:7px!important;padding:4px!important;}
- .global-clock-panel .global-clock-date{display:none!important;}
- .global-clock-panel .app-notification-button{width:32px!important;height:32px!important;min-width:32px!important;flex-basis:32px!important;}
-}
-
-/* Desktop sidebar keeps its normal navigation function, but no floating collapse arrow remains. */
-.sidebar-toggle{display:none!important;visibility:hidden!important;pointer-events:none!important;}
-.app-sidebar{
- background:linear-gradient(180deg,#132f55 0%,#172b46 58%,#12243a 100%)!important;
- border-color:rgba(255,255,255,.09)!important;box-shadow:8px 0 30px rgba(15,35,60,.12)!important;
-}
-.app-sidebar .text-slate-500,.app-sidebar .text-slate-400{color:#b8c7dc!important;}
-.app-sidebar button,.app-sidebar a{border-radius:13px!important;color:#eaf2ff!important;transition:all .18s ease!important;}
-.app-sidebar button:hover,.app-sidebar a:hover{background:rgba(255,255,255,.10)!important;color:#fff!important;}
-.app-sidebar button[class*="bg-brand"],.app-sidebar a[class*="bg-brand"],.app-sidebar button[class*="bg-blue"]{
- background:linear-gradient(100deg,rgba(59,130,246,.28),rgba(20,184,166,.16))!important;color:#fff!important;
- border:1px solid rgba(147,197,253,.16)!important;
-}
-.app-sidebar button[class*="bg-brand"] i,.app-sidebar a[class*="bg-brand"] i,.app-sidebar button[class*="bg-blue"] i{color:#93c5fd!important;}
-
-/* A new floating dock in navy with a clear blue/teal active state. */
-.bottom-app-nav{
- box-sizing:border-box!important;isolation:isolate!important;
- background:linear-gradient(115deg,rgba(18,47,85,.98),rgba(23,43,70,.98) 65%,rgba(15,118,110,.97))!important;
- border:1px solid rgba(255,255,255,.15)!important;border-radius:27px!important;
- box-shadow:0 13px 34px rgba(15,35,60,.28),inset 0 1px 0 rgba(255,255,255,.09)!important;
- backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;
-}
-.bottom-nav-item{color:#b8c7dc!important;border-radius:19px!important;transition:all .18s ease!important;}
-.bottom-nav-item:hover{color:#fff!important;background:rgba(255,255,255,.08)!important;}
-.bottom-nav-item.is-active{color:#fff!important;background:rgba(255,255,255,.10)!important;}
-.bottom-nav-item.is-active .bottom-nav-icon{
- background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important;
- box-shadow:0 5px 15px rgba(37,99,235,.34)!important;
-}
-.bottom-nav-item.is-active .bottom-nav-label{color:#fff!important;font-weight:900!important;}
-.bottom-nav-item.is-active::after{background:#5eead4!important;box-shadow:0 0 0 3px rgba(94,234,212,.15)!important;}
-@media(max-width:767px){
- .bottom-app-nav{left:8px!important;right:8px!important;width:auto!important;max-width:none!important;gap:2px!important;
-   padding:7px 5px calc(7px + env(safe-area-inset-bottom))!important;border-radius:23px!important;}
- .bottom-nav-item{min-width:0!important;flex:1 1 0!important;padding:5px 2px 4px!important;}
- .bottom-nav-icon{width:38px!important;height:34px!important;font-size:18px!important;}
- .bottom-nav-label{font-size:10px!important;white-space:nowrap!important;}
-}
-
-/* Calendars, student tags, archives, modals, and financial reports share the same tokens. */
-.month-calendar-card,.students-lesson-archive-card,.lesson-archive-dialog,.finance-report-sheet{
- background:#fff!important;border-color:var(--tn-border)!important;
-}
-.month-calendar-card .month-calendar-head{background:#f8fafc!important;color:#475569!important;border-color:var(--tn-border)!important;}
-.month-calendar-card .month-calendar-cell{background:#fff!important;border-color:#edf1f7!important;}
-.month-calendar-card .month-calendar-cell.today .month-day-number{background:linear-gradient(135deg,#2563eb,#0ea5e9)!important;color:#fff!important;}
-.month-calendar-card .month-calendar-cell:hover{background:#f8fbff!important;}
-.students-lesson-archive-card{border-radius:17px!important;box-shadow:var(--tn-shadow)!important;border-color:var(--tn-border)!important;}
-.students-lesson-archive-icon{background:linear-gradient(135deg,#dbeafe,#ccfbf1)!important;color:#1d4ed8!important;}
-.students-lesson-archive-count{background:#ecfdf5!important;color:#047857!important;}
-.lesson-archive-dialog{border-radius:22px!important;box-shadow:0 24px 70px rgba(20,40,70,.22)!important;}
-.lesson-archive-dialog-head{background:linear-gradient(110deg,#eff6ff,#fff)!important;border-color:var(--tn-border)!important;}
-.lesson-archive-dialog-icon{background:#dbeafe!important;color:#1d4ed8!important;}
-.finance-report-heading{background:linear-gradient(110deg,#dbeafe,#ecfdf5 70%,#fff)!important;}
-.finance-report-icon,.finance-report-download{background:linear-gradient(135deg,#2563eb,#0f766e)!important;color:#fff!important;}
-.finance-report-kicker{color:#1d4ed8!important;}
-.finance-report-metric{border-color:var(--tn-border)!important;border-top-color:#2563eb!important;background:#f8fafc!important;}
-.finance-report-detail-table th{background:#eaf2ff!important;color:#172033!important;}
-.finance-report-detail-table td{color:#334155!important;}
-body [role="dialog"],body .modal,body .modal-content{border-color:var(--tn-border)!important;box-shadow:0 22px 70px rgba(20,40,70,.20)!important;}
-body .bg-slate-900{background:#172b46!important;}
-body .text-brand-600{color:#2563eb!important;}
-body .border-brand-300{border-color:#93c5fd!important;}
-@media(prefers-reduced-motion:reduce){main button,.app-sidebar button,.bottom-nav-item{transition:none!important;}}
-</style>
-
-
-<style id="teacher-notebook-layout-calendar-fix-v6">
-/* Fix 1: remove striped backgrounds from normal empty dates; keep out-of-month dates subtle. */
-.month-calendar-cell:not(.outside):not(.has-lessons),
-.month-calendar-cell.today:not(.has-lessons) {
-  background: #ffffff !important;
-  background-image: none !important;
-}
-.month-calendar-cell.outside {
-  background: #f8fafc !important;
-  background-image: none !important;
-}
-.month-calendar-cell {
-  min-width: 0 !important;
-  overflow: hidden !important;
-  border-color: #e7edf5 !important;
-}
-.month-calendar-cell .month-day-number {
-  position: relative;
-  z-index: 1;
-}
-.month-calendar-cell.has-lessons {
-  background: #f0f7ff !important;
-  background-image: none !important;
-}
-.month-calendar-cell.today {
-  box-shadow: inset 0 0 0 2px #3b82f6 !important;
-}
-
-/* Fix 2: fixed header and bottom dock must size from viewport edges, not content width. */
-html, body {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow-x: hidden !important;
-}
-body > .flex.min-h-screen {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow-x: clip !important;
-}
-.global-clock-panel {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  transform: none !important;
-}
-.bottom-app-nav {
-  position: fixed !important;
-  left: 12px !important;
-  right: 12px !important;
-  bottom: max(8px, env(safe-area-inset-bottom)) !important;
-  width: auto !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  transform: none !important;
-  justify-content: space-around !important;
-  gap: 2px !important;
-  overflow: hidden !important;
-}
-.bottom-nav-item {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  padding-left: 2px !important;
-  padding-right: 2px !important;
-}
-@media (max-width: 767px) {
-  .global-clock-panel {
-    left: 0 !important;
-    right: 0 !important;
-    width: auto !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-  }
-  .bottom-app-nav {
-    left: 8px !important;
-    right: 8px !important;
-    width: auto !important;
-    bottom: max(7px, env(safe-area-inset-bottom)) !important;
-    padding: 7px 4px calc(7px + env(safe-area-inset-bottom)) !important;
-    border-radius: 24px !important;
-  }
-  .bottom-nav-icon {
-    max-width: 38px !important;
-  }
-  .bottom-nav-label {
-    max-width: 100% !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-}
-</style>
-<script id="teacher-notebook-remove-stray-escape-text">
-/* Remove only accidental visible text nodes made from literal newline escape fragments. */
-(function () {
-  function cleanStrayText() {
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    var nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach(function (node) {
-      var value = (node.nodeValue || "").trim();
-      if (/^n(?:\s|\\\\n|\\n|n)*$/i.test(value) && /\\\\n|\\n/.test(value)) {
-        if (node.parentElement && !node.parentElement.closest("script,style,textarea,code,pre")) {
-          node.nodeValue = "";
-        }
-      }
-    });
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", cleanStrayText, { once: true });
-  } else {
-    cleanStrayText();
-  }
-  document.addEventListener("alpine:initialized", cleanStrayText);
-})();
+<script id="tn-analog-clock-tick-v3">
+(function(){function tick(){var root=document.querySelector('.global-clock-panel');if(!root)return;var h=root.querySelector('.clock-hour'),m=root.querySelector('.clock-minute'),s=root.querySelector('.clock-second');if(!h||!m||!s)return;var d=new Date(),sec=d.getSeconds(),min=d.getMinutes(),hour=d.getHours()%12;h.style.transform='rotate('+(hour*30+min*.5)+'deg)';m.style.transform='rotate('+(min*6+sec*.1)+'deg)';s.style.transform='rotate('+(sec*6)+'deg')}function start(){tick();if(!window.__tnAnalogClockTimer)window.__tnAnalogClockTimer=setInterval(tick,1000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
 </script>
 
 </body>
