@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="theme-color" content="#0b1324">
     <title>دفتر المعلم | نظام إدارة الحصص والطلاب</title>
 
 
@@ -2378,7 +2378,7 @@ button:active,.bottom-nav-item:active{transform:scale(.965);transition:transform
 /* ---------- Finance ---------- */
 section[x-show="activeTab === 'finance'"] { width:100%; }
 section[x-show="activeTab === 'finance'"] > div:first-child { margin-bottom:2px; }
-section[x-show="activeTab === 'finance'] .finance-reset-grid { display:grid; }
+section[x-show="activeTab === 'finance'"] .finance-reset-grid { display:grid; }
 
 .finance-summary-grid{
     display:grid!important;
@@ -3202,7 +3202,7 @@ main textarea::placeholder{
 <body
     class="bg-slate-50 text-slate-800 antialiased font-cairo min-h-screen"
     x-data="teacherApp()"
-    x-init="init(); sidebarOpen = false"
+    x-init="init(); sidebarOpen = window.innerWidth >= 768"
 >
 
 <div class="flex min-h-screen">
@@ -4630,7 +4630,7 @@ main textarea::placeholder{
                                                 </span>
                                                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-extrabold whitespace-nowrap">
                                                     <i class="fa-solid fa-hourglass-half"></i>
-                                                    <span x-text="'لم تُفعّل: ' + calculatePendingLessonsCount(student)"></span>
+                                                    <span x-text="'لم تدفع: ' + calculatePendingLessonsCount(student)"></span>
                                                 </span>
                                             </div>
                                         </div>
@@ -6288,9 +6288,17 @@ function teacherApp() {
         },
 
         calculatePendingLessonsCount(student) {
-            /* الحصص التي لم تُنجز ولم تُعلّم كحصة فائتة/ملغاة بعد. */
-            const closedStatuses = new Set(['تم', 'لم تتم', 'ملغاة', 'ملغي', 'ملغى', 'ألغيت', 'canceled', 'cancelled']);
-            return (student?.lessons || []).filter(lesson => !closedStatuses.has(String(lesson?.status || '').trim())).length;
+            /* عدد الحصص المكتملة التي لم تغطِّها الدفعات المسجلة؛ لا تُحسب الحصص المنتظرة أو الملغاة. */
+            const completed = (student?.lessons || [])
+                .filter(lesson => String(lesson?.status || '').trim() === 'تم')
+                .map(lesson => this.calculateLessonCharge(student, lesson));
+            let credit = (student?.payments || []).reduce((sum, payment) => sum + Math.max(0, Number(payment?.amount || 0)), 0);
+            let unpaid = 0;
+            for (const charge of completed) {
+                if (credit + 0.009 >= charge) credit = Math.max(0, credit - charge);
+                else { unpaid++; credit = 0; }
+            }
+            return unpaid;
         },
 
         calculateStudentExpected(student) {
@@ -8518,114 +8526,16 @@ window.addEventListener('orientationchange', () => {
     }
   }
   function printReport(){
-    if(!selected)return;const sheet=document.getElementById('reportSheet');if(!sheet)return;const content=sheet.outerHTML;const win=window.open('','_blank');if(!win){alert('تعذر فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.');return;}
-    win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير الشامل - ${esc(nameOf(selected))}</title><style>${document.getElementById('student-reports-rebuilt-style')?.textContent||''}@page{size:A4 portrait;margin:0}html,body{margin:0;padding:0;background:#fff}.report-sheet{margin:0!important;box-shadow:none!important;width:210mm!important}.report-one-page{width:210mm!important;height:auto!important;min-height:0!important;overflow:visible!important;page-break-after:auto!important;break-after:auto!important}</style></head><body>${content}<script>window.onload=()=>setTimeout(()=>{const p=document.querySelector('.report-one-page');if(p){const maxH=1122;const h=p.scrollHeight;const sc=Math.min(1,maxH/Math.max(h,1));if(sc<1){p.style.transformOrigin='top center';p.style.transform='scale('+sc+')';p.style.width=(210/sc)+'mm';p.style.marginLeft=((210-(210/sc))/2)+'mm';}}setTimeout(()=>window.print(),250)},180);<\/script>
-<style id="floating-glass-navigation-v20">
-/* Floating glass header and dock-style bottom navigation */
-.global-clock-panel{
-  position:fixed!important;top:12px!important;left:50%!important;right:auto!important;
-  transform:translateX(-50%)!important;width:max-content!important;max-width:calc(100vw - 24px)!important;
-  min-height:62px!important;height:auto!important;padding:8px 12px!important;gap:12px!important;
-  border:1px solid rgba(255,255,255,.62)!important;border-radius:22px!important;
-  background:rgba(248,252,255,.70)!important;
-  box-shadow:0 12px 34px rgba(15,35,65,.13),inset 0 1px 0 rgba(255,255,255,.82)!important;
-  backdrop-filter:blur(24px) saturate(175%)!important;-webkit-backdrop-filter:blur(24px) saturate(175%)!important;
-}
-.global-clock-panel .app-notification-button{
-  width:46px!important;height:46px!important;flex:0 0 46px!important;border-radius:16px!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  font-size:20px!important;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(224,245,242,.78))!important;
-  border:1px solid rgba(20,184,166,.20)!important;box-shadow:0 5px 14px rgba(15,118,110,.10)!important;
-}
-.global-clock-info{padding:0 2px!important;}
-.global-clock-time{font-size:20px!important;letter-spacing:.2px!important;}
-.global-clock-day{font-size:11px!important;}
-.global-clock-date{font-size:9px!important;}
-.bottom-app-nav{
-  position:fixed!important;left:50%!important;right:auto!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;
-  transform:translateX(-50%)!important;width:max-content!important;max-width:calc(100vw - 22px)!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
-  padding:9px 10px!important;border:1px solid rgba(255,255,255,.48)!important;border-radius:27px!important;
-  background:rgba(15,27,48,.82)!important;
-  box-shadow:0 14px 38px rgba(8,18,38,.25),inset 0 1px 0 rgba(255,255,255,.12)!important;
-  backdrop-filter:blur(25px) saturate(165%)!important;-webkit-backdrop-filter:blur(25px) saturate(165%)!important;
-}
-.bottom-nav-item{
-  min-width:68px!important;flex:1 1 68px!important;max-width:92px!important;padding:7px 8px 6px!important;
-  border-radius:19px!important;color:rgba(226,232,240,.76)!important;gap:3px!important;
-  transition:background .22s ease,color .22s ease,transform .22s cubic-bezier(.2,.8,.2,1)!important;
-}
-.bottom-nav-icon{
-  width:48px!important;height:43px!important;margin:0 auto 2px!important;border-radius:16px!important;
-  font-size:24px!important;color:inherit!important;background:transparent!important;box-shadow:none!important;
-}
-.bottom-nav-label{font-size:11px!important;font-weight:800!important;line-height:1.2!important;color:inherit!important;white-space:nowrap!important;}
-.bottom-nav-item.is-active{color:#5eead4!important;background:rgba(45,212,191,.13)!important;}
-.bottom-nav-item.is-active .bottom-nav-icon{
-  color:#5eead4!important;background:linear-gradient(145deg,rgba(45,212,191,.22),rgba(59,130,246,.14))!important;
-  transform:translateY(-3px) scale(1.08)!important;box-shadow:0 7px 18px rgba(45,212,191,.17)!important;
-}
-.bottom-nav-item.is-active .bottom-nav-label{color:#99f6e4!important;transform:none!important;}
-.bottom-nav-item.is-active::after{bottom:2px!important;width:4px!important;height:4px!important;background:#5eead4!important;box-shadow:0 0 0 3px rgba(45,212,191,.13)!important;}
-.main-with-nav{padding-bottom:112px!important;}
-@media(max-width:767px){
- .global-clock-panel{top:8px!important;max-width:calc(100vw - 20px)!important;min-height:56px!important;padding:6px 9px!important;gap:9px!important;border-radius:19px!important;}
- .global-clock-panel .app-notification-button{width:41px!important;height:41px!important;flex-basis:41px!important;font-size:18px!important;border-radius:14px!important;}
- .global-clock-time{font-size:17px!important;}.global-clock-day{font-size:10px!important;}.global-clock-date{font-size:8px!important;}.global-clock-live{font-size:7px!important;}
- .bottom-app-nav{bottom:calc(8px + env(safe-area-inset-bottom))!important;max-width:calc(100vw - 16px)!important;width:calc(100vw - 24px)!important;gap:2px!important;padding:7px 6px!important;border-radius:23px!important;}
- .bottom-nav-item{min-width:0!important;flex:1 1 0!important;max-width:none!important;padding:6px 2px 5px!important;border-radius:16px!important;}
- .bottom-nav-icon{width:45px!important;height:40px!important;font-size:23px!important;border-radius:14px!important;}
- .bottom-nav-label{font-size:10px!important;}
- .main-with-nav{padding-top:76px!important;padding-bottom:105px!important;}
-}
-@media(max-width:360px){
- .bottom-app-nav{width:calc(100vw - 14px)!important;padding:6px 4px!important;gap:1px!important;}
- .bottom-nav-icon{width:40px!important;height:37px!important;font-size:21px!important;}
- .bottom-nav-label{font-size:9px!important;}
- .global-clock-panel{max-width:calc(100vw - 14px)!important;}
-}
-@media(prefers-reduced-motion:reduce){.bottom-nav-item,.bottom-nav-icon{transition:none!important;}}
-</style>
-
-
-<style id="weekly-calendar-two-column-lesson-layout-v21">
-/* Compact week rows: lessons use a two-column grid instead of a long horizontal strip. */
-.weekly-day{align-items:stretch!important;height:auto!important;min-height:0!important;}
-.weekly-day-lessons,.weekly-day-active .weekly-day-lessons,.weekly-day-today .weekly-day-lessons{
-  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  flex:1 1 0!important;width:0!important;min-width:0!important;
-  align-items:stretch!important;align-content:center!important;justify-content:stretch!important;
-  gap:6px!important;padding:7px!important;overflow:visible!important;
-}
-.weekly-lesson{
-  display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;
-  width:100%!important;min-width:0!important;max-width:none!important;
-  flex:none!important;gap:5px!important;padding:6px 7px!important;
-  box-sizing:border-box!important;
-}
-.weekly-lesson-time{flex:0 0 auto!important;white-space:nowrap!important;font-size:9px!important;}
-.weekly-lesson-name{flex:1 1 auto!important;min-width:0!important;width:auto!important;max-width:none!important;
-  margin:0!important;font-size:10px!important;line-height:1.35!important;
-  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
-  overflow-wrap:anywhere!important;word-break:normal!important;}
-.weekly-day-lessons>.text-center{grid-column:1/-1!important;min-width:0!important;width:100%!important;}
-@media(max-width:420px){
- .weekly-day-header{flex-basis:62px!important;width:62px!important;min-width:62px!important;max-width:62px!important;padding:5px 2px!important;}
- .weekly-day-lessons,.weekly-day-active .weekly-day-lessons,.weekly-day-today .weekly-day-lessons{gap:5px!important;padding:5px!important;}
- .weekly-lesson{gap:4px!important;padding:5px 5px!important;border-radius:8px!important;}
- .weekly-lesson-time{font-size:8px!important;}
- .weekly-lesson-name{font-size:9px!important;line-height:1.3!important;}
-}
-@media(max-width:330px){
- .weekly-day-header{flex-basis:56px!important;width:56px!important;min-width:56px!important;max-width:56px!important;}
- .weekly-day-lessons,.weekly-day-active .weekly-day-lessons,.weekly-day-today .weekly-day-lessons{gap:4px!important;padding:4px!important;}
- .weekly-lesson{gap:3px!important;padding:4px!important;}
- .weekly-lesson-time{font-size:7px!important;}
- .weekly-lesson-name{font-size:8px!important;}
-}
-</style>
-
-</body></html>`);win.document.close();
+    if(!selected) return;
+    const detail=document.getElementById('studentsReportDetailClean');
+    const sheet=document.getElementById('reportSheet');
+    if(!sheet || !detail) return;
+    detail.classList.add('open');
+    detail.setAttribute('aria-hidden','false');
+    document.body.classList.add('tn-print-student-report');
+    const cleanup=()=>{document.body.classList.remove('tn-print-student-report');window.removeEventListener('afterprint',cleanup);};
+    window.addEventListener('afterprint',cleanup,{once:true});
+    setTimeout(()=>window.print(),80);
   }
   window.openStudentReport=openDetail;window.openStudentsReportsPage=openPage;window.closeStudentsReportsPage=closePage;window.closeStudentsReportDetail=closeDetail;window.shareStudentsReportNative=share;window.printStudentsReport=printReport;
   document.addEventListener('DOMContentLoaded',()=>{document.getElementById('srSearch')?.addEventListener('input',render);document.getElementById('studentsReportDetailClean')?.addEventListener('click',e=>{if(e.target.id==='studentsReportDetailClean')closeDetail();});});
@@ -8788,7 +8698,7 @@ window.addEventListener('orientationchange', () => {
 }
 </style>
 
-\n<style id="targeted-new-features">
+<style id="targeted-new-features">
 .notification-swipe-item{position:relative;overflow:hidden;border-radius:16px;touch-action:pan-y;}
 .notification-card{cursor:pointer;transition:transform .22s ease,box-shadow .22s ease;}
 .notification-card:active{transform:scale(.985);}
@@ -8801,7 +8711,90 @@ window.addEventListener('orientationchange', () => {
 @media(max-width:767px){.app-notification-popover{right:-4px;width:280px}.app-notification-button{width:34px;height:34px;flex-basis:34px}}
 </style>
 
-<style id="nav-bars-slightly-larger">\n/* تكبير بسيط للشريط العلوي والسفلي والأيقونات والخطوط */\n.global-clock-panel{min-height:78px!important;padding:10px 12px!important;gap:11px!important;}\n.global-clock-panel .global-clock-face{width:58px!important;height:58px!important;flex-basis:58px!important;}\n.global-clock-time{font-size:18px!important;}\n.global-clock-day{font-size:12px!important;}\n.global-clock-date{font-size:10px!important;}\n.bottom-app-nav{padding-top:10px!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;}\n.bottom-nav-item{min-width:82px!important;padding:6px 11px 5px!important;}\n.bottom-nav-icon{width:46px!important;height:37px!important;font-size:20px!important;}\n.bottom-nav-label{font-size:12px!important;}\n@media (max-width:767px){\n  .global-clock-panel{min-height:56px!important;height:56px!important;padding:7px 11px!important;}\n  .global-clock-panel .global-clock-face{width:46px!important;height:46px!important;flex-basis:46px!important;}\n  .global-clock-time{font-size:15px!important;}\n  .global-clock-day{font-size:10px!important;}\n  .global-clock-date{font-size:9px!important;}\n  .bottom-app-nav{padding-top:9px!important;padding-bottom:calc(9px + env(safe-area-inset-bottom))!important;}\n  .bottom-nav-item{min-width:76px!important;padding:6px 9px 5px!important;}\n  .bottom-nav-icon{width:44px!important;height:36px!important;font-size:19px!important;}\n  .bottom-nav-label{font-size:11.5px!important;}\n}\n</style>\n\n<style id="students-lesson-archive-only-page">\n/* أرشيف الحصص: مدخل داخل صفحة الطلاب فقط */\n.students-lesson-archive-entry{display:block;}\n.students-lesson-archive-card{\n  width:100%; display:flex; align-items:center; gap:13px; text-align:right;\n  padding:15px 16px; border:1px solid #e2e8f0; border-radius:20px;\n  background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.05);\n  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:pointer;\n}\n.students-lesson-archive-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.08);border-color:#bbf7d0;}\n.students-lesson-archive-icon{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dcfce7,#ccfbf1);color:#15803d;font-size:20px;}\n.students-lesson-archive-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;}\n.students-lesson-archive-text strong{font-size:16px;font-weight:900;color:#0f172a;}\n.students-lesson-archive-text small{font-size:11px;color:#64748b;font-weight:600;}\n.students-lesson-archive-count{padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;white-space:nowrap;}\n.students-lesson-archive-arrow{color:#94a3b8;font-size:13px;}\n\n/* نافذة الأرشيف */\n.lesson-archive-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;}\n.lesson-archive-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}\n.lesson-archive-dialog{position:relative;width:min(760px,96vw);max-height:min(86vh,760px);overflow:hidden;background:#f8fafc;border-radius:26px;box-shadow:0 25px 70px rgba(15,23,42,.28);border:1px solid rgba(255,255,255,.7);}\n.lesson-archive-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#fff;border-bottom:1px solid #e2e8f0;}\n.lesson-archive-dialog-icon{width:45px;height:45px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#047857;font-size:19px;flex:0 0 45px;}\n.lesson-archive-dialog-head h3{margin:0;font-size:18px;font-weight:900;color:#0f172a;}\n.lesson-archive-dialog-head p{margin:3px 0 0;font-size:11px;color:#64748b;font-weight:700;}\n.lesson-archive-close{width:40px;height:40px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex:0 0 40px;}\n.lesson-archive-close:hover{background:#e2e8f0;color:#0f172a;}\n.lesson-archive-list{padding:12px;overflow-y:auto;max-height:calc(min(86vh,760px) - 78px);display:flex;flex-direction:column;gap:8px;}\n.lesson-archive-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 13px;}\n.lesson-archive-main{min-width:0;flex:1;}\n.lesson-archive-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}\n.lesson-archive-title-row strong{font-size:14px;font-weight:900;color:#0f172a;}\n.lesson-archive-title-row span{font-size:9px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:4px 7px;}\n.lesson-archive-title-row span i{margin-left:3px;}\n.lesson-archive-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#64748b;font-size:10px;}\n.lesson-archive-meta span{display:inline-flex;align-items:center;gap:4px;}\n.lesson-archive-meta i{color:#94a3b8;}\n.lesson-archive-meta b{font-weight:700;}\n.lesson-archive-actions{display:flex;gap:5px;flex:0 0 auto;}\n.lesson-archive-actions button{width:35px;height:35px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;}\n.lesson-archive-actions button:hover{color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}\n.lesson-archive-actions button.danger:hover{color:#e11d48;background:#fff1f2;border-color:#fecdd3;}\n.lesson-archive-empty{padding:45px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;}\n.lesson-archive-empty i{font-size:34px;color:#cbd5e1;margin-bottom:3px;}\n.lesson-archive-empty strong{font-size:14px;color:#64748b;}\n.lesson-archive-empty span{font-size:11px;}\n@media (max-width:600px){\n  .students-lesson-archive-card{padding:13px 12px;gap:10px;}\n  .students-lesson-archive-icon{width:42px;height:42px;flex-basis:42px;border-radius:13px;font-size:18px;}\n  .students-lesson-archive-text strong{font-size:14px;}\n  .students-lesson-archive-text small{font-size:9px;}\n  .students-lesson-archive-count{font-size:9px;padding:6px 8px;}\n  .lesson-archive-modal{padding:8px;}\n  .lesson-archive-dialog{width:100%;max-height:92vh;border-radius:22px;}\n  .lesson-archive-list{max-height:calc(92vh - 78px);padding:8px;}\n  .lesson-archive-row{align-items:flex-start;padding:11px;}\n  .lesson-archive-meta{gap:7px;}\n}\n</style>\n
+<style id="nav-bars-slightly-larger">
+/* تكبير بسيط للشريط العلوي والسفلي والأيقونات والخطوط */
+.global-clock-panel{min-height:78px!important;padding:10px 12px!important;gap:11px!important;}
+.global-clock-panel .global-clock-face{width:58px!important;height:58px!important;flex-basis:58px!important;}
+.global-clock-time{font-size:18px!important;}
+.global-clock-day{font-size:12px!important;}
+.global-clock-date{font-size:10px!important;}
+.bottom-app-nav{padding-top:10px!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))!important;}
+.bottom-nav-item{min-width:82px!important;padding:6px 11px 5px!important;}
+.bottom-nav-icon{width:46px!important;height:37px!important;font-size:20px!important;}
+.bottom-nav-label{font-size:12px!important;}
+@media (max-width:767px){
+  .global-clock-panel{min-height:56px!important;height:56px!important;padding:7px 11px!important;}
+  .global-clock-panel .global-clock-face{width:46px!important;height:46px!important;flex-basis:46px!important;}
+  .global-clock-time{font-size:15px!important;}
+  .global-clock-day{font-size:10px!important;}
+  .global-clock-date{font-size:9px!important;}
+  .bottom-app-nav{padding-top:9px!important;padding-bottom:calc(9px + env(safe-area-inset-bottom))!important;}
+  .bottom-nav-item{min-width:76px!important;padding:6px 9px 5px!important;}
+  .bottom-nav-icon{width:44px!important;height:36px!important;font-size:19px!important;}
+  .bottom-nav-label{font-size:11.5px!important;}
+}
+</style>
+
+<style id="students-lesson-archive-only-page">
+/* أرشيف الحصص: مدخل داخل صفحة الطلاب فقط */
+.students-lesson-archive-entry{display:block;}
+.students-lesson-archive-card{
+  width:100%; display:flex; align-items:center; gap:13px; text-align:right;
+  padding:15px 16px; border:1px solid #e2e8f0; border-radius:20px;
+  background:#fff; box-shadow:0 6px 18px rgba(15,23,42,.05);
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor:pointer;
+}
+.students-lesson-archive-card:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.08);border-color:#bbf7d0;}
+.students-lesson-archive-icon{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dcfce7,#ccfbf1);color:#15803d;font-size:20px;}
+.students-lesson-archive-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px;}
+.students-lesson-archive-text strong{font-size:16px;font-weight:900;color:#0f172a;}
+.students-lesson-archive-text small{font-size:11px;color:#64748b;font-weight:600;}
+.students-lesson-archive-count{padding:7px 10px;border-radius:999px;background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;white-space:nowrap;}
+.students-lesson-archive-arrow{color:#94a3b8;font-size:13px;}
+
+/* نافذة الأرشيف */
+.lesson-archive-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:16px;}
+.lesson-archive-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}
+.lesson-archive-dialog{position:relative;width:min(760px,96vw);max-height:min(86vh,760px);overflow:hidden;background:#f8fafc;border-radius:26px;box-shadow:0 25px 70px rgba(15,23,42,.28);border:1px solid rgba(255,255,255,.7);}
+.lesson-archive-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#fff;border-bottom:1px solid #e2e8f0;}
+.lesson-archive-dialog-icon{width:45px;height:45px;border-radius:15px;display:flex;align-items:center;justify-content:center;background:#ecfdf5;color:#047857;font-size:19px;flex:0 0 45px;}
+.lesson-archive-dialog-head h3{margin:0;font-size:18px;font-weight:900;color:#0f172a;}
+.lesson-archive-dialog-head p{margin:3px 0 0;font-size:11px;color:#64748b;font-weight:700;}
+.lesson-archive-close{width:40px;height:40px;border:0;border-radius:13px;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;flex:0 0 40px;}
+.lesson-archive-close:hover{background:#e2e8f0;color:#0f172a;}
+.lesson-archive-list{padding:12px;overflow-y:auto;max-height:calc(min(86vh,760px) - 78px);display:flex;flex-direction:column;gap:8px;}
+.lesson-archive-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 13px;}
+.lesson-archive-main{min-width:0;flex:1;}
+.lesson-archive-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.lesson-archive-title-row strong{font-size:14px;font-weight:900;color:#0f172a;}
+.lesson-archive-title-row span{font-size:9px;font-weight:800;color:#047857;background:#ecfdf5;border-radius:999px;padding:4px 7px;}
+.lesson-archive-title-row span i{margin-left:3px;}
+.lesson-archive-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px;color:#64748b;font-size:10px;}
+.lesson-archive-meta span{display:inline-flex;align-items:center;gap:4px;}
+.lesson-archive-meta i{color:#94a3b8;}
+.lesson-archive-meta b{font-weight:700;}
+.lesson-archive-actions{display:flex;gap:5px;flex:0 0 auto;}
+.lesson-archive-actions button{width:35px;height:35px;border:1px solid #e2e8f0;border-radius:11px;background:#fff;color:#64748b;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.lesson-archive-actions button:hover{color:#2563eb;background:#eff6ff;border-color:#bfdbfe;}
+.lesson-archive-actions button.danger:hover{color:#e11d48;background:#fff1f2;border-color:#fecdd3;}
+.lesson-archive-empty{padding:45px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:#94a3b8;}
+.lesson-archive-empty i{font-size:34px;color:#cbd5e1;margin-bottom:3px;}
+.lesson-archive-empty strong{font-size:14px;color:#64748b;}
+.lesson-archive-empty span{font-size:11px;}
+@media (max-width:600px){
+  .students-lesson-archive-card{padding:13px 12px;gap:10px;}
+  .students-lesson-archive-icon{width:42px;height:42px;flex-basis:42px;border-radius:13px;font-size:18px;}
+  .students-lesson-archive-text strong{font-size:14px;}
+  .students-lesson-archive-text small{font-size:9px;}
+  .students-lesson-archive-count{font-size:9px;padding:6px 8px;}
+  .lesson-archive-modal{padding:8px;}
+  .lesson-archive-dialog{width:100%;max-height:92vh;border-radius:22px;}
+  .lesson-archive-list{max-height:calc(92vh - 78px);padding:8px;}
+  .lesson-archive-row{align-items:flex-start;padding:11px;}
+  .lesson-archive-meta{gap:7px;}
+}
+</style>
+
 <style id="weekly-calendar-compact-colorful-v17">
 /* Clear, colorful week rows with compact horizontal lesson chips */
 .weekly-days.week-swipe-next{animation:weekSwipeUp .36s cubic-bezier(.22,1,.36,1)!important;}
@@ -9553,8 +9546,422 @@ main,.main-with-nav{background:transparent!important;color:var(--tn-ink)!importa
 @media(max-width:380px){:root{--tn-header-clearance:84px}.global-clock-panel{width:calc(100% - 16px)!important;gap:5px!important;padding-left:7px!important;padding-right:7px!important}.global-clock-panel .global-clock-face{width:41px!important;height:41px!important;min-width:41px!important;flex-basis:41px!important}.global-clock-panel .global-clock-time{font-size:12px!important;padding:4px 6px!important}}
 </style>
 <script id="tn-analog-clock-tick-v3">
-(function(){function tick(){var root=document.querySelector('.global-clock-panel');if(!root)return;var h=root.querySelector('.clock-hour'),m=root.querySelector('.clock-minute'),s=root.querySelector('.clock-second');if(!h||!m||!s)return;var d=new Date(),sec=d.getSeconds(),min=d.getMinutes(),hour=d.getHours()%12;h.style.transform='rotate('+(hour*30+min*.5)+'deg)';m.style.transform='rotate('+(min*6+sec*.1)+'deg)';s.style.transform='rotate('+(sec*6)+'deg')}function start(){tick();if(!window.__tnAnalogClockTimer)window.__tnAnalogClockTimer=setInterval(tick,1000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
+(function(){function tick(){var root=document.querySelector('.global-clock-panel');if(!root)return;var h=root.querySelector('.clock-hour'),m=root.querySelector('.clock-minute'),s=root.querySelector('.clock-second');if(!h||!m||!s)return;var d=new Date(),sec=d.getSeconds(),min=d.getMinutes(),hour=d.getHours()%12;h.style.transform='rotate('+(hour*30+min*.5)+'deg)';m.style.transform='rotate('+(min*6+sec*.1)+'deg)';s.style.transform='rotate('+(sec*6)+'deg)'}function start(){tick();if(!window.__tnAnalogClockTimer)window.__tnAnalogClockTimer=setInterval(tick,1000)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()})();
 </script>
 
+
+<style id="tn-analog-clock-operational-fix">
+.global-clock-panel .global-clock-face{position:relative!important;display:block!important;flex-shrink:0!important;isolation:isolate!important;}
+.global-clock-panel .clock-hour,.global-clock-panel .clock-minute,.global-clock-panel .clock-second{display:block!important;position:absolute!important;left:50%!important;bottom:50%!important;transform-origin:50% 100%!important;border-radius:99px!important;pointer-events:none!important;}
+.global-clock-panel .clock-hour{height:17px!important;width:3px!important;margin-left:-1.5px!important;background:#172b46!important;z-index:3!important;}
+.global-clock-panel .clock-minute{height:22px!important;width:2px!important;margin-left:-1px!important;background:#087f8c!important;z-index:4!important;}
+.global-clock-panel .clock-second{height:24px!important;width:1.5px!important;margin-left:-.75px!important;background:#ed5364!important;z-index:5!important;}
+.global-clock-panel .clock-center{display:block!important;position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:6px!important;height:6px!important;border-radius:50%!important;background:#ed5364!important;z-index:6!important;}
+</style>
+<script id="tn-analog-clock-operational-js">
+(function(){
+ function updateAnalogClock(){
+  var panels=document.querySelectorAll('.global-clock-panel');
+  panels.forEach(function(root){
+   var h=root.querySelector('.global-clock-face .clock-hour'),m=root.querySelector('.global-clock-face .clock-minute'),s=root.querySelector('.global-clock-face .clock-second');
+   if(!h||!m||!s)return;
+   var d=new Date(),sec=d.getSeconds(),min=d.getMinutes(),hour=d.getHours()%12;
+   h.style.setProperty('transform','rotate('+(hour*30+min*.5)+'deg)','important');
+   m.style.setProperty('transform','rotate('+(min*6+sec*.1)+'deg)','important');
+   s.style.setProperty('transform','rotate('+(sec*6)+'deg)','important');
+  });
+ }
+ function init(){updateAnalogClock();if(window.__tnAnalogClockOperationalTimer)clearInterval(window.__tnAnalogClockOperationalTimer);window.__tnAnalogClockOperationalTimer=setInterval(updateAnalogClock,1000);}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+ window.addEventListener('pageshow',updateAnalogClock);document.addEventListener('visibilitychange',function(){if(!document.hidden)updateAnalogClock();});
+})();
+</script>
+
+<style id="tn-user-redesign-2026">
+/* Updated application identity: calm navy, teal accents, compact navigation */
+:root{--tn-navy:#142b46;--tn-blue:#2878d7;--tn-teal:#12a99b;--tn-line:#e2eaf2;--tn-soft:#f4f8fc;--tn-header-clearance:132px}
+/* Keep the clock independent from the top bar and enlarge it at the top-left */
+.global-clock-panel{position:fixed!important;top:14px!important;left:14px!important;right:auto!important;z-index:100!important;width:auto!important;min-width:0!important;min-height:0!important;padding:0!important;gap:0!important;display:block!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.global-clock-panel .global-clock-info{display:none!important}
+.global-clock-panel .tn-external-clock-wrap{width:112px!important;height:112px!important;min-width:112px!important;flex:0 0 112px!important;border-radius:50%!important;overflow:hidden!important;background:#fff!important;border:3px solid #fff!important;box-shadow:0 8px 24px rgba(20,43,70,.22)!important;display:block!important;position:relative!important}
+.global-clock-panel .tn-external-clock-wrap iframe{width:220px!important;height:220px!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%) scale(.51)!important;transform-origin:center!important;max-width:none!important;border:0!important;position:absolute!important}
+.global-clock-panel .global-clock-face{display:none!important}
+/* A clean, consistent top navigation/header */
+.top-app-bar,.app-top-bar,.main-topbar,.topbar{border-bottom:1px solid rgba(219,230,241,.9)!important;box-shadow:0 5px 20px rgba(20,43,70,.055)!important}
+/* Reduce gaps between top navigation controls without changing their actions */
+.top-app-bar button,.app-top-bar button,.main-topbar button,.topbar button{margin-inline:2px!important;gap:5px!important}
+/* Compact, premium bottom navigation */
+.bottom-app-nav{left:12px!important;right:12px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;padding:6px 5px calc(6px + env(safe-area-inset-bottom))!important;border:1px solid rgba(220,231,242,.95)!important;border-radius:20px!important;background:rgba(255,255,255,.94)!important;box-shadow:0 9px 28px rgba(20,43,70,.14)!important;gap:2px!important}
+.bottom-nav-item{min-width:0!important;padding:5px 4px 4px!important;border-radius:13px!important;gap:3px!important}
+.bottom-nav-icon{width:30px!important;height:28px!important;border-radius:9px!important}
+.bottom-nav-label{font-size:10px!important;line-height:1.1!important}
+/* Prevent content from sliding underneath the larger clock */
+.main-with-nav{padding-top:138px!important}
+/* Reports overlay remains above app navigation and fills the viewport */
+#studentsReportsPage{z-index:150!important}
+#studentsReportsPage.open{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+#studentsReportsPage .sr2-shell{max-height:calc(100dvh - 24px)!important;overflow-y:auto!important}
+#studentsReportDetailClean{z-index:170!important}
+#studentsReportDetailClean[aria-hidden="false"]{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+@media(max-width:767px){
+ .global-clock-panel{top:9px!important;left:9px!important}
+ .global-clock-panel .tn-external-clock-wrap{width:88px!important;height:88px!important;min-width:88px!important;flex-basis:88px!important}
+ .global-clock-panel .tn-external-clock-wrap iframe{width:220px!important;height:220px!important;transform:translate(-50%,-50%) scale(.40)!important}
+ .main-with-nav{padding-top:112px!important}
+ .bottom-app-nav{left:7px!important;right:7px!important;padding:5px 3px calc(5px + env(safe-area-inset-bottom))!important;border-radius:17px!important}
+ .bottom-nav-item{padding:4px 2px 3px!important}
+ .bottom-nav-icon{width:27px!important;height:25px!important}
+ .bottom-nav-label{font-size:9px!important}
+}
+@media(max-width:380px){.global-clock-panel .tn-external-clock-wrap{width:76px!important;height:76px!important;min-width:76px!important;flex-basis:76px!important}.global-clock-panel .tn-external-clock-wrap iframe{transform:translate(-50%,-50%) scale(.35)!important}.main-with-nav{padding-top:98px!important}}
+</style>
+<script id="tn-clock-and-reports-safety-2026">
+(function(){
+ function ensureReports(){
+  var btn=document.getElementById('studentsReportsButton');
+  if(btn&&!btn.dataset.tnReportsBound){
+   btn.dataset.tnReportsBound='1';
+   btn.addEventListener('click',function(){
+    setTimeout(function(){
+     var page=document.getElementById('studentsReportsPage');
+     if(page){page.classList.add('open');page.setAttribute('aria-hidden','false');}
+     if(typeof window.openStudentsReportsPage==='function'){
+      try{window.openStudentsReportsPage();}
+      catch(e){console.error('تعذر فتح تقارير الطلاب',e);}
+     }
+    },0);
+   });
+  }
+ }
+ function init(){ensureReports();}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+ new MutationObserver(ensureReports).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
+
+<style id="teacher-notebook-midnight-glass-redesign-2026">
+/* ============================================================
+   Teacher Notebook — Midnight Glass redesign
+   Visual layer only: all Alpine state, handlers, and data stay intact.
+   Inspired by the supplied dark dashboard / floating dock references.
+============================================================ */
+:root{
+  --tn-bg:#0b1324;
+  --tn-bg2:#111d33;
+  --tn-panel:#172640;
+  --tn-panel-2:#1d2d49;
+  --tn-panel-3:#243652;
+  --tn-ink:#f3f6fd;
+  --tn-muted:#a6b5cc;
+  --tn-faint:#7f91ac;
+  --tn-line:rgba(183,202,232,.16);
+  --tn-blue:#4b8cff;
+  --tn-cyan:#45d1d0;
+  --tn-yellow:#f6cf58;
+  --tn-green:#43d6a0;
+  --tn-red:#ff7c8d;
+  --tn-header-clearance:142px;
+  color-scheme:dark;
+}
+html,body{min-height:100%;width:100%;max-width:100%;overflow-x:hidden!important;background:var(--tn-bg)!important;color:var(--tn-ink)!important}
+body{font-family:'Tajawal','Cairo',Tahoma,Arial,sans-serif!important;background:radial-gradient(ellipse at 8% 0%,rgba(57,117,227,.18),transparent 34%),radial-gradient(ellipse at 95% 18%,rgba(38,190,191,.11),transparent 33%),linear-gradient(145deg,#0a1120 0%,#101a2d 48%,#111b30 100%)!important;background-attachment:fixed!important}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 70% 78%,rgba(91,76,190,.08),transparent 36%)}
+body>.flex.min-h-screen{min-height:100vh!important;width:100%!important;max-width:100%!important;overflow:clip;gap:0!important;background:transparent!important}
+.main-with-nav{min-width:0!important;background:transparent!important;color:var(--tn-ink)!important;padding-top:142px!important;padding-bottom:34px!important}
+.main-with-nav>.p-4.md\:p-8{max-width:1480px!important;padding:22px clamp(14px,2.4vw,34px) 34px!important;gap:22px!important}
+.main-with-nav h1,.main-with-nav h2,.main-with-nav h3,.main-with-nav h4,.main-with-nav h5,.main-with-nav strong{color:var(--tn-ink)!important}
+.main-with-nav p,.main-with-nav label,.main-with-nav .text-slate-700,.main-with-nav .text-slate-600,.main-with-nav .text-gray-700,.main-with-nav .text-gray-600{color:#bdc9dc!important}
+.main-with-nav .text-slate-900,.main-with-nav .text-slate-800,.main-with-nav .text-gray-900,.main-with-nav .text-gray-800{color:var(--tn-ink)!important}
+.main-with-nav .text-slate-500,.main-with-nav .text-slate-400,.main-with-nav .text-gray-500,.main-with-nav .text-gray-400{color:var(--tn-muted)!important}
+.main-with-nav .border-slate-100,.main-with-nav .border-slate-200,.main-with-nav .border-gray-100,.main-with-nav .border-gray-200{border-color:var(--tn-line)!important}
+.main-with-nav [class~="bg-slate-50"],.main-with-nav [class~="bg-slate-100"],.main-with-nav [class~="bg-gray-50"],.main-with-nav [class~="bg-gray-100"]{background-color:rgba(255,255,255,.045)!important}
+.main-with-nav .divide-slate-100>*+*,.main-with-nav .divide-slate-200>*+*{border-color:var(--tn-line)!important}
+
+/* Desktop sidebar */
+.app-sidebar{width:248px!important;flex:0 0 248px!important;padding:19px 15px!important;background:linear-gradient(180deg,rgba(22,39,66,.98),rgba(12,22,39,.99))!important;border-left:1px solid rgba(174,198,230,.13)!important;box-shadow:-12px 0 38px rgba(0,0,0,.14)!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important}
+.app-sidebar>div:first-child>div:first-child{padding:11px 8px 21px!important;margin-bottom:22px!important;border-color:var(--tn-line)!important;gap:11px!important}
+.app-sidebar>div:first-child>div:first-child>div:first-child{border-radius:15px!important;background:linear-gradient(140deg,#4389ff,#16b8c1)!important;box-shadow:0 8px 21px rgba(54,132,255,.28)!important;color:white!important}
+.app-sidebar h1{color:#f7faff!important;font-size:18px!important;letter-spacing:-.2px}
+.app-sidebar nav{display:flex!important;flex-direction:column!important;gap:6px!important}
+.app-sidebar nav button{min-height:47px!important;padding:10px 13px!important;border:1px solid transparent!important;border-radius:15px!important;color:#aebcd2!important;background:transparent!important;font-size:13px!important;transition:background .2s ease,border-color .2s ease,transform .2s ease!important}
+.app-sidebar nav button:hover{color:#f8fbff!important;background:rgba(255,255,255,.055)!important;border-color:var(--tn-line)!important;transform:translateX(-2px)}
+.app-sidebar nav button[class*="bg-brand-600"]{background:linear-gradient(125deg,rgba(59,130,246,.96),rgba(21,170,190,.84))!important;color:#fff!important;box-shadow:0 8px 20px rgba(48,126,235,.2)!important;border-color:rgba(190,225,255,.18)!important}
+.app-sidebar nav button i{font-size:15px!important}
+.app-sidebar>button:last-child{background:rgba(255,255,255,.055)!important;border:1px solid var(--tn-line)!important;border-radius:17px!important;color:var(--tn-ink)!important;margin-top:20px!important}
+.app-sidebar>button:last-child:hover{background:rgba(255,255,255,.09)!important}
+
+/* Floating analog clock, isolated from navigation */
+.global-clock-panel{position:fixed!important;top:max(13px,env(safe-area-inset-top))!important;left:15px!important;right:auto!important;transform:none!important;z-index:105!important;width:auto!important;min-width:0!important;min-height:0!important;padding:0!important;display:block!important;background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;overflow:visible!important}
+.global-clock-panel .global-clock-info{display:none!important}
+.global-clock-panel .tn-external-clock-wrap{width:118px!important;height:118px!important;min-width:118px!important;flex:0 0 118px!important;border-radius:50%!important;overflow:hidden!important;background:#f8fbff!important;border:3px solid rgba(230,241,255,.95)!important;box-shadow:0 10px 28px rgba(0,0,0,.32),0 0 0 5px rgba(97,139,206,.1)!important;display:block!important;position:relative!important}
+.global-clock-panel .tn-external-clock-wrap iframe{width:230px!important;height:230px!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%) scale(.52)!important;transform-origin:center!important;max-width:none!important;border:0!important;position:absolute!important;background:#fff!important}
+.global-clock-panel .global-clock-face{display:none!important}
+.app-notification-button{border-radius:13px!important}
+
+/* Welcome / section headings */
+.main-with-nav>div>section:first-child>div:first-child{position:relative!important;isolation:isolate!important;overflow:hidden!important;padding:20px 22px!important;border:1px solid rgba(177,205,244,.18)!important;border-radius:25px!important;background:linear-gradient(118deg,rgba(28,48,79,.98),rgba(27,48,79,.84) 58%,rgba(25,93,111,.56))!important;box-shadow:0 15px 36px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.06)!important}
+.main-with-nav>div>section:first-child>div:first-child:after{content:"";position:absolute;z-index:-1;left:-24px;top:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(69,209,208,.17),transparent 70%);pointer-events:none}
+.main-with-nav>div>section:first-child>div:first-child h1,.main-with-nav>div>section:first-child>div:first-child h2{color:#f5f8ff!important;font-size:clamp(20px,2vw,28px)!important;font-weight:900!important;letter-spacing:-.35px}
+.main-with-nav>div>section:not(:first-child) h2{font-weight:900!important;letter-spacing:-.2px}
+.main-with-nav section{min-width:0}
+
+/* Shared cards / controls — visually unified, but no structure or handlers changed */
+.main-with-nav .bg-white.rounded-2xl,.main-with-nav .bg-white.rounded-3xl,.main-with-nav .bg-white.shadow-sm,.main-with-nav .bg-white\/90.rounded-2xl,.main-with-nav .bg-white\/80.rounded-2xl{color:var(--tn-ink)!important;background:linear-gradient(145deg,rgba(27,44,72,.96),rgba(19,32,54,.96))!important;border:1px solid var(--tn-line)!important;border-radius:22px!important;box-shadow:0 12px 30px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.035)!important}
+.main-with-nav .rounded-2xl.border.border-slate-100,.main-with-nav .rounded-3xl.border.border-slate-100{border-color:var(--tn-line)!important}
+.main-with-nav .shadow-sm{box-shadow:0 12px 30px rgba(0,0,0,.13)!important}
+.main-with-nav .rounded-xl{border-radius:15px!important}
+.main-with-nav .rounded-2xl{border-radius:21px!important}
+.main-with-nav .rounded-3xl{border-radius:25px!important}
+.main-with-nav input:not([type="checkbox"]):not([type="radio"]),.main-with-nav select,.main-with-nav textarea{background:rgba(247,250,255,.97)!important;color:#15233b!important;border:1px solid #c8d5e7!important;border-radius:13px!important;box-shadow:inset 0 1px 2px rgba(20,40,75,.04)!important;outline-offset:2px}
+.main-with-nav input::placeholder,.main-with-nav textarea::placeholder{color:#73839d!important}
+.main-with-nav input:focus,.main-with-nav select:focus,.main-with-nav textarea:focus{border-color:#61b6ee!important;box-shadow:0 0 0 3px rgba(66,171,234,.16)!important}
+.main-with-nav input[type="checkbox"],.main-with-nav input[type="radio"]{accent-color:var(--tn-cyan)!important}
+.main-with-nav button{transition:transform .18s ease,filter .18s ease,box-shadow .18s ease!important}
+.main-with-nav button:active{transform:scale(.985)}
+.main-with-nav button[class*="bg-brand-600"],.main-with-nav button[class*="bg-blue-600"],.main-with-nav button[class*="bg-blue-500"]{background:linear-gradient(125deg,#4b8cff,#2b75e9 60%,#20b4c5)!important;border:1px solid rgba(195,224,255,.18)!important;color:#fff!important;box-shadow:0 7px 18px rgba(51,119,231,.24)!important}
+.main-with-nav button[class*="bg-emerald-600"],.main-with-nav button[class*="bg-green-600"]{background:linear-gradient(125deg,#29b985,#158c83)!important;color:#fff!important}
+.main-with-nav button[class*="bg-rose-"],.main-with-nav button[class*="bg-red-"]{border-color:rgba(255,125,145,.18)!important}
+.main-with-nav table{width:100%;border-collapse:separate!important;border-spacing:0!important;color:#edf4ff!important;overflow:hidden!important}
+.main-with-nav thead th{background:rgba(115,147,192,.13)!important;color:#bac9e0!important;border-color:var(--tn-line)!important;font-weight:850!important}
+.main-with-nav tbody tr{background:transparent!important;transition:background .18s ease}
+.main-with-nav tbody tr:hover{background:rgba(255,255,255,.035)!important}
+.main-with-nav td,.main-with-nav th{border-color:var(--tn-line)!important}
+.main-with-nav hr{border-color:var(--tn-line)!important}
+
+/* Dashboard cards borrow the reference's navy, cyan and amber accents */
+.dashboard-overview-row{gap:12px!important}
+.dashboard-overview-row>*{min-width:0!important;border-radius:22px!important;border:1px solid var(--tn-line)!important;background:linear-gradient(145deg,rgba(31,50,81,.96),rgba(20,34,58,.97))!important;box-shadow:0 12px 26px rgba(0,0,0,.14)!important;color:#f4f7ff!important}
+.dashboard-overview-row .dashboard-next-lesson{background:linear-gradient(123deg,#1d3e70,#2456ad 63%,#146a79)!important;border-color:rgba(119,189,255,.32)!important;box-shadow:0 12px 28px rgba(17,83,166,.2)!important}
+.dashboard-overview-row .dashboard-next-lesson h3,.dashboard-overview-row .dashboard-next-lesson p,.dashboard-overview-row .dashboard-next-lesson span,.dashboard-overview-row .dashboard-next-lesson .text-slate-400,.dashboard-overview-row .dashboard-next-lesson .text-slate-300{color:#f2f7ff!important}
+.dashboard-mini-card{border-radius:21px!important}
+.main-with-nav .text-brand-600,.main-with-nav .text-blue-600,.main-with-nav .text-blue-700{color:#7fb5ff!important}
+.main-with-nav .text-emerald-600,.main-with-nav .text-green-600{color:#56d7ad!important}
+.main-with-nav .text-amber-500,.main-with-nav .text-yellow-500{color:var(--tn-yellow)!important}
+.main-with-nav .bg-brand-50,.main-with-nav .bg-blue-50,.main-with-nav .bg-emerald-50,.main-with-nav .bg-amber-50{background:rgba(255,255,255,.07)!important}
+
+/* Month calendar: clear cells, slim separators, strong today state */
+.month-calendar-card{background:linear-gradient(145deg,rgba(26,43,70,.98),rgba(18,30,51,.98))!important;border:1px solid var(--tn-line)!important;border-radius:24px!important;box-shadow:0 14px 34px rgba(0,0,0,.15)!important;overflow:hidden!important}
+.month-calendar-titlebar{background:transparent!important;border-bottom:1px solid var(--tn-line)!important}
+.month-calendar-titlebar h3{color:var(--tn-cyan)!important;font-size:11px!important;letter-spacing:.07em!important}
+.month-calendar-titlebar p{color:#f4f7ff!important;font-weight:900!important}
+.month-calendar-card .month-calendar{background:transparent!important;border-color:var(--tn-line)!important;gap:3px!important}
+.month-calendar-card .month-calendar-cell{color:#edf4ff!important;background:rgba(255,255,255,.035)!important;border-color:rgba(183,202,232,.11)!important;border-radius:12px!important;min-width:0!important}
+.month-calendar-card .month-calendar-cell.outside{background:rgba(255,255,255,.015)!important;color:#65758f!important}
+.month-calendar-card .month-calendar-cell.has-lessons{background:linear-gradient(160deg,rgba(52,125,191,.24),rgba(28,82,118,.18))!important;border-color:rgba(79,174,222,.26)!important}
+.month-calendar-card .month-calendar-cell.today{background:linear-gradient(145deg,rgba(246,207,88,.18),rgba(41,105,171,.2))!important;box-shadow:inset 0 0 0 2px var(--tn-yellow),0 0 15px rgba(246,207,88,.07)!important}
+.month-calendar-card .month-calendar-cell.today .month-day-number{background:linear-gradient(135deg,#f6d66e,#f0ad38)!important;color:#202b41!important;border-radius:10px!important;font-weight:950!important}
+.month-calendar-card .month-calendar-cell .text-slate-500,.month-calendar-card .month-calendar-cell .text-slate-600{color:#c0cee2!important}
+.month-calendar-card .month-calendar-cell .bg-blue-500,.month-calendar-card .month-calendar-cell .bg-brand-600{box-shadow:0 3px 9px rgba(0,0,0,.14)!important}
+
+/* Floating bottom dock on touch / narrow layouts */
+.bottom-app-nav{position:fixed!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;bottom:max(10px,env(safe-area-inset-bottom))!important;width:min(650px,calc(100% - 24px))!important;max-width:650px!important;padding:8px 9px calc(8px + env(safe-area-inset-bottom))!important;display:flex!important;justify-content:space-around!important;gap:3px!important;overflow:hidden!important;border:1px solid rgba(191,211,242,.17)!important;border-radius:24px!important;background:linear-gradient(125deg,rgba(24,41,69,.94),rgba(15,28,48,.96) 65%,rgba(15,60,74,.94))!important;box-shadow:0 16px 38px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(24px) saturate(135%)!important;-webkit-backdrop-filter:blur(24px) saturate(135%)!important;z-index:80!important}
+.bottom-nav-item{flex:1 1 0!important;min-width:0!important;max-width:none!important;gap:4px!important;padding:5px 4px 4px!important;border-radius:16px!important;color:#9eafc8!important;background:transparent!important;font-weight:800!important}
+.bottom-nav-item:hover{color:#f7f9ff!important;background:rgba(255,255,255,.055)!important}
+.bottom-nav-icon{width:34px!important;height:30px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:11px!important;background:transparent!important;color:inherit!important;font-size:16px!important;transition:all .18s ease!important}
+.bottom-nav-label{font-size:10px!important;font-weight:800!important;line-height:1.2!important;color:inherit!important;white-space:nowrap!important}
+.bottom-nav-item.is-active{color:#fff!important;background:rgba(255,255,255,.075)!important}
+.bottom-nav-item.is-active .bottom-nav-icon{background:linear-gradient(135deg,#f5d568,#dba53a)!important;color:#1b2c47!important;box-shadow:0 5px 15px rgba(232,186,64,.23)!important}
+.bottom-nav-item.is-active .bottom-nav-label{color:#f8db79!important;font-weight:950!important}
+.bottom-nav-item.nav-pulse .bottom-nav-icon{animation:tnDockPulse .42s ease}
+@keyframes tnDockPulse{0%{transform:scale(.88)}65%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+/* Reports overlay and detail: align with the new app identity */
+#studentsReportsPage{position:fixed!important;inset:0!important;z-index:150!important;padding:18px!important;background:rgba(5,10,20,.76)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+#studentsReportsPage.open{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+#studentsReportsPage .sr2-shell{max-width:1080px!important;max-height:calc(100dvh - 36px)!important;margin:0 auto!important;overflow:auto!important;background:linear-gradient(145deg,#1b2c48,#111d32)!important;border:1px solid rgba(183,202,232,.18)!important;border-radius:26px!important;box-shadow:0 28px 90px rgba(0,0,0,.45)!important;color:#f3f6fd!important}
+#studentsReportsPage .sr2-head{background:linear-gradient(120deg,rgba(36,62,103,.96),rgba(20,73,87,.86))!important;border-color:var(--tn-line)!important;color:#f3f6fd!important}
+#studentsReportsPage .sr2-head h2,#studentsReportsPage .sr2-title h2{color:#f5f8ff!important}
+#studentsReportsPage .sr2-head p,#studentsReportsPage .sr2-title p{color:#c0cde0!important}
+#studentsReportsPage .sr2-search{background:#f4f8ff!important;color:#17243a!important;border:1px solid #c9d5e5!important;border-radius:13px!important}
+#studentsReportsPage .sr2-list{background:transparent!important;padding:16px!important}
+#studentsReportsPage .sr2-list>*{border-color:var(--tn-line)!important}
+#studentsReportDetailClean{z-index:170!important;background:rgba(5,10,20,.82)!important;backdrop-filter:blur(17px)!important;-webkit-backdrop-filter:blur(17px)!important}
+#studentsReportDetailClean[aria-hidden="false"]{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+#studentsReportDetailClean .sr2-detail{background:linear-gradient(145deg,#1b2c48,#111d32)!important;border:1px solid rgba(183,202,232,.18)!important;border-radius:25px!important;color:#edf4ff!important;box-shadow:0 28px 90px rgba(0,0,0,.5)!important}
+#studentsReportDetailClean .sr2-detail-head{background:linear-gradient(120deg,rgba(36,62,103,.96),rgba(20,73,87,.86))!important;border-color:var(--tn-line)!important}
+#studentsReportDetailClean .sr2-detail-head h2{color:#fff!important}
+#studentsReportDetailClean .sr2-body{color:#eaf1fb!important}
+
+/* Report index cards are dark glass; the printable A4 report remains intentionally white. */
+#studentsReportsPage .sr2-card{background:linear-gradient(145deg,#233754,#182842)!important;border:1px solid rgba(183,202,232,.15)!important;border-radius:18px!important;box-shadow:0 10px 26px rgba(0,0,0,.17)!important;color:#eef4ff!important}
+#studentsReportsPage .sr2-card:hover{border-color:rgba(98,169,255,.62)!important;background:linear-gradient(145deg,#294365,#1a304c)!important}
+#studentsReportsPage .sr2-name{color:#f3f7ff!important}
+#studentsReportsPage .sr2-meta{color:#a9bad2!important}
+#studentsReportsPage .sr2-avatar{background:linear-gradient(135deg,#83c8ff,#f4d778)!important;color:#193052!important}
+#studentsReportsPage .sr2-card-share{background:rgba(90,145,213,.19)!important;color:#b8e6ff!important;border:1px solid rgba(184,219,255,.13)!important}
+#studentsReportsPage .sr2-back{background:rgba(255,255,255,.09)!important;color:#f3f7ff!important;border:1px solid var(--tn-line)!important}
+#studentsReportsPage .sr2-share{background:linear-gradient(125deg,#4b8cff,#1eaebc)!important;color:#fff!important}
+#studentsReportsPage .sr2-print{background:linear-gradient(125deg,#f6d568,#dcaa40)!important;color:#1c2c45!important}
+#studentsReportDetailClean .sr2-close{background:rgba(255,255,255,.09)!important;color:#f2f6ff!important;border:1px solid var(--tn-line)!important}
+
+/* Modal surfaces, popups, selects, and finance report controls */
+.main-with-nav .fixed.inset-0 .bg-white,.main-with-nav .fixed.inset-0 .rounded-2xl.bg-white,.main-with-nav .fixed.inset-0 .rounded-3xl.bg-white{background:linear-gradient(145deg,#1b2b47,#121f35)!important;color:#edf4ff!important;border-color:var(--tn-line)!important}
+.main-with-nav .fixed.inset-0 h2,.main-with-nav .fixed.inset-0 h3{color:#f4f7ff!important}
+.main-with-nav .fixed.inset-0 p,.main-with-nav .fixed.inset-0 label{color:#c0cde0!important}
+.finance-report-heading{background:linear-gradient(115deg,rgba(43,88,145,.55),rgba(27,54,86,.72),rgba(19,86,91,.45))!important;border-color:var(--tn-line)!important}
+.finance-report-icon{background:linear-gradient(140deg,#4b8cff,#1fbac3)!important}
+.finance-report-input{background:#f7faff!important;color:#19263a!important;border-color:#c4d1e3!important}
+.finance-report-sheet{background:#172640!important;color:#edf4ff!important;border-color:var(--tn-line)!important}
+.finance-report-sheet-title{border-color:var(--tn-line)!important}
+.finance-report-kicker{color:var(--tn-cyan)!important}
+.finance-report-metric{background:rgba(255,255,255,.055)!important;border-color:var(--tn-line)!important}
+.finance-report-metric span{color:#aabbd2!important}
+.finance-report-metric strong{color:#f4f7ff!important}
+.finance-report-footnote{border-color:var(--tn-line)!important;color:#b3c2d8!important}
+.finance-report-download{background:linear-gradient(120deg,#4b8cff,#2679e8 60%,#1bb6c4)!important}
+
+/* Scrollbars, spacing, and responsive behavior */
+*{scrollbar-width:thin;scrollbar-color:rgba(137,164,204,.38) transparent}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(137,164,204,.35);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+@media(min-width:768px){
+  .bottom-app-nav{display:none!important}
+  .main-with-nav{padding-bottom:30px!important}
+}
+@media(max-width:767px){
+  :root{--tn-header-clearance:113px}
+  .app-sidebar{display:none!important}
+  .main-with-nav{padding-top:112px!important;padding-bottom:108px!important}
+  .main-with-nav>.p-4.md\:p-8{padding:14px 11px 22px!important;gap:17px!important}
+  .main-with-nav>div>section:first-child>div:first-child{padding:15px 14px!important;border-radius:21px!important;gap:10px!important}
+  .main-with-nav>div>section:first-child>div:first-child h1,.main-with-nav>div>section:first-child>div:first-child h2{font-size:20px!important}
+  .main-with-nav .bg-white.rounded-2xl,.main-with-nav .bg-white.rounded-3xl,.main-with-nav .bg-white.shadow-sm{border-radius:19px!important}
+  .dashboard-overview-row{gap:8px!important}
+  .dashboard-overview-row>*{border-radius:17px!important}
+  .global-clock-panel{top:9px!important;left:9px!important}
+  .global-clock-panel .tn-external-clock-wrap{width:88px!important;height:88px!important;min-width:88px!important;flex-basis:88px!important}
+  .global-clock-panel .tn-external-clock-wrap iframe{width:220px!important;height:220px!important;transform:translate(-50%,-50%) scale(.40)!important}
+  .bottom-app-nav{left:8px!important;right:8px!important;width:auto!important;max-width:none!important;bottom:max(7px,env(safe-area-inset-bottom))!important;padding:6px 4px calc(6px + env(safe-area-inset-bottom))!important;border-radius:21px!important}
+  .bottom-nav-item{padding:4px 2px 3px!important;gap:3px!important}
+  .bottom-nav-icon{width:29px!important;height:27px!important;font-size:15px!important}
+  .bottom-nav-label{font-size:9px!important}
+  #studentsReportsPage{padding:8px!important}
+  #studentsReportsPage .sr2-shell{max-height:calc(100dvh - 16px)!important;border-radius:20px!important}
+}
+@media(max-width:380px){
+  .global-clock-panel .tn-external-clock-wrap{width:76px!important;height:76px!important;min-width:76px!important;flex-basis:76px!important}
+  .global-clock-panel .tn-external-clock-wrap iframe{transform:translate(-50%,-50%) scale(.35)!important}
+  .main-with-nav{padding-top:98px!important}
+  .main-with-nav>.p-4.md\:p-8{padding-left:8px!important;padding-right:8px!important}
+  .bottom-nav-label{font-size:8px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+</style>
+<style id="tn-repair-layer-20261028">
+/* Targeted repair layer: keep data, state, handlers and page structure untouched. */
+:root{--tn-navy:#172b46;--tn-ink:#f3f6fd;--tn-muted:#a9b9d1;}
+html,body{overflow-x:hidden!important;max-width:100%!important;}
+body{font-family:'Tajawal','Cairo','Segoe UI',Tahoma,Arial,sans-serif!important;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+body>.flex.min-h-screen{overflow-x:clip!important;overflow-y:visible!important;}
+
+/* Sidebar: do not reserve an empty 248px rail when collapsed. */
+.app-sidebar{box-sizing:border-box!important;position:sticky!important;top:0!important;align-self:flex-start!important;height:100vh!important;min-height:100vh!important;width:248px!important;min-width:0!important;flex:0 0 248px!important;overflow-x:hidden!important;overflow-y:auto!important;}
+.app-sidebar.collapsed{width:0!important;min-width:0!important;max-width:0!important;flex:0 0 0!important;padding-left:0!important;padding-right:0!important;border:0!important;overflow:hidden!important;}
+.app-sidebar.collapsed>*{opacity:0!important;visibility:hidden!important;pointer-events:none!important;}
+.sidebar-toggle{z-index:106!important;}
+
+/* Fully local analog clock: no third-party iframe, internet, or blank white fallback. */
+.global-clock-panel{position:fixed!important;top:max(14px,env(safe-area-inset-top))!important;left:14px!important;right:auto!important;transform:none!important;z-index:105!important;display:block!important;width:112px!important;height:112px!important;min-height:112px!important;min-width:112px!important;box-sizing:border-box!important;padding:0!important;overflow:visible!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+.global-clock-panel .global-clock-face{display:block!important;position:relative!important;isolation:isolate!important;box-sizing:border-box!important;flex:none!important;width:112px!important;height:112px!important;min-width:112px!important;min-height:112px!important;border:3px solid #b5d4f5!important;border-radius:50%!important;overflow:hidden!important;background:radial-gradient(circle at 31% 24%,#fff 0%,#f3f8ff 57%,#dce9fa 100%)!important;box-shadow:inset 0 0 0 4px #fff,0 9px 25px rgba(0,0,0,.30),0 0 0 5px rgba(105,151,218,.12)!important;}
+.global-clock-panel .clock-number{position:absolute!important;left:50%!important;top:50%!important;z-index:2!important;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-42px) rotate(calc(var(--angle)*-1))!important;font-family:'Segoe UI',Tahoma,Arial,sans-serif!important;font-size:10px!important;font-weight:900!important;line-height:1!important;color:#203d60!important;}
+.global-clock-panel .clock-hour,.global-clock-panel .clock-minute,.global-clock-panel .clock-second{display:block!important;position:absolute!important;left:50%!important;bottom:50%!important;transform-origin:50% 100%!important;border-radius:99px!important;pointer-events:none!important;}
+.global-clock-panel .clock-hour{height:28px!important;width:4px!important;margin-left:-2px!important;background:#203d60!important;z-index:3!important;}
+.global-clock-panel .clock-minute{height:37px!important;width:2.5px!important;margin-left:-1.25px!important;background:#087f8c!important;z-index:4!important;}
+.global-clock-panel .clock-second{height:42px!important;width:1.5px!important;margin-left:-.75px!important;background:#e84b68!important;z-index:5!important;}
+.global-clock-panel .clock-center{display:block!important;position:absolute!important;left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important;width:9px!important;height:9px!important;border:2px solid #fff!important;border-radius:50%!important;background:#e84b68!important;z-index:6!important;}
+.global-clock-panel .global-clock-info{display:none!important;}
+.global-clock-panel .app-notification-button{position:absolute!important;top:12px!important;left:126px!important;right:auto!important;z-index:2!important;display:flex!important;align-items:center!important;justify-content:center!important;width:42px!important;height:42px!important;min-width:42px!important;flex:0 0 42px!important;border-radius:14px!important;background:linear-gradient(135deg,#3287f5,#17b8ad)!important;color:#fff!important;border:1px solid rgba(255,255,255,.45)!important;box-shadow:0 8px 18px rgba(0,0,0,.23)!important;}
+.global-clock-panel .app-notification-button i{color:#fff!important;font-size:16px!important;}
+.global-clock-panel .app-notification-badge{top:-4px!important;left:-4px!important;}
+
+/* Improve contrast on intentionally light lesson chips and on dark today-lesson cards. */
+.main-with-nav{padding-top:142px!important;min-width:0!important;}
+.main-with-nav button,.main-with-nav input,.main-with-nav select,.main-with-nav textarea{font-family:inherit!important;}
+.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson){background:linear-gradient(145deg,#1b2e4a,#14243b)!important;border-color:rgba(132,176,229,.20)!important;color:#f1f6ff!important;}
+.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) h4,.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) strong{color:#f6f9ff!important;}
+.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) .text-slate-400,.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) .text-slate-500,.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) .text-slate-600,.main-with-nav .today-lesson-compact:not(.dashboard-next-lesson) .text-slate-700{color:#c1cee2!important;}
+.weekly-day:not(.weekly-day-today) .weekly-day-header,.weekly-day:not(.weekly-day-today) .weekly-day-header *{color:#213752!important;}
+.weekly-day .weekly-day-name,.weekly-day .weekly-day-date{font-weight:800!important;}
+.weekly-day .weekly-lesson{background:rgba(255,255,255,.97)!important;border-color:rgba(28,55,86,.12)!important;color:#233b59!important;box-shadow:0 3px 9px rgba(18,38,66,.08)!important;}
+.weekly-day .weekly-lesson-name,.weekly-day .weekly-lesson-time{color:#234765!important;font-weight:800!important;}
+.weekly-day .weekly-lesson-name *,.weekly-day .weekly-lesson-time *{color:inherit!important;}
+.main-with-nav .month-calendar-card .month-calendar-cell{color:#edf4ff!important;}
+.main-with-nav .month-calendar-card .month-calendar-cell .text-slate-500,.main-with-nav .month-calendar-card .month-calendar-cell .text-slate-600{color:#c0cee2!important;}
+
+/* Mobile floating dock: reset translateX(-50%) after applying side gutters. */
+@media(max-width:767px){
+ .app-sidebar{display:none!important;}
+ .sidebar-toggle{display:none!important;}
+ .global-clock-panel{top:max(9px,env(safe-area-inset-top))!important;left:10px!important;width:94px!important;height:94px!important;min-width:94px!important;min-height:94px!important;}
+ .global-clock-panel .global-clock-face{width:94px!important;height:94px!important;min-width:94px!important;min-height:94px!important;}
+ .global-clock-panel .clock-number{transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-35px) rotate(calc(var(--angle)*-1))!important;font-size:9px!important;}
+ .global-clock-panel .clock-hour{height:24px!important;width:3.5px!important;margin-left:-1.75px!important;}
+ .global-clock-panel .clock-minute{height:31px!important;}
+ .global-clock-panel .clock-second{height:36px!important;}
+ .global-clock-panel .app-notification-button{top:8px!important;left:106px!important;width:38px!important;height:38px!important;min-width:38px!important;flex-basis:38px!important;}
+ .main-with-nav{padding-top:122px!important;padding-bottom:108px!important;}
+ .main-with-nav>.p-4.md\:p-8{padding:14px 11px 24px!important;gap:16px!important;}
+ .bottom-app-nav{display:flex!important;position:fixed!important;left:8px!important;right:8px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;transform:none!important;width:auto!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;padding:6px 4px calc(6px + env(safe-area-inset-bottom))!important;gap:2px!important;overflow:hidden!important;border:1px solid rgba(191,211,242,.17)!important;border-radius:21px!important;background:linear-gradient(125deg,rgba(24,41,69,.97),rgba(15,28,48,.98) 65%,rgba(15,60,74,.96))!important;box-shadow:0 12px 30px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08)!important;backdrop-filter:blur(22px) saturate(135%)!important;-webkit-backdrop-filter:blur(22px) saturate(135%)!important;z-index:120!important;}
+ .bottom-nav-item{flex:1 1 0!important;min-width:0!important;max-width:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:4px 2px 3px!important;color:#aebdd3!important;border-radius:14px!important;}
+ .bottom-nav-icon{width:30px!important;height:27px!important;margin:0 auto 1px!important;border-radius:9px!important;font-size:16px!important;}
+ .bottom-nav-label{font-size:9px!important;line-height:1.15!important;white-space:nowrap!important;}
+}
+@media(max-width:380px){
+ .global-clock-panel{width:82px!important;height:82px!important;min-width:82px!important;min-height:82px!important;}
+ .global-clock-panel .global-clock-face{width:82px!important;height:82px!important;min-width:82px!important;min-height:82px!important;}
+ .global-clock-panel .clock-number{transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-30px) rotate(calc(var(--angle)*-1))!important;font-size:8px!important;}
+ .global-clock-panel .clock-hour{height:21px!important;}
+ .global-clock-panel .clock-minute{height:27px!important;}
+ .global-clock-panel .clock-second{height:31px!important;}
+ .global-clock-panel .app-notification-button{left:92px!important;width:34px!important;height:34px!important;min-width:34px!important;flex-basis:34px!important;}
+ .main-with-nav{padding-top:108px!important;}
+ .bottom-nav-label{font-size:8px!important;}
+}
+@media(min-width:768px){.bottom-app-nav{display:none!important;}}
+@media(prefers-reduced-motion:reduce){.global-clock-panel *,.bottom-app-nav *{transition:none!important;animation:none!important;}}
+</style>
+
+<style id="tn-final-user-fixes">
+/* Transparent clock container; retain the round readable dial only. */
+.global-clock-panel,.global-clock-panel::before{background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+.global-clock-panel .global-clock-face{background:radial-gradient(circle at 31% 24%,#fff 0%,#f3f8ff 57%,#dce9fa 100%)!important;border-color:rgba(181,212,245,.95)!important;box-shadow:inset 0 0 0 3px rgba(255,255,255,.92),0 5px 16px rgba(0,0,0,.16)!important;}
+.global-clock-panel .tn-external-clock-wrap{background:transparent!important;border:0!important;box-shadow:none!important;}
+#tn-gregorian-date{position:fixed!important;top:max(14px,env(safe-area-inset-top))!important;right:18px!important;z-index:110!important;max-width:calc(100vw - 150px)!important;padding:10px 15px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:15px!important;background:rgba(17,38,67,.72)!important;color:#f8fbff!important;box-shadow:0 8px 24px rgba(0,0,0,.14)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;font:800 13px/1.5 Tahoma,Arial,sans-serif!important;text-align:right!important;white-space:normal!important}
+@media(max-width:520px){#tn-gregorian-date{top:10px!important;right:10px!important;max-width:calc(100vw - 120px)!important;font-size:10px!important;padding:7px 9px!important}}
+.global-clock-panel .tn-external-clock-wrap iframe{background:transparent!important;}
+/* Chart cards and canvases inherit the app's glass background rather than white. */
+.finance-chart-wrap,.income-pie-wrap,.income-chart-wrap,.income-bar-chart-wrap,
+#incomeChart,#incomeBarChart{background:transparent!important;background-color:transparent!important;}
+.finance-chart-wrap,.income-pie-wrap,.income-bar-chart-wrap{border-color:rgba(148,190,230,.22)!important;box-shadow:0 14px 26px rgba(2,10,30,.18),inset 0 1px 0 rgba(255,255,255,.08)!important;}
+.income-chart-wrap canvas,.income-bar-chart-wrap canvas{filter:drop-shadow(0 8px 8px rgba(0,0,0,.24));}
+/* Keep the report in the current app; the print dialog no longer strands users in a popup. */
+@media print{
+  body.tn-print-student-report>*{visibility:hidden!important;}
+  body.tn-print-student-report #studentsReportDetailClean,
+  body.tn-print-student-report #studentsReportDetailClean *{visibility:visible!important;}
+  body.tn-print-student-report #studentsReportDetailClean{display:flex!important;position:absolute!important;inset:0!important;padding:0!important;margin:0!important;background:#fff!important;overflow:visible!important;z-index:999999!important;}
+  body.tn-print-student-report #studentsReportDetailClean .sr2-detail{width:210mm!important;height:auto!important;max-height:none!important;overflow:visible!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;}
+  body.tn-print-student-report #studentsReportDetailClean .sr2-detail-head{display:none!important;}
+  body.tn-print-student-report #studentsReportDetailClean .sr2-body{padding:0!important;}
+  body.tn-print-student-report .report-one-page{width:210mm!important;height:auto!important;min-height:0!important;overflow:visible!important;box-shadow:none!important;break-after:auto!important;page-break-after:auto!important;}
+}
+</style>
+<script id="tn-final-user-fixes-js">
+(function(){
+  function updateGregorianDate(){
+    const panel=document.querySelector('.global-clock-panel'); if(!panel) return;
+    let date=document.getElementById('tn-gregorian-date');
+    if(!date){date=document.createElement('div');date.id='tn-gregorian-date';date.setAttribute('dir','rtl');date.setAttribute('aria-label','التاريخ الميلادي الكامل');document.body.appendChild(date);}
+    const now=new Date();
+    date.textContent=new Intl.DateTimeFormat('ar-SA-u-ca-gregory',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now);
+  }
+  function start(){updateGregorianDate();setInterval(updateGregorianDate,60000);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  window.addEventListener('afterprint',()=>document.body.classList.remove('tn-print-student-report'));
+})();
+</script>
 </body>
 </html>
